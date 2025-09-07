@@ -1,63 +1,108 @@
-import React, {useMemo, useState, useCallback} from 'react';
-import {View, FlatList, Alert} from 'react-native';
+import React from 'react';
+import {View, Text, TextInput, FlatList, TouchableOpacity, Alert} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {useFocusEffect} from '@react-navigation/native';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import {query} from '../../db';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import Header from '../components/Header';
-import ListItem from '../components/ListItem';
-import EmptyState from '../components/EmptyState';
-import Input from '../components/Input';
 import {useThemeColors} from '../theme';
+import Header from '../components/Header';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import ApartmentCreateModal from '../components/ApartmentCreateModal';
+import {useFocusEffect} from '@react-navigation/native';
 import {deleteApartment} from '../../services/rent';
 
+type Row = { id: string; name: string; address?: string|null };
+
 export default function ApartmentsList({navigation}: NativeStackScreenProps<RootStackParamList, 'ApartmentsList'>) {
-  const [rows, setRows] = useState<Array<{id:string; name:string; address?:string}>>([]);
-  const [q, setQ] = useState('');
   const c = useThemeColors();
 
-  const reload = useCallback(() => setRows(query(`SELECT id, name, address FROM apartments ORDER BY created_at DESC`)), []);
-  useFocusEffect(useCallback(()=>{ reload(); }, [reload]));
+  const [rows, setRows] = React.useState<Row[]>([]);
+  const [q, setQ] = React.useState('');
+  const [showCreate, setShowCreate] = React.useState(false);
 
-  const filtered = useMemo(()=> {
-    const key = q.trim().toLowerCase();
-    if (!key) return rows;
-    return rows.filter(r => r.name.toLowerCase().includes(key) || (r.address||'').toLowerCase().includes(key));
+  const reload = React.useCallback(() => {
+    const list = query<Row>(`SELECT id, name, address FROM apartments ORDER BY created_at DESC`);
+    setRows(list);
+  }, []);
+
+  useFocusEffect(React.useCallback(()=>{ reload(); }, [reload]));
+
+  const filtered = React.useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (!t) return rows;
+    return rows.filter(r => r.name.toLowerCase().includes(t) || (r.address?.toLowerCase().includes(t)));
   }, [rows, q]);
 
-  function confirmDeleteApartment(id: string, name: string) {
-    Alert.alert('Xoá căn hộ', `Bạn có chắc muốn xoá "${name}"?`, [
-      {text: 'Huỷ'},
-      {text: 'Xoá', style: 'destructive', onPress: () => {
-        try { deleteApartment(id); reload(); }
-        catch(e:any){ Alert.alert('Không thể xoá', e?.message || 'Có lỗi xảy ra'); }
-      }}
-    ]);
-  }
-
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
-      <Header title="Căn hộ" right={<Button title="Cài đặt" variant="ghost" onPress={()=>navigation.navigate('Settings')} />} />
-      <Card>
-        <Input placeholder="Tìm kiếm căn hộ..." value={q} onChangeText={setQ} />
-        <Button title="Thêm căn hộ" onPress={() => navigation.navigate('ApartmentForm')} />
-        <Button title="Báo cáo" variant="ghost" onPress={() => navigation.navigate('Reports')} />
-      </Card>
+    <View style={{flex:1, backgroundColor:c.bg}}>
+      <Header
+        title="Căn hộ"
+        right={<TouchableOpacity onPress={()=> navigation.navigate('Settings')}>
+          <Text style={{color:c.text, fontSize:18}}>⚙️</Text>
+        </TouchableOpacity>}
+      />
+
+      <View style={{padding:16}}>
+        <TextInput
+          placeholder="Tìm kiếm căn hộ..."
+          placeholderTextColor={c.subtext}
+          value={q}
+          onChangeText={setQ}
+          style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10}}
+        />
+      </View>
+
       <FlatList
         data={filtered}
         keyExtractor={i=>i.id}
-        renderItem={({item}) => (
-          <ListItem
-            title={item.name}
-            subtitle={item.address}
-            onPress={()=>navigation.navigate('RoomForm', {apartmentId: item.id})}
-            right={<Button title="Xoá" variant="danger" onPress={()=>confirmDeleteApartment(item.id, item.name)} />}
-            onLongPress={()=>confirmDeleteApartment(item.id, item.name)}
-          />
+        contentContainerStyle={{paddingHorizontal:16, paddingBottom:96}}
+        ListEmptyComponent={
+          <View style={{paddingHorizontal:16}}>
+            <Card><Text style={{color:c.subtext}}>Chưa có căn hộ nào. Nhấn nút + để thêm.</Text></Card>
+          </View>
+        }
+        renderItem={({item})=> (
+          <TouchableOpacity
+            onPress={()=> navigation.navigate('RoomForm', {apartmentId: item.id})}
+            onLongPress={()=>{
+              Alert.alert('Tuỳ chọn', `Xoá căn hộ "${item.name}"?`, [
+                {text:'Huỷ'},
+                {text:'Xoá', style:'destructive', onPress: ()=>{
+                  try {
+                    deleteApartment(item.id);
+                    reload();
+                  } catch(e:any) {
+                    Alert.alert('Không thể xoá', e?.message || 'Vui lòng thử lại');
+                  }
+                }},
+              ]);
+            }}
+          >
+            <View style={{padding:12, borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, borderRadius:12, marginBottom:10}}>
+              <Text style={{color:c.text, fontWeight:'700'}}>{item.name}</Text>
+              {!!item.address && <Text style={{color:c.subtext, marginTop:2}}>{item.address}</Text>}
+            </View>
+          </TouchableOpacity>
         )}
-        ListEmptyComponent={<EmptyState title={q ? 'Không tìm thấy kết quả' : 'Chưa có căn hộ'} hint={q ? 'Thử từ khoá khác' : "Nhấn 'Thêm căn hộ' để tạo mới"} />}
+      />
+
+      {/* FAB thêm căn hộ */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={()=> setShowCreate(true)}
+        style={{
+          position:'absolute', right:16, bottom:24,
+          backgroundColor:'#22C55E',
+          paddingHorizontal:20, paddingVertical:14,
+          borderRadius:28, shadowColor:'#000', shadowOpacity:0.2, shadowRadius:6, elevation:6
+        }}>
+        <Text style={{color:'#0B1220', fontWeight:'700'}}>+ Căn hộ</Text>
+      </TouchableOpacity>
+
+      <ApartmentCreateModal
+        visible={showCreate}
+        onClose={()=> setShowCreate(false)}
+        onCreated={reload}
       />
     </View>
   );

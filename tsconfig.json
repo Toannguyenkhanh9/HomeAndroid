@@ -8,12 +8,17 @@
     "allowJs": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "baseUrl": "./src",
     "types": [
       "react",
       "react-native",
       "react-native-get-random-values"
     ]
   },
+  "include": [
+    "src",
+    "src/types"
+  ],
   "exclude": [
     "node_modules",
     "android",

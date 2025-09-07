@@ -1,4 +1,31 @@
 import React from 'react';
-import {TextInput} from 'react-native';
+import {TextInput, Text, View, TextInputProps, ViewStyle} from 'react-native';
 import {useThemeColors} from '../theme';
-export default function Input(p:any){ const c=useThemeColors(); return <TextInput placeholderTextColor={c.subtext} {...p} style={[{padding:8,borderRadius:10,borderWidth:1,borderColor:c.border,color:c.text}, p.style]} />;}
+
+type Props = TextInputProps & {
+  label?: string;
+  error?: boolean;
+  helperText?: string;
+  containerStyle?: ViewStyle;
+};
+export default function Input({label, error, helperText, style, containerStyle, ...rest}: Props) {
+  const c = useThemeColors();
+  return (
+    <View style={[{marginBottom:4}, containerStyle]}>
+      {!!label && <Text style={{color:c.subtext, marginBottom:6}}>{label}</Text>}
+      <TextInput
+        {...rest}
+        placeholderTextColor={c.subtext}
+        style={[
+          {borderWidth:1, borderColor: error ? '#ef4444' : '#2A2F3A', backgroundColor:c.card, color:c.text, padding:12, borderRadius:12},
+          style as any
+        ]}
+      />
+      {!!helperText && (
+        <Text style={{color: error ? '#ef4444' : c.subtext, marginTop:6, fontSize:12}}>
+          {helperText}
+        </Text>
+      )}
+    </View>
+  );
+}

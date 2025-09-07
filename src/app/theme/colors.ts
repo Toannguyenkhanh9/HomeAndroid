@@ -1,6 +1,2 @@
-export const darkColors = {
-  bg: '#0B132B', card: '#1C2541', primary: '#5BC0BE', primaryText: '#0B132B', text: '#E0E6F8', subtext: '#A9B4D0', border: '#2E3A59', danger: '#E4606D',
-};
-export const lightColors = {
-  bg: '#FFFFFF', card: '#F7F8FA', primary: '#1E88E5', primaryText: '#FFFFFF', text: '#1A1F36', subtext: '#6B7280', border: '#E5E7EB', danger: '#DC2626',
-};
+export const darkColors={bg:'#0B132B',card:'#1C2541',primary:'#5BC0BE',primaryText:'#0B132B',text:'#E0E6F8',subtext:'#A9B4D0',border:'#2E3A59',danger:'#E4606D'}; export const lightColors={bg:'#FFFFFF',card:'#F7F8FA',primary:'#1E88E5',primaryText:'#FFFFFF',text:'#1A1F36',subtext:'#6B7280',border:'#E5E7EB',danger:'#DC2626', accent: '#22C55E',
+  accentText: '#0B1220'};
