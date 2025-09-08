@@ -64,8 +64,14 @@ export function startLeaseAdvanced(cfg: LeaseConfig) {
 
   if (!isAllInclusive && (cfg.charges?.length ?? 0) > 0) {
     for (const ch of cfg.charges!) {
-      const ctId = upsertChargeType(ch.name, ch.unit ?? null, 'flat', ch.type === 'fixed' ? (ch.unitPrice ?? 0) : null);
-      addRecurringCharge(id, ctId, ch.type === 'fixed' ? (ch.unitPrice ?? 0) : null, ch.type === 'fixed' ? 0 : 1);
+if (ch.type === 'fixed') {
+  const ctId = upsertChargeType(ch.name, ch.unit ?? 'tháng', 'flat', ch.unitPrice ?? 0, false);
+  addRecurringCharge(id, ctId, ch.unitPrice ?? 0, 0);
+} else {
+  // variable (Điện/Nước): unitPrice + meterStart
+  const ctId = upsertChargeType(ch.name, ch.unit ?? undefined, 'per_unit', ch.unitPrice ?? 0, true);
+  addRecurringCharge(id, ctId, ch.unitPrice ?? 0, 1, {meterStart: ch.meterStart ?? 0});
+}
     }
   } else {
     const ctId = upsertChargeType('Gói bao phí', 'kỳ', 'flat', baseRent);
@@ -168,6 +174,62 @@ export function createOrGetInvoiceForCycle(cycleId: string) {
   exec(`UPDATE lease_cycles SET invoice_id = ? WHERE id = ?`, [id, cycleId]);
   return query(`SELECT * FROM invoices WHERE id = ?`, [id])[0];
 }
+// Tạo/cập nhật hóa đơn NHÁP cho 1 chu kỳ (không chốt kỳ, không tạo kỳ mới)
+export function draftInvoiceForCycle(
+  cycleId: string,
+  variableInputs: Array<{charge_type_id: string; quantity: number; unit_price?: number}> = [],
+  extraCosts: Array<{name: string; amount: number}> = []
+) {
+  const c = getCycle(cycleId);
+  if (!c) throw new Error('Cycle not found');
+
+  // mở hoặc tạo invoice (status 'open')
+  const inv = openInvoiceForCycle(cycleId);
+  // clear items cũ để tránh cộng dồn
+  exec(`DELETE FROM invoice_items WHERE invoice_id = ?`, [inv.id]);
+
+  // lấy danh sách phí của hợp đồng
+  const charges = listChargesByLease(inv.lease_id);
+
+  // 1) Phí cố định: add theo unit_price hiện tại
+  for (const ch of charges) {
+    if (Number(ch.is_variable) === 1) continue;
+    const qty = 1;
+    const price = Number(ch.unit_price) || 0;
+    // dùng addInvoiceItem nội bộ
+    const id = uuidv4();
+    exec(`INSERT INTO invoice_items (id, invoice_id, description, quantity, unit, unit_price, amount, charge_type_id, meta_json)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id, inv.id, ch.name, qty, ch.unit, price, qty*price, ch.charge_type_id, JSON.stringify({draft:true})]);
+  }
+
+  // 2) Phí biến đổi từ input
+  for (const inp of variableInputs) {
+    const ch = charges.find((x:any)=> x.charge_type_id === inp.charge_type_id);
+    if (!ch) continue;
+    const qty = Math.max(0, inp.quantity || 0);
+    const price = (typeof inp.unit_price === 'number') ? inp.unit_price : (Number(ch.unit_price)||0);
+    const id = uuidv4();
+    exec(`INSERT INTO invoice_items (id, invoice_id, description, quantity, unit, unit_price, amount, charge_type_id, meta_json)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id, inv.id, ch.name, qty, ch.unit, price, qty*price, ch.charge_type_id, JSON.stringify({draft:true, variable:true})]);
+  }
+
+  // 3) Phụ phí phát sinh
+  for (const ex of extraCosts) {
+    const id = uuidv4();
+    exec(`INSERT INTO invoice_items (id, invoice_id, description, quantity, unit, unit_price, amount, charge_type_id, meta_json)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id, inv.id, ex.name, 1, null, ex.amount, ex.amount, null, JSON.stringify({draft:true, extra:true})]);
+  }
+
+  // 4) cập nhật tổng, giữ status = 'open'
+  const sum = query<{sum:number}>(`SELECT SUM(amount) sum FROM invoice_items WHERE invoice_id = ?`, [inv.id])[0]?.sum ?? 0;
+  exec(`UPDATE invoices SET subtotal = ?, total = ?, status = 'open' WHERE id = ?`, [sum, sum, inv.id]);
+
+  return query(`SELECT * FROM invoices WHERE id = ?`, [inv.id])[0];
+}
+
 
 export function getVariableCharges(leaseId: string) {
   return query<any>(`SELECT rc.*, ct.name, ct.unit FROM recurring_charges rc JOIN charge_types ct ON ct.id = rc.charge_type_id WHERE rc.lease_id = ? AND rc.is_variable = 1`, [leaseId]);
@@ -300,13 +362,28 @@ export function startLease(
   return id;
 }
 
-export function addRecurringCharge(leaseId: string, chargeTypeId: string, unit_price?: number, is_variable?: number) {
+export function addRecurringCharge(
+  leaseId: string,
+  chargeTypeId: string,
+  unit_price?: number,
+  is_variable?: number,
+  config?: any,                 // <-- thêm
+) {
   const id = uuidv4();
   const ct = getChargeType(chargeTypeId);
-  const _isVariable = typeof is_variable === 'number' ? is_variable : (ct?.meta_json ? (JSON.parse(ct.meta_json).is_variable ? 1 : 0) : 0);
-  exec(`INSERT INTO recurring_charges (id, lease_id, charge_type_id, unit_price, is_variable, config_json)
-        VALUES (?,?,?,?,?,?)`,
-        [id, leaseId, chargeTypeId, unit_price ?? ct?.unit_price ?? 0, _isVariable, null]);
+  const _isVariable = typeof is_variable === 'number'
+    ? is_variable
+    : (ct?.meta_json ? (JSON.parse(ct.meta_json).is_variable ? 1 : 0) : 0);
+
+  exec(
+    `INSERT INTO recurring_charges
+      (id, lease_id, charge_type_id, unit_price, is_variable, config_json)
+     VALUES (?,?,?,?,?,?)`,
+    [id, leaseId, chargeTypeId,
+     unit_price ?? ct?.unit_price ?? 0,
+     _isVariable,
+     config ? JSON.stringify(config) : null]   // <-- lưu meterStart
+  );
   return id;
 }
 
@@ -497,4 +574,32 @@ export function seedChargeCatalogOnce() {
 }
 export function updateLeaseEndDate(leaseId: string, endDateISO: string) {
   exec(`UPDATE leases SET end_date = ? WHERE id = ?`, [endDateISO, leaseId]);
+}
+export function updateRecurringChargePrice(leaseId: string, chargeTypeId: string, newPrice: number) {
+  exec(`UPDATE recurring_charges SET unit_price = ? WHERE lease_id = ? AND charge_type_id = ?`,
+    [newPrice, leaseId, chargeTypeId]);
+}
+
+// Lấy danh sách phí của hợp đồng (kèm tên & loại)
+export function listChargesForLease(leaseId: string) {
+  return query<any>(`
+    SELECT rc.charge_type_id, rc.unit_price, rc.is_variable,
+           ct.name, ct.unit, ct.pricing_model
+    FROM recurring_charges rc
+    JOIN charge_types ct ON ct.id = rc.charge_type_id
+    WHERE rc.lease_id = ?
+    ORDER BY CASE WHEN ct.name='Tiền phòng' THEN 0 ELSE 1 END, ct.name
+  `, [leaseId]);
+}
+export function updateRecurringChargeConfig(leaseId: string, chargeTypeId: string, partial: any) {
+  const row = query<{config_json?: string}>(`
+    SELECT config_json FROM recurring_charges
+    WHERE lease_id = ? AND charge_type_id = ? LIMIT 1
+  `, [leaseId, chargeTypeId])[0];
+
+  let cfg: any = {};
+  try { cfg = row?.config_json ? JSON.parse(row.config_json) : {}; } catch {}
+  const merged = {...cfg, ...partial};
+  exec(`UPDATE recurring_charges SET config_json = ? WHERE lease_id = ? AND charge_type_id = ?`,
+      [JSON.stringify(merged), leaseId, chargeTypeId]);
 }

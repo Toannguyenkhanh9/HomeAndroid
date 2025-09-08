@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+// src/app/components/ChargeChooserModal.tsx
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   Modal,
   View,
@@ -8,201 +9,259 @@ import {
   ScrollView,
 } from 'react-native';
 import {useThemeColors} from '../theme';
+import Button from './Button';
+import {groupVN, onlyDigits} from '../../utils/number';
 import {listChargeTypes} from '../../services/rent';
-import {onlyDigits, groupVN} from '../../utils/number';
+
+type ChargeRow = {
+  id: string;
+  name: string;
+  unit?: string | null;
+  pricing_model?: 'flat' | 'per_unit';
+  unit_price?: number | null;
+  meta_json?: string | null; // chứa {is_variable:boolean}
+};
+
+type SelectedEntry = {
+  id: string;
+  name: string;
+  isVariable: boolean;
+  unit?: string | null;
+  price?: number;       // tiền/kỳ (cố định) hoặc giá/đơn vị (biến đổi)
+  meterStart?: number;  // chỉ số đầu cho biến đổi (VD điện/nước)
+};
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (
-    picked: Array<{
-      charge_type_id: string;
-      is_variable: boolean;
-      unit_price: number;
-    }>
-  ) => void;
+  onConfirm: (list: SelectedEntry[]) => void;
+  initialSelected?: SelectedEntry[];
 };
 
-export default function ChargeChooserModal({visible, onClose, onConfirm}: Props) {
+export default function ChargeChooserModal({
+  visible,
+  onClose,
+  onConfirm,
+  initialSelected,
+}: Props) {
   const c = useThemeColors();
-  const [rows, setRows] = useState<any[]>([]);
-  const [picked, setPicked] = useState<Record<string, any>>({});
-  const [displayPrice, setDisplayPrice] = useState<Record<string, string>>({});
 
+  const [rows, setRows] = useState<ChargeRow[]>([]);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [values, setValues] = useState<
+    Record<string, {price: string; meterStart?: string}>
+  >({});
+
+  // tải danh mục phí
   useEffect(() => {
     if (!visible) return;
     const list = listChargeTypes() as any[];
-
-    // lọc bỏ "Bảo trì"/"Baobao tri"
-    const filtered = list.filter(
-      x => !/^(baobao tri|bảo trì)$/i.test((x.name || '').trim())
+    setRows(
+      list.map((x) => ({
+        id: x.id,
+        name: x.name,
+        unit: x.unit,
+        pricing_model: x.pricing_model,
+        unit_price: x.unit_price,
+        meta_json: x.meta_json,
+      })),
     );
-
-    // "Tiền phòng" lên đầu
-    filtered.sort((a, b) => {
-      if (a.name === 'Tiền phòng') return -1;
-      if (b.name === 'Tiền phòng') return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    setRows(filtered);
-
-    // seed giá hiển thị cho phí cố định
-    const init: Record<string, string> = {};
-    for (const r of filtered) {
-      const id = r.charge_type_id || r.id;
-      const isVar =
-        Number(r.is_variable) === 1 ||
-        (r.meta_json && JSON.parse(r.meta_json).is_variable);
-      if (!isVar) init[id] = groupVN(String(r.unit_price ?? 0));
-    }
-    setDisplayPrice(init);
   }, [visible]);
 
-  const toggle = (id: string, isVar: boolean, unit_price?: number) => {
-    setPicked(prev => {
-      const exists = !!prev[id];
-      if (exists) {
-        const clone = {...prev};
-        delete clone[id];
-        return clone;
-      }
-      return {
-        ...prev,
-        [id]: {
-          charge_type_id: id,
-          is_variable: isVar,
-          unit_price: unit_price ?? 0,
-        },
+  // Prefill khi mở modal
+  useEffect(() => {
+    if (!visible) return;
+    const mapChecked: Record<string, boolean> = {};
+    const mapValues: Record<string, {price: string; meterStart?: string}> = {};
+    (initialSelected || []).forEach((sel) => {
+      mapChecked[sel.id] = true;
+      mapValues[sel.id] = {
+        price: groupVN(String(sel.price ?? 0)),
+        meterStart:
+          typeof sel.meterStart === 'number'
+            ? groupVN(String(sel.meterStart))
+            : undefined,
       };
     });
-  };
+    setChecked(mapChecked);
+    setValues((prev) => ({...mapValues}));
+  }, [visible, initialSelected]);
 
-  const updatePrice = (id: string, value: string) => {
-    setDisplayPrice(prev => ({...prev, [id]: value}));
-    setPicked(prev => {
-      const cur =
-        prev[id] || {charge_type_id: id, is_variable: false, unit_price: 0};
-      return {
-        ...prev,
-        [id]: {...cur, unit_price: Number(onlyDigits(value)) || 0},
-      };
+  const parsed = useMemo(
+    () =>
+      rows.map((r) => {
+        let is_variable = false;
+        try {
+          is_variable = !!(r.meta_json && JSON.parse(r.meta_json)?.is_variable);
+        } catch {}
+        return {
+          ...r,
+          is_variable,
+          default_price: Number(r.unit_price || 0),
+        };
+      }),
+    [rows],
+  );
+
+  function toggle(id: string) {
+    setChecked((prev) => {
+      const next = !prev[id];
+      const cloned = {...prev, [id]: next};
+      // nếu check mà chưa có value -> seed
+      if (next && !values[id]) {
+        const item = parsed.find((x) => x.id === id);
+        setValues((v) => ({
+          ...v,
+          [id]: {
+            price: groupVN(String(item?.default_price || 0)),
+            meterStart: item?.is_variable ? '0' : undefined,
+          },
+        }));
+      }
+      return cloned;
     });
-  };
+  }
+
+  function onPriceChange(id: string, t: string) {
+    setValues((prev) => ({...prev, [id]: {...(prev[id] || {}), price: t}}));
+  }
+  function onPriceBlur(id: string) {
+    setValues((prev) => {
+      const p = prev[id]?.price ?? '';
+      return {...prev, [id]: {...(prev[id] || {}), price: groupVN(p)}};
+    });
+  }
+  function onMeterChange(id: string, t: string) {
+    setValues((prev) => ({...prev, [id]: {...(prev[id] || {}), meterStart: t}}));
+  }
+  function onMeterBlur(id: string) {
+    setValues((prev) => {
+      const m = prev[id]?.meterStart ?? '';
+      return {...prev, [id]: {...(prev[id] || {}), meterStart: groupVN(m)}};
+    });
+  }
+
+  function confirm() {
+    const out: SelectedEntry[] = [];
+    for (const r of parsed) {
+      if (!checked[r.id]) continue;
+      const v = values[r.id];
+      const isVar = r.is_variable || r.pricing_model === 'per_unit';
+      out.push({
+        id: r.id,
+        name: r.name,
+        isVariable: !!isVar,
+        unit: r.unit || undefined,
+        price: Number(onlyDigits(v?.price || '0')) || 0,
+        meterStart: isVar ? Number(onlyDigits(v?.meterStart || '0')) || 0 : undefined,
+      });
+    }
+    onConfirm(out);
+    onClose();
+  }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={{flex: 1, backgroundColor: '#0009', justifyContent: 'flex-end'}}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.4)', justifyContent:'flex-end'}}>
         <View
           style={{
-            backgroundColor: c.bg,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            padding: 16,
-            maxHeight: '80%',
+            maxHeight:'88%',
+            backgroundColor:c.bg,
+            borderTopLeftRadius:16,
+            borderTopRightRadius:16,
+            paddingBottom:12,
           }}>
-          <Text style={{fontWeight: '700', fontSize: 16, color: c.text}}>
-            Chọn các khoản phí
-          </Text>
+          <View style={{paddingHorizontal:16, paddingTop:12, paddingBottom:8}}>
+            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Chọn các khoản phí</Text>
+          </View>
 
-          <ScrollView style={{marginVertical: 12}}>
-            {rows.map(r => {
-              const id = r.charge_type_id || r.id;
-              const isVar =
-                Number(r.is_variable) === 1 ||
-                (r.meta_json && JSON.parse(r.meta_json).is_variable);
-              const checked = !!picked[id];
-
+          <ScrollView contentContainerStyle={{paddingHorizontal:16, paddingBottom:16, gap:10}}>
+            {parsed.map((r) => {
+              const isChecked = !!checked[r.id];
+              const primaryBg = isChecked ? c.primary : 'transparent';
+              const border = isChecked ? 'transparent' : '#2A2F3A';
               return (
                 <View
-                  key={id}
+                  key={r.id}
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginVertical: 6,
-                    padding: 8,
-                    borderRadius: 10,
-                    // nền xanh nhạt khi chọn (accent với alpha 0x22)
-                    backgroundColor: checked ? `${c.accent}22` : 'transparent',
+                    borderWidth:1,
+                    borderColor: border,
+                    borderRadius:12,
+                    overflow:'hidden',
+                    backgroundColor: isChecked ? primaryBg + '22' : c.card,
                   }}>
-                  {/* Checkbox */}
+                  {/* Header row */}
                   <TouchableOpacity
-                    onPress={() => toggle(id, isVar, r.unit_price)}
+                    onPress={() => toggle(r.id)}
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      borderWidth: 2,
-                      borderColor: checked ? c.accent : c.border,
-                      backgroundColor: checked ? c.accent : 'transparent',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 10,
+                      padding:12,
+                      flexDirection:'row',
+                      alignItems:'center',
+                      justifyContent:'space-between',
+                      backgroundColor: isChecked ? primaryBg + '33' : 'transparent',
                     }}>
-                    {checked ? (
-                      <Text style={{color: c.accentText ?? '#fff', fontWeight: '800', lineHeight: 16}}>
-                        ✓
+                    <View style={{flexDirection:'row', alignItems:'center', gap:10, flex:1}}>
+                      <View
+                        style={{
+                          width:20, height:20, borderRadius:6,
+                          borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
+                          backgroundColor: isChecked ? c.primary : 'transparent',
+                        }}
+                      />
+                      <Text style={{color:c.text, fontWeight:'700', flexShrink:1}}>
+                        {r.name}{r.unit ? ` (${r.unit})` : ''}
                       </Text>
-                    ) : null}
+                    </View>
+                    <Text style={{color:c.subtext}}>
+                      {r.is_variable ? 'KHÔNG cố định' : 'Cố định'}
+                    </Text>
                   </TouchableOpacity>
 
-                  {/* Tên phí */}
-                  <Text style={{flex: 1, color: checked ? c.text : c.text}}>
-                    {r.name} {isVar ? '(KHÔNG cố định)' : '(cố định)'}
-                  </Text>
+                  {/* Body inputs */}
+                  {isChecked && (
+                    <View style={{padding:12, gap:8, backgroundColor:'transparent'}}>
+                      {/* Giá */}
+                      <Text style={{color:c.subtext}}>
+                        {r.is_variable ? 'Giá / đơn vị' : 'Giá / kỳ'}
+                      </Text>
+                      <TextInput
+                        keyboardType="numeric"
+                        value={values[r.id]?.price ?? ''}
+                        onChangeText={(t)=> onPriceChange(r.id, t)}
+                        onBlur={()=> onPriceBlur(r.id)}
+                        style={{
+                          borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                          padding:10, color:c.text, backgroundColor:c.card,
+                        }}
+                      />
 
-                  {/* Ô nhập giá cho phí cố định khi đã tick */}
-                  {!isVar && checked && (
-                    <TextInput
-                      keyboardType="numeric"
-                      value={displayPrice[id] ?? ''}
-                      onChangeText={t => updatePrice(id, t)}
-                      onBlur={() =>
-                        setDisplayPrice(prev => ({
-                          ...prev,
-                          [id]: groupVN(prev[id] ?? ''),
-                        }))
-                      }
-                      style={{
-                        width: 120,
-                        borderWidth: 1,
-                        borderColor: '#2A2F3A',
-                        backgroundColor: c.card,
-                        color: c.text,
-                        padding: 8,
-                        borderRadius: 10,
-                      }}
-                    />
+                      {/* Chỉ số đầu — chỉ cho biến đổi (điện, nước, …) */}
+                      {r.is_variable && (
+                        <>
+                          <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
+                          <TextInput
+                            keyboardType="numeric"
+                            value={values[r.id]?.meterStart ?? '0'}
+                            onChangeText={(t)=> onMeterChange(r.id, t)}
+                            onBlur={()=> onMeterBlur(r.id)}
+                            style={{
+                              borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                              padding:10, color:c.text, backgroundColor:c.card,
+                            }}
+                          />
+                        </>
+                      )}
+                    </View>
                   )}
                 </View>
               );
             })}
           </ScrollView>
 
-          <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 12}}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                backgroundColor: c.card,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 10,
-              }}>
-              <Text style={{color: c.text}}>Đóng</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                onConfirm(Object.values(picked));
-                onClose();
-              }}
-              style={{
-                backgroundColor: c.accent,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 10,
-              }}>
-              <Text style={{color: c.accentText ?? '#fff'}}>Xác nhận</Text>
-            </TouchableOpacity>
+          {/* Action bar */}
+          <View style={{paddingHorizontal:16, flexDirection:'row', justifyContent:'space-between', gap:12}}>
+            <Button title="Đóng" variant="ghost" onPress={onClose} />
+            <Button title="Xác nhận" onPress={confirm} />
           </View>
         </View>
       </View>
