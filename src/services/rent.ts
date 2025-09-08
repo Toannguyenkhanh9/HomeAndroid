@@ -362,6 +362,9 @@ export function startLease(
   return id;
 }
 
+// cũ:
+// export function addRecurringCharge(leaseId: string, chargeTypeId: string, unit_price?: number, is_variable?: number) {
+
 export function addRecurringCharge(
   leaseId: string,
   chargeTypeId: string,
@@ -386,6 +389,7 @@ export function addRecurringCharge(
   );
   return id;
 }
+
 
 // ==== CYCLES ====
 function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
