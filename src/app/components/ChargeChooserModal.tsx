@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Switch,
 } from 'react-native';
 import {useThemeColors} from '../theme';
 import Button from './Button';
@@ -19,16 +20,16 @@ type ChargeRow = {
   unit?: string | null;
   pricing_model?: 'flat' | 'per_unit';
   unit_price?: number | null;
-  meta_json?: string | null; // chứa {is_variable:boolean}
+  meta_json?: string | null; // { is_variable: boolean }
 };
 
-type SelectedEntry = {
-  id: string;
+export type SelectedEntry = {
+  id: string;                 // id hệ thống hoặc 'custom:xxx'
   name: string;
   isVariable: boolean;
   unit?: string | null;
-  price?: number;       // tiền/kỳ (cố định) hoặc giá/đơn vị (biến đổi)
-  meterStart?: number;  // chỉ số đầu cho biến đổi (VD điện/nước)
+  price?: number;             // tiền/kỳ (cố định) hoặc giá/đơn vị (biến đổi)
+  meterStart?: number;        // chỉ số đầu (cho biến đổi)
 };
 
 type Props = {
@@ -37,6 +38,10 @@ type Props = {
   onConfirm: (list: SelectedEntry[]) => void;
   initialSelected?: SelectedEntry[];
 };
+
+function rid() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export default function ChargeChooserModal({
   visible,
@@ -52,12 +57,21 @@ export default function ChargeChooserModal({
     Record<string, {price: string; meterStart?: string}>
   >({});
 
-  // tải danh mục phí
+  // --- Custom fee state ---
+  const [customName, setCustomName] = useState('');
+  const [customIsVar, setCustomIsVar] = useState(false);
+  const [customPrice, setCustomPrice] = useState('');
+  const [customMeter, setCustomMeter] = useState(''); // chỉ số đầu (nếu biến đổi)
+
+  // Tải danh mục phí (lọc bỏ “Gói bao phí”)
   useEffect(() => {
     if (!visible) return;
-    const list = listChargeTypes() as any[];
+    const list = (listChargeTypes() as any[]) || [];
+    const filtered = list.filter(
+      x => typeof x?.name === 'string' && !x.name.toLowerCase().includes('gói bao phí'),
+    );
     setRows(
-      list.map((x) => ({
+      filtered.map((x) => ({
         id: x.id,
         name: x.name,
         unit: x.unit,
@@ -68,12 +82,13 @@ export default function ChargeChooserModal({
     );
   }, [visible]);
 
-  // Prefill khi mở modal
+  // Prefill khi mở modal (đợi rows có dữ liệu)
   useEffect(() => {
     if (!visible) return;
     const mapChecked: Record<string, boolean> = {};
     const mapValues: Record<string, {price: string; meterStart?: string}> = {};
     (initialSelected || []).forEach((sel) => {
+      // Nếu item chưa có trong rows (VD mới thêm tuỳ chỉnh), vẫn prefill cho chắc
       mapChecked[sel.id] = true;
       mapValues[sel.id] = {
         price: groupVN(String(sel.price ?? 0)),
@@ -84,8 +99,8 @@ export default function ChargeChooserModal({
       };
     });
     setChecked(mapChecked);
-    setValues((prev) => ({...mapValues}));
-  }, [visible, initialSelected]);
+    setValues({...mapValues});
+  }, [visible, initialSelected, rows]);
 
   const parsed = useMemo(
     () =>
@@ -107,7 +122,6 @@ export default function ChargeChooserModal({
     setChecked((prev) => {
       const next = !prev[id];
       const cloned = {...prev, [id]: next};
-      // nếu check mà chưa có value -> seed
       if (next && !values[id]) {
         const item = parsed.find((x) => x.id === id);
         setValues((v) => ({
@@ -141,6 +155,41 @@ export default function ChargeChooserModal({
     });
   }
 
+  function addCustom() {
+    const name = customName.trim();
+    if (!name) return;
+    const id = 'custom:' + rid();
+    const price = Number(onlyDigits(customPrice || '0')) || 0;
+    const meterStart = Number(onlyDigits(customMeter || '0')) || 0;
+
+    // tích chọn + set value
+    setChecked((prev) => ({...prev, [id]: true}));
+    setValues((prev) => ({
+      ...prev,
+      [id]: {
+        price: groupVN(String(price)),
+        meterStart: customIsVar ? groupVN(String(meterStart)) : undefined,
+      },
+    }));
+    // đưa vào list hiển thị như 1 item mới
+    setRows((prev) => [
+      ...prev,
+      {
+        id,
+        name,
+        unit: undefined,
+        pricing_model: customIsVar ? 'per_unit' : 'flat',
+        unit_price: price,
+        meta_json: JSON.stringify({is_variable: customIsVar}),
+      },
+    ]);
+    // reset input
+    setCustomName('');
+    setCustomPrice('');
+    setCustomMeter('');
+    setCustomIsVar(false);
+  }
+
   function confirm() {
     const out: SelectedEntry[] = [];
     for (const r of parsed) {
@@ -165,7 +214,7 @@ export default function ChargeChooserModal({
       <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.4)', justifyContent:'flex-end'}}>
         <View
           style={{
-            maxHeight:'88%',
+            maxHeight:'90%',
             backgroundColor:c.bg,
             borderTopLeftRadius:16,
             borderTopRightRadius:16,
@@ -178,7 +227,6 @@ export default function ChargeChooserModal({
           <ScrollView contentContainerStyle={{paddingHorizontal:16, paddingBottom:16, gap:10}}>
             {parsed.map((r) => {
               const isChecked = !!checked[r.id];
-              const primaryBg = isChecked ? c.primary : 'transparent';
               const border = isChecked ? 'transparent' : '#2A2F3A';
               return (
                 <View
@@ -188,7 +236,7 @@ export default function ChargeChooserModal({
                     borderColor: border,
                     borderRadius:12,
                     overflow:'hidden',
-                    backgroundColor: isChecked ? primaryBg + '22' : c.card,
+                    backgroundColor: isChecked ? '#0ea5e933' : c.card, // nhấn nổi bật nhẹ
                   }}>
                   {/* Header row */}
                   <TouchableOpacity
@@ -198,14 +246,14 @@ export default function ChargeChooserModal({
                       flexDirection:'row',
                       alignItems:'center',
                       justifyContent:'space-between',
-                      backgroundColor: isChecked ? primaryBg + '33' : 'transparent',
+                      backgroundColor: isChecked ? '#0ea5e922' : 'transparent',
                     }}>
                     <View style={{flexDirection:'row', alignItems:'center', gap:10, flex:1}}>
                       <View
                         style={{
                           width:20, height:20, borderRadius:6,
-                          borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
-                          backgroundColor: isChecked ? c.primary : 'transparent',
+                          borderWidth:2, borderColor: isChecked ? '#0ea5e9' : '#6B7280',
+                          backgroundColor: isChecked ? '#0ea5e9' : 'transparent',
                         }}
                       />
                       <Text style={{color:c.text, fontWeight:'700', flexShrink:1}}>
@@ -219,7 +267,7 @@ export default function ChargeChooserModal({
 
                   {/* Body inputs */}
                   {isChecked && (
-                    <View style={{padding:12, gap:8, backgroundColor:'transparent'}}>
+                    <View style={{padding:12, gap:8}}>
                       {/* Giá */}
                       <Text style={{color:c.subtext}}>
                         {r.is_variable ? 'Giá / đơn vị' : 'Giá / kỳ'}
@@ -235,7 +283,7 @@ export default function ChargeChooserModal({
                         }}
                       />
 
-                      {/* Chỉ số đầu — chỉ cho biến đổi (điện, nước, …) */}
+                      {/* Chỉ số đầu — chỉ cho biến đổi */}
                       {r.is_variable && (
                         <>
                           <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
@@ -256,6 +304,50 @@ export default function ChargeChooserModal({
                 </View>
               );
             })}
+
+            {/* --- Chi phí khác --- */}
+            <View style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:12, backgroundColor:c.card, padding:12, gap:8}}>
+              <Text style={{color:c.text, fontWeight:'800'}}>Chi phí khác</Text>
+              <Text style={{color:c.subtext}}>Tên phí</Text>
+              <TextInput
+                value={customName}
+                onChangeText={setCustomName}
+                placeholder="Tên phí..."
+                placeholderTextColor={c.subtext}
+                style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+              />
+              <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
+                <Text style={{color:c.text, fontWeight:'700'}}>Biến đổi</Text>
+                <Switch value={customIsVar} onValueChange={setCustomIsVar}/>
+              </View>
+              <Text style={{color:c.subtext}}>{customIsVar ? 'Giá / đơn vị' : 'Giá / kỳ'}</Text>
+              <TextInput
+                keyboardType="numeric"
+                value={customPrice}
+                onChangeText={setCustomPrice}
+                onBlur={()=> setCustomPrice(groupVN(customPrice))}
+                placeholder="0"
+                placeholderTextColor={c.subtext}
+                style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+              />
+              {customIsVar && (
+                <>
+                  <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    value={customMeter}
+                    onChangeText={setCustomMeter}
+                    onBlur={()=> setCustomMeter(groupVN(customMeter))}
+                    placeholder="0"
+                    placeholderTextColor={c.subtext}
+                    style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                  />
+                </>
+              )}
+              <View style={{alignItems:'flex-end'}}>
+                <Button title="Thêm" onPress={addCustom}/>
+              </View>
+            </View>
           </ScrollView>
 
           {/* Action bar */}

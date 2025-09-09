@@ -1,3 +1,4 @@
+// src/app/screens/LeaseForm.tsx
 import React, {useMemo, useState} from 'react';
 import {
   View,
@@ -15,12 +16,15 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import {groupVN, onlyDigits} from '../../utils/number';
-import {startLease, addRecurringCharge} from '../../services/rent';
+import {
+  startLeaseAdvanced,
+  addRecurringCharge,
+  addCustomChargeType,
+} from '../../services/rent';
 import ChargeChooserModal from '../components/ChargeChooserModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
-
 type Billing = 'daily' | 'monthly' | 'yearly';
 
 type SelectedEntry = {
@@ -52,7 +56,7 @@ export default function LeaseForm({route, navigation}: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const startYMD = useMemo(() => startDate.toISOString().slice(0, 10), [startDate]);
 
-  // Thời lượng (chỉ hiển thị khi có thời hạn)
+  // Thời lượng (khi có thời hạn)
   const [durationText, setDurationText] = useState('');
 
   // Giá cơ bản & cọc
@@ -67,7 +71,8 @@ export default function LeaseForm({route, navigation}: Props) {
   const [openCharges, setOpenCharges] = useState(false);
   const [charges, setCharges] = useState<SelectedEntry[]>([]);
 
-  const durationLabel = billing === 'daily' ? 'Số ngày' : billing === 'monthly' ? 'Số tháng' : 'Số năm';
+  const durationLabel =
+    billing === 'daily' ? 'Số ngày' : billing === 'monthly' ? 'Số tháng' : 'Số năm';
 
   const Tab = ({
     title,
@@ -93,41 +98,71 @@ export default function LeaseForm({route, navigation}: Props) {
   );
 
   function onSave() {
-    const baseRent = Number(onlyDigits(baseRentText)) || 0;
     const deposit = Number(onlyDigits(depositText)) || 0;
-    const allInAmount = Number(onlyDigits(allInAmountText)) || 0;
 
-    // Xác định loại hợp đồng/chu kỳ
-    const lease_type = hasTerm && billing === 'daily' ? 'short_term' : 'long_term';
+    // Loại hợp đồng & thời lượng ngày (nếu có thời hạn + theo ngày)
+    const leaseType: 'short_term' | 'long_term' =
+      hasTerm && billing === 'daily' ? 'short_term' : 'long_term';
+
     const durationDays =
       hasTerm && billing === 'daily'
         ? Math.max(1, Number(onlyDigits(durationText)) || 0)
         : undefined;
 
-    const leaseId = startLease(
+    // Nếu bao phí: baseRent = tổng gói, bật isAllInclusive
+    // Nếu không bao phí: baseRent là tiền nhà cơ bản
+    const baseRent = allIn
+      ? Number(onlyDigits(allInAmountText)) || 0
+      : Number(onlyDigits(baseRentText)) || 0;
+
+    // Tạo hợp đồng (không tự thêm charges ở đây — mình tự add sau để có meterStart)
+    const leaseId = startLeaseAdvanced({
       roomId,
-      lease_type,
-      startYMD,
+      leaseType,
       billing,
+      startDateISO: startYMD,
       baseRent,
       deposit,
       durationDays,
-      allIn,
-      allIn ? (allInAmount || baseRent) : undefined,
-    );
+      isAllInclusive: allIn,
+      endDateISO: undefined,
+      charges: undefined, // để tự addRecurringCharge bên dưới (cần meterStart)
+      tenant: tenantName.trim()
+        ? {
+            full_name: tenantName.trim(),
+            phone: tenantPhone.trim() || undefined,
+            id_number: tenantId.trim() || undefined,
+          }
+        : undefined,
+    });
 
+    // Nếu KHÔNG bao phí => add các phí đã chọn
     if (!allIn && charges.length > 0) {
       charges.forEach(ch => {
+        let ctId = ch.id;
+        // Nếu là custom (id dạng 'custom:...') => tạo charge type trước
+        if (ctId.startsWith('custom:')) {
+          ctId = addCustomChargeType(
+            ch.name,
+            ch.isVariable,
+            ch.unit || undefined,
+            Number(ch.price || 0),
+          );
+        }
         const price = Number(ch.price || 0);
         if (ch.isVariable) {
-          addRecurringCharge(leaseId, ch.id, price, 1, {meterStart: Number(ch.meterStart || 0)});
+          addRecurringCharge(leaseId, ctId, price, 1, {
+            meterStart: Number(ch.meterStart || 0),
+          });
         } else {
-          if (ch.name?.toLowerCase() === 'tiền phòng') return; // tránh trùng với baseRent
-          addRecurringCharge(leaseId, ch.id, price, 0);
+          // tránh trùng với baseRent nếu user lỡ tick “Tiền phòng”
+          if (ch.name?.toLowerCase() === 'tiền phòng') return;
+          addRecurringCharge(leaseId, ctId, price, 0);
         }
       });
     }
 
+    // Quay lại và để RoomDetail reload bằng useFocusEffect
     navigation.goBack();
   }
 
@@ -205,7 +240,9 @@ export default function LeaseForm({route, navigation}: Props) {
           {/* Thời lượng — chỉ khi Có thời hạn */}
           {hasTerm && (
             <>
-              <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>{durationLabel}</Text>
+              <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>
+                {billing === 'daily' ? 'Số ngày' : billing === 'monthly' ? 'Số tháng' : 'Số năm'}
+              </Text>
               <TextInput
                 keyboardType="numeric"
                 value={durationText}
@@ -218,15 +255,19 @@ export default function LeaseForm({route, navigation}: Props) {
           )}
 
           {/* Giá thuê cơ bản & tiền cọc */}
-          <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Giá thuê cơ bản (tiền nhà)</Text>
-          <TextInput
-            keyboardType="numeric"
-            value={baseRentText}
-            onChangeText={setBaseRentText}
-            onBlur={() => setBaseRentText(groupVN(baseRentText))}
-            placeholderTextColor={c.subtext}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-          />
+          {!allIn && (
+            <>
+              <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Giá thuê cơ bản (tiền nhà)</Text>
+              <TextInput
+                keyboardType="numeric"
+                value={baseRentText}
+                onChangeText={setBaseRentText}
+                onBlur={() => setBaseRentText(groupVN(baseRentText))}
+                placeholderTextColor={c.subtext}
+                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+              />
+            </>
+          )}
 
           <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Tiền cọc</Text>
           <TextInput

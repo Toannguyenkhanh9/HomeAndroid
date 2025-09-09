@@ -1,243 +1,369 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {View, Text, TextInput, Alert, Switch} from 'react-native';
+import {View, Text, TextInput, ScrollView, Alert} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {useFocusEffect} from '@react-navigation/native';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
+import {useCurrency} from '../../utils/currency';
+import {onlyDigits, groupVN} from '../../utils/number';
 import {
   getLease,
-  listCycles,
+  getTenant,                // <- đảm bảo có export trong services/rent.ts
   listChargesForLease,
   updateRecurringChargePrice,
-  addCustomChargeType,
-  addRecurringCharge,
-  updateRecurringChargeConfig,
+  addCustomRecurringCharges,  // <- function lưu nhiều khoản phí mới (đính kèm bên dưới)
 } from '../../services/rent';
-import {useCurrency} from '../../utils/currency';
-import {groupVN, onlyDigits} from '../../utils/number';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
-type FixedRow = { id: string; name: string; unit?: string; price: string };
-type VarRow = { id: string; name: string; unit?: string; unitPrice: string; meterStart: string };
+type NewItem = {
+  name: string;
+  isVariable: boolean;
+  unit?: string;
+  price?: string;
+  meterStart?: string; // cho phí biến đổi
+};
 
-export default function LeaseDetail({route}: Props) {
+export default function LeaseDetail({route, navigation}: Props) {
   const {leaseId} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
 
   const [lease, setLease] = useState<any>();
+  const [tenant, setTenant] = useState<any | null>(null);
+  const [charges, setCharges] = useState<any[]>([]);
   const [editMode, setEditMode] = useState(false);
 
-  // phí cố định
-  const [fixedRows, setFixedRows] = useState<FixedRow[]>([]);
-  // phí biến đổi (điện, nước, …)
-  const [varRows, setVarRows] = useState<VarRow[]>([]);
+  // editable state cho các phí hiện có
+  const [fixed, setFixed] = useState<Record<string, string>>({});
+  const [vars, setVars] = useState<Record<string, {price: string; meter: string}>>({});
 
-  // thêm khoản phí khác
-  const [newName, setNewName] = useState('');
-  const [newIsVar, setNewIsVar] = useState(false);
-  const [newUnit, setNewUnit] = useState('tháng'); // kWh, m3, tháng…
-  const [newPrice, setNewPrice] = useState('');
+  // danh sách khoản phí mới (nhiều item)
+  const [newItems, setNewItems] = useState<NewItem[]>([]);
+  const addEmptyItem = () =>
+    setNewItems(prev => [...prev, {name: '', isVariable: false, unit: 'tháng', price: ''}]);
+  const updateItem = (idx: number, patch: Partial<NewItem>) =>
+    setNewItems(prev => prev.map((it, i) => (i === idx ? {...it, ...patch} : it)));
+  const removeItem = (idx: number) =>
+    setNewItems(prev => prev.filter((_, i) => i !== idx));
 
-  useEffect(() => {
+  const reload = () => {
     const l = getLease(leaseId);
     setLease(l);
 
+    // ↓ đảm bảo load đúng tenant (nếu có)
+    setTenant(l?.tenant_id ? getTenant(l.tenant_id) : null);
+
     const list = listChargesForLease(leaseId) as any[];
-    const fx = list
-      .filter(x => Number(x.is_variable) === 0)
-      .map(x => ({
-        id: x.charge_type_id,
-        name: x.name,
-        unit: x.unit,
-        price: groupVN(String(x.unit_price || 0)),
-      }));
-    setFixedRows(fx);
+    setCharges(list);
 
-    const vr = list
-      .filter(x => Number(x.is_variable) === 1)
-      .map(x => {
-        let meterStart = 0;
-        try {
-          const cfg = x.config_json ? JSON.parse(x.config_json) : {};
-          meterStart = Number(cfg?.meterStart) || 0;
-        } catch {}
-        return {
-          id: x.charge_type_id,
-          name: x.name,
-          unit: x.unit,
-          unitPrice: groupVN(String(x.unit_price || 0)),
-          meterStart: groupVN(String(meterStart)),
+    // seed state editable
+    const f: Record<string, string> = {};
+    const v: Record<string, {price: string; meter: string}> = {};
+    for (const it of list) {
+      if (Number(it.is_variable) === 1) {
+        v[it.charge_type_id] = {
+          price: groupVN(String(it.unit_price || 0)),
+          meter: groupVN(String(it.meter_start || 0)),
         };
-      });
-    setVarRows(vr);
-  }, [leaseId]);
+      } else {
+        f[it.charge_type_id] = groupVN(String(it.unit_price || 0));
+      }
+    }
+    setFixed(f);
+    setVars(v);
+  };
 
-  // ngày kết thúc dự kiến
-  const projectedEnd = useMemo(() => {
-    if (lease?.end_date) return lease.end_date;
+  useEffect(reload, [leaseId]);
+  useFocusEffect(React.useCallback(() => { reload(); }, [leaseId]));
+
+  const endProjected = useMemo(() => {
+    if (!lease) return '—';
+    if (lease.end_date) return lease.end_date;
     try {
-      const cs = listCycles(leaseId);
-      if (cs?.length) return cs[cs.length - 1].period_end;
-    } catch {}
-    return '—';
-  }, [lease, leaseId]);
-
-  function saveNextOnly() {
-    // Lưu phí cố định
-    for (const r of fixedRows) {
-      const v = Number(onlyDigits(r.price)) || 0;
-      updateRecurringChargePrice(leaseId, r.id, v);
+      const s = new Date(lease.start_date);
+      if (lease.billing_cycle === 'yearly') s.setFullYear(s.getFullYear() + 1);
+      else if (lease.billing_cycle === 'monthly') s.setMonth(s.getMonth() + 1);
+      else s.setDate(s.getDate() + (lease.duration_days || 1));
+      return s.toISOString().slice(0, 10);
+    } catch {
+      return '—';
     }
-    // Lưu phí biến đổi: giá/đơn vị + meterStart
-    for (const r of varRows) {
-      const p = Number(onlyDigits(r.unitPrice)) || 0;
-      const m = Number(onlyDigits(r.meterStart)) || 0;
-      updateRecurringChargePrice(leaseId, r.id, p);
-      updateRecurringChargeConfig(leaseId, r.id, {meterStart: m});
+  }, [lease]);
+
+  function saveApplyNext() {
+    // cập nhật đơn giá phí hiện có
+    for (const [ctId, text] of Object.entries(fixed)) {
+      updateRecurringChargePrice(leaseId, ctId, Number(onlyDigits(text)) || 0);
+    }
+    for (const [ctId, val] of Object.entries(vars)) {
+      updateRecurringChargePrice(leaseId, ctId, Number(onlyDigits(val.price)) || 0);
     }
 
-    Alert.alert('Đã lưu', 'Cập nhật áp dụng cho các chu kỳ sau.');
+    // tạo các khoản phí mới
+    const toCreate = newItems
+      .filter(it => it.name.trim() && Number(onlyDigits(it.price || '')) > 0)
+      .map(it => ({
+        name: it.name.trim(),
+        isVariable: !!it.isVariable,
+        unit: (it.unit || '').trim() || (it.isVariable ? 'đv' : 'tháng'),
+        price: Number(onlyDigits(it.price || '')) || 0,
+        meterStart: it.isVariable ? Number(onlyDigits(it.meterStart || '')) || 0 : undefined,
+      }));
+
+    if (toCreate.length) {
+      addCustomRecurringCharges(leaseId, toCreate);
+    }
+
     setEditMode(false);
-  }
-
-  async function addNewCharge() {
-    if (!newName.trim()) return Alert.alert('Nhập tên khoản phí');
-    const def = Number(onlyDigits(newPrice)) || 0;
-    // tạo charge type + gán vào hợp đồng hiện tại
-    const ctId = addCustomChargeType(newName.trim(), newIsVar, newUnit || undefined, def);
-    addRecurringCharge(leaseId, ctId, def, newIsVar ? 1 : 0);
-    // thêm vào UI list
-    if (newIsVar) {
-      setVarRows(prev => [...prev, {id: ctId, name: newName.trim(), unit: newUnit, unitPrice: groupVN(String(def)), meterStart: '0'}]);
-    } else {
-      setFixedRows(prev => [...prev, {id: ctId, name: newName.trim(), unit: newUnit, price: groupVN(String(def))}]);
-    }
-    setNewName(''); setNewUnit('tháng'); setNewPrice(''); setNewIsVar(false);
-    Alert.alert('Thành công', 'Đã thêm khoản phí vào hợp đồng (áp dụng từ kỳ sau).');
+    setNewItems([]);
+    reload();
+    Alert.alert('Đã lưu', 'Các thay đổi sẽ áp dụng cho các kỳ sau.');
   }
 
   return (
-    <View style={{flex:1, backgroundColor:c.bg}}>
+    <View style={{flex: 1, backgroundColor: c.bg}}>
+      <Header title="Hợp đồng" />
 
       {!editMode ? (
-        <View style={{padding:12, gap:12}}>
+        <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
           <Card>
-            <Text style={{color:c.text}}>Bắt đầu: {lease?.start_date}</Text>
-            <Text style={{color:c.text}}>Kết thúc: {lease?.end_date || '—'}</Text>
-            <Text style={{color:c.text}}>Kết thúc dự kiến: {projectedEnd}</Text>
-            <Text style={{color:c.text}}>Loại: {lease?.lease_type}</Text>
-            <Text style={{color:c.text}}>Chu kỳ: {lease?.billing_cycle}</Text>
-            <Text style={{color:c.text}}>
-              Giá thuê cơ bản (tiền nhà): {format(Number(lease?.base_rent||0))}
+            <Text style={{color: c.text}}>Bắt đầu: {lease?.start_date || '—'}</Text>
+            <Text style={{color: c.text}}>Kết thúc: {lease?.end_date || '—'}</Text>
+            <Text style={{color: c.text}}>Kết thúc dự kiến: {endProjected}</Text>
+            <Text style={{color: c.text}}>Loại: {lease?.lease_type}</Text>
+            <Text style={{color: c.text}}>Chu kỳ: {lease?.billing_cycle}</Text>
+            <Text style={{color: c.text}}>
+              Giá thuê cơ bản (tiền nhà): {format(lease?.base_rent || 0)}
             </Text>
-            <Text style={{color:c.text}}>
-              Tiền cọc: {format(Number(lease?.deposit_amount||0))}
-            </Text>
-            <Text style={{color:c.text}}>
-              Bao phí: {Number(lease?.is_all_inclusive) === 1 ? 'Có' : 'Không'}
-            </Text>
-            <Text style={{color:c.text}}>Trạng thái: {lease?.status}</Text>
+            <Text style={{color: c.text}}>Tiền cọc: {format(lease?.deposit_amount || 0)}</Text>
+            <Text style={{color: c.text}}>Bao phí: {lease?.is_all_inclusive ? 'Có' : 'Không'}</Text>
+            <Text style={{color: c.text}}>Trạng thái: {lease?.status}</Text>
           </Card>
 
-          <View style={{alignItems:'flex-end'}}>
-            <Button title="Thay đổi" onPress={()=> setEditMode(true)} />
-          </View>
-        </View>
+<Card>
+  <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Người thuê</Text>
+  {tenant ? (
+    <>
+      <Text style={{color: c.text}}>Tên: {tenant.full_name}</Text>
+      <Text style={{color: c.text}}>CCCD/CMND: {tenant.id_number || '—'}</Text>
+      <Text style={{color: c.text}}>Điện thoại: {tenant.phone || '—'}</Text>
+    </>
+  ) : (
+    <Text style={{color: c.subtext}}>Không có thông tin</Text>
+  )}
+</Card>
+
+          <Card style={{gap: 8}}>
+            <Text style={{color: c.text, fontWeight: '800'}}>Các khoản phí đang áp dụng</Text>
+            {charges.map(it => (
+              <View
+                key={it.charge_type_id}
+                style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10}}>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                  <Text style={{color: c.text, fontWeight: '700'}}>{it.name}</Text>
+                  <Text style={{color: c.subtext}}>
+                    {Number(it.is_variable) === 1 ? `Biến đổi (${it.unit || ''})` : 'Cố định'}
+                  </Text>
+                </View>
+                <Text style={{color: c.subtext}}>
+                  Đơn giá: <Text style={{color: c.text}}>{format(it.unit_price || 0)}</Text>
+                  {Number(it.is_variable) === 1 && ` / ${it.unit || 'đv'}`}
+                </Text>
+                {Number(it.is_variable) === 1 && (
+                  <Text style={{color: c.subtext}}>
+                    Chỉ số đầu: <Text style={{color: c.text}}>{groupVN(String(it.meter_start || 0))}</Text>
+                  </Text>
+                )}
+              </View>
+            ))}
+          </Card>
+
+{/* nút ở BÊN PHẢI */}
+<View style={{alignItems: 'flex-end'}}>
+  <Button title="Thay đổi" onPress={() => setEditMode(true)} style={{alignSelf:'flex-end'}}/>
+</View>
+        </ScrollView>
       ) : (
-        <View style={{padding:12, gap:12}}>
-          {/* Phí cố định */}
-          <Card>
-            <Text style={{color:c.text, fontWeight:'800'}}>Phí cố định (áp dụng kỳ sau)</Text>
-            {fixedRows.map(r => (
-              <View key={r.id} style={{gap:6, marginTop:8}}>
-                <Text style={{color:c.text}}>{r.name}{r.unit ? ` (${r.unit})` : ''}</Text>
-                <TextInput
-                  keyboardType="numeric"
-                  value={r.price}
-                  onChangeText={t=> setFixedRows(prev => prev.map(x => x.id===r.id ? {...x, price:t} : x))}
-                  onBlur={()=> setFixedRows(prev => prev.map(x => x.id===r.id ? {...x, price: groupVN(x.price)} : x))}
-                  style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
-                />
-              </View>
-            ))}
+        <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
+          <Card style={{gap: 8}}>
+            <Text style={{color: c.text, fontWeight: '800'}}>Phí cố định (áp dụng kỳ sau)</Text>
+            {charges
+              .filter(i => Number(i.is_variable) !== 1)
+              .map(it => (
+                <View key={it.charge_type_id}>
+                  <Text style={{color: c.subtext}}>{it.name} ({it.unit || 'kỳ'})</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    value={fixed[it.charge_type_id] ?? ''}
+                    onChangeText={t => setFixed(s => ({...s, [it.charge_type_id]: t}))}
+                    onBlur={() =>
+                      setFixed(s => ({...s, [it.charge_type_id]: groupVN(s[it.charge_type_id] || '')}))
+                    }
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
+                  />
+                </View>
+              ))}
           </Card>
 
-          {/* Phí biến đổi (điện, nước…) */}
-          <Card>
-            <Text style={{color:c.text, fontWeight:'800'}}>Phí biến đổi (áp dụng kỳ sau)</Text>
-            {varRows.length === 0 ? (
-              <Text style={{color:c.subtext, marginTop:6}}>Chưa có phí biến đổi.</Text>
+          <Card style={{gap: 8}}>
+            <Text style={{color: c.text, fontWeight: '800'}}>Phí biến đổi (áp dụng kỳ sau)</Text>
+            {charges
+              .filter(i => Number(i.is_variable) === 1)
+              .map(it => (
+                <View key={it.charge_type_id} style={{gap: 6}}>
+                  <Text style={{color: c.subtext}}>{it.name} ({it.unit || 'đv'})</Text>
+                  <Text style={{color: c.subtext}}>Giá / đơn vị</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    value={vars[it.charge_type_id]?.price ?? ''}
+                    onChangeText={t =>
+                      setVars(s => ({
+                        ...s,
+                        [it.charge_type_id]: {...(s[it.charge_type_id] || {meter: '0'}), price: t},
+                      }))
+                    }
+                    onBlur={() =>
+                      setVars(s => ({
+                        ...s,
+                        [it.charge_type_id]: {
+                          ...(s[it.charge_type_id] || {meter: '0'}),
+                          price: groupVN(s[it.charge_type_id]?.price || ''),
+                        },
+                      }))
+                    }
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
+                  />
+                  <Text style={{color: c.subtext}}>Chỉ số đầu (hiển thị cho biết)</Text>
+                  <TextInput
+                    editable={false}
+                    value={groupVN(String(it.meter_start || 0))}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.subtext,
+                      backgroundColor: c.card,
+                    }}
+                  />
+                </View>
+              ))}
+          </Card>
+
+          <Card style={{gap: 10}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+              <Text style={{color: c.text, fontWeight: '800'}}>Thêm khoản phí khác</Text>
+              <Button title="+ Thêm" onPress={addEmptyItem} />
+            </View>
+
+            {newItems.length === 0 ? (
+              <Text style={{color: c.subtext}}>Chưa có mục nào. Bấm “+ Thêm”.</Text>
             ) : null}
-            {varRows.map(r => (
-              <View key={r.id} style={{gap:6, marginTop:8}}>
-                <Text style={{color:c.text}}>{r.name}{r.unit ? ` (${r.unit})` : ''}</Text>
-                <Text style={{color:c.subtext}}>Giá / đơn vị</Text>
+
+            {newItems.map((it, idx) => (
+              <View
+                key={idx}
+                style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10, gap: 8}}>
                 <TextInput
-                  keyboardType="numeric"
-                  value={r.unitPrice}
-                  onChangeText={t=> setVarRows(prev => prev.map(x => x.id===r.id ? {...x, unitPrice:t} : x))}
-                  onBlur={()=> setVarRows(prev => prev.map(x => x.id===r.id ? {...x, unitPrice: groupVN(x.unitPrice)} : x))}
-                  style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+                  placeholder="Tên phí"
+                  placeholderTextColor={c.subtext}
+                  value={it.name}
+                  onChangeText={t => updateItem(idx, {name: t})}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#2A2F3A',
+                    borderRadius: 10,
+                    padding: 10,
+                    color: c.text,
+                    backgroundColor: c.card,
+                  }}
                 />
-                <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
+
+                <View style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
+                  <Button
+                    title={it.isVariable ? 'Biến đổi' : 'Cố định'}
+                    onPress={() => updateItem(idx, {isVariable: !it.isVariable})}
+                  />
+                  <View style={{flex: 1}} />
+                  <Button title="Xoá" variant="ghost" onPress={() => removeItem(idx)} />
+                </View>
+
                 <TextInput
-                  keyboardType="numeric"
-                  value={r.meterStart}
-                  onChangeText={t=> setVarRows(prev => prev.map(x => x.id===r.id ? {...x, meterStart:t} : x))}
-                  onBlur={()=> setVarRows(prev => prev.map(x => x.id===r.id ? {...x, meterStart: groupVN(x.meterStart)} : x))}
-                  style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+                  placeholder="Đơn vị (vd: tháng, kWh, m3)"
+                  placeholderTextColor={c.subtext}
+                  value={it.unit}
+                  onChangeText={t => updateItem(idx, {unit: t})}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#2A2F3A',
+                    borderRadius: 10,
+                    padding: 10,
+                    color: c.text,
+                    backgroundColor: c.card,
+                  }}
                 />
+                <TextInput
+                  placeholder={it.isVariable ? 'Giá / đơn vị' : 'Giá / kỳ'}
+                  placeholderTextColor={c.subtext}
+                  keyboardType="numeric"
+                  value={it.price}
+                  onChangeText={t => updateItem(idx, {price: t})}
+                  onBlur={() => updateItem(idx, {price: groupVN(it.price || '')})}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#2A2F3A',
+                    borderRadius: 10,
+                    padding: 10,
+                    color: c.text,
+                    backgroundColor: c.card,
+                  }}
+                />
+                {it.isVariable && (
+                  <TextInput
+                    placeholder="Chỉ số đầu (tuỳ chọn)"
+                    placeholderTextColor={c.subtext}
+                    keyboardType="numeric"
+                    value={it.meterStart}
+                    onChangeText={t => updateItem(idx, {meterStart: t})}
+                    onBlur={() => updateItem(idx, {meterStart: groupVN(it.meterStart || '')})}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
+                  />
+                )}
               </View>
             ))}
           </Card>
 
-          {/* Thêm khoản phí khác */}
-          <Card>
-            <Text style={{color:c.text, fontWeight:'800'}}>Thêm khoản phí khác</Text>
-            <Text style={{color:c.subtext, marginTop:6}}>Tên phí</Text>
-            <TextInput
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="VD: Vệ sinh chung"
-              placeholderTextColor={c.subtext}
-              style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
-            />
-            <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:8}}>
-              <Text style={{color:c.text}}>Là phí biến đổi?</Text>
-              <Switch value={newIsVar} onValueChange={setNewIsVar}/>
-            </View>
-            <Text style={{color:c.subtext, marginTop:6}}>Đơn vị</Text>
-            <TextInput
-              value={newUnit}
-              onChangeText={setNewUnit}
-              placeholder={newIsVar ? 'kWh / m3 …' : 'tháng'}
-              placeholderTextColor={c.subtext}
-              style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
-            />
-            <Text style={{color:c.subtext, marginTop:6}}>
-              {newIsVar ? 'Giá / đơn vị' : 'Giá / kỳ'}
-            </Text>
-            <TextInput
-              keyboardType="numeric"
-              value={newPrice}
-              onChangeText={t=> setNewPrice(groupVN(t))}
-              onBlur={()=> setNewPrice(groupVN(newPrice))}
-              style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
-            />
-            <View style={{alignItems:'flex-end', marginTop:10}}>
-              <Button title="Thêm" onPress={addNewCharge} />
-            </View>
-          </Card>
-
-          <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-            <Button title="Huỷ" variant="ghost" onPress={()=> setEditMode(false)} />
-            <Button title="Lưu (áp dụng kỳ sau)" onPress={saveNextOnly} />
+          {/* Hàng nút: bên PHẢI, có nút LƯU */}
+          <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 10}}>
+            <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setNewItems([]); }} />
+            <Button title="Lưu (áp dụng kỳ sau)" onPress={saveApplyNext} />
           </View>
-        </View>
+        </ScrollView>
       )}
     </View>
   );

@@ -32,8 +32,15 @@ export function deleteApartment(apartmentId: string) {
 }
 
 export function createRoom(apartmentId: string, code: string, floor?: number, area?: number) {
+  const dup = query<{c:number}>(`SELECT COUNT(*) c FROM rooms WHERE apartment_id = ? AND code = ?`, [apartmentId, code])[0]?.c ?? 0;
+  if (dup > 0) {
+    throw new Error('Mã phòng đã tồn tại trong căn hộ này. Vui lòng nhập mã khác.');
+  }
   const id = uuidv4();
-  exec(`INSERT INTO rooms (id, apartment_id, code, floor, area, status) VALUES (?,?,?,?,?,?)`, [id, apartmentId, code, floor ?? null, area ?? null, 'available']);
+  exec(
+    `INSERT INTO rooms (id, apartment_id, code, floor, area, status) VALUES (?,?,?,?,?,?)`,
+    [id, apartmentId, code, floor ?? null, area ?? null, 'available'],
+  );
   return id;
 }
 export function deleteRoom(roomId: string) {
@@ -370,22 +377,30 @@ export function addRecurringCharge(
   chargeTypeId: string,
   unit_price?: number,
   is_variable?: number,
-  config?: any,                 // <-- thêm
+  config?: { meterStart?: number } // << thêm config
 ) {
   const id = uuidv4();
   const ct = getChargeType(chargeTypeId);
-  const _isVariable = typeof is_variable === 'number'
-    ? is_variable
-    : (ct?.meta_json ? (JSON.parse(ct.meta_json).is_variable ? 1 : 0) : 0);
+  const _isVariable =
+    typeof is_variable === 'number'
+      ? is_variable
+      : ct?.meta_json
+      ? JSON.parse(ct.meta_json).is_variable
+        ? 1
+        : 0
+      : 0;
 
   exec(
-    `INSERT INTO recurring_charges
-      (id, lease_id, charge_type_id, unit_price, is_variable, config_json)
+    `INSERT INTO recurring_charges (id, lease_id, charge_type_id, unit_price, is_variable, config_json)
      VALUES (?,?,?,?,?,?)`,
-    [id, leaseId, chargeTypeId,
-     unit_price ?? ct?.unit_price ?? 0,
-     _isVariable,
-     config ? JSON.stringify(config) : null]   // <-- lưu meterStart
+    [
+      id,
+      leaseId,
+      chargeTypeId,
+      unit_price ?? ct?.unit_price ?? 0,
+      _isVariable,
+      config ? JSON.stringify(config) : null, // << lưu meterStart
+    ],
   );
   return id;
 }
@@ -476,50 +491,81 @@ export function listChargesByLease(leaseId: string) {
 export function settleCycleWithInputs(
   cycleId: string,
   variableInputs: Array<{charge_type_id: string; quantity: number; unit_price?: number}>,
-  extraCosts: Array<{name: string; amount: number}>=[]
+  extraCosts: Array<{name: string; amount: number}> = []
 ) {
   const c = getCycle(cycleId);
   if (!c) throw new Error('Cycle not found');
 
   const inv = openInvoiceForCycle(cycleId);
-  const charges = listChargesByLease(inv.lease_id);
 
-  // 1) Cố định
+  // Lấy danh sách phí kèm unit_price, unit và meter_start (nếu có)
+  const charges = query<any>(`
+    SELECT rc.id, rc.lease_id, rc.charge_type_id, rc.unit_price, rc.is_variable, rc.config_json,
+           ct.name, ct.unit
+    FROM recurring_charges rc
+    JOIN charge_types ct ON ct.id = rc.charge_type_id
+    WHERE rc.lease_id = ?
+  `, [inv.lease_id]);
+
+  // 1) Phí cố định: tự động đưa vào invoice
   for (const ch of charges) {
     if (Number(ch.is_variable) === 1) continue;
     const qty = 1;
     const price = Number(ch.unit_price) || 0;
-    addInvoiceItem(inv.id, ch.name, qty, ch.unit, price, qty*price, ch.charge_type_id);
+    addInvoiceItem(
+      inv.id,
+      ch.name,
+      qty,
+      ch.unit,
+      price,
+      qty * price,
+      ch.charge_type_id
+    );
   }
 
-  // 2) Biến đổi
-  for (const inp of variableInputs) {
-    const ch = charges.find((x:any)=> x.charge_type_id === inp.charge_type_id);
-    if (!ch) continue;
-    const qty = Math.max(0, inp.quantity || 0);
-    const price = (typeof inp.unit_price === 'number') ? inp.unit_price : (Number(ch.unit_price)||0);
-    addInvoiceItem(inv.id, ch.name, qty, ch.unit, price, qty*price, ch.charge_type_id, {variable: true});
+  // Tạo map để tra cứu input biến đổi nhanh
+  const inputMap = new Map<string, {quantity: number; unit_price?: number}>();
+  for (const x of variableInputs) inputMap.set(x.charge_type_id, x);
+
+  // 2) Phí biến đổi: lưu cả meter_start & meter_end vào meta_json
+  for (const ch of charges) {
+    if (Number(ch.is_variable) !== 1) continue;
+    const inp = inputMap.get(ch.charge_type_id);
+    if (!inp) continue;
+
+    const meterStart =
+      (() => { try { return JSON.parse(ch.config_json || '{}')?.meterStart ?? 0; } catch { return 0; } })();
+    const qty = Math.max(0, Number(inp.quantity) || 0);
+    const price = (typeof inp.unit_price === 'number') ? inp.unit_price : (Number(ch.unit_price) || 0);
+    const amount = qty * price;
+
+    const meta = {
+      variable: true,
+      meter_start: meterStart,
+      meter_end: meterStart + qty, // chỉ số hiện tại
+      consumed: qty,
+    };
+
+    addInvoiceItem(
+      inv.id,
+      ch.name,
+      qty,
+      ch.unit,
+      price,
+      amount,
+      ch.charge_type_id,
+      meta
+    );
   }
 
-  // 3) Phát sinh
+  // 3) Phụ phí phát sinh
   for (const ex of extraCosts) {
     addInvoiceItem(inv.id, ex.name, 1, undefined, ex.amount, ex.amount, undefined, {extra: true});
   }
 
-  // 4) Tổng
+  // 4) Tổng & chốt kỳ
   recalcInvoice(inv.id);
-
-  // 5) Chốt
   exec(`UPDATE lease_cycles SET status = 'settled' WHERE id = ?`, [cycleId]);
-
-  // 6) Kỳ kế tiếp
-  const lease = getLease(inv.lease_id);
-  if (lease?.status === 'active') {
-    const end = new Date(c.period_end);
-    let nextStart = end;
-    nextStart = addDays(end, 0);
-    createNextCycle(inv.lease_id, toYMD(nextStart), lease.billing_cycle);
-  }
 
   return getInvoice(inv.id);
 }
@@ -586,14 +632,27 @@ export function updateRecurringChargePrice(leaseId: string, chargeTypeId: string
 
 // Lấy danh sách phí của hợp đồng (kèm tên & loại)
 export function listChargesForLease(leaseId: string) {
-  return query<any>(`
-    SELECT rc.charge_type_id, rc.unit_price, rc.is_variable,
+  return query(
+    `
+    SELECT rc.id, rc.lease_id, rc.charge_type_id, rc.unit_price, rc.is_variable, rc.config_json,
            ct.name, ct.unit, ct.pricing_model
     FROM recurring_charges rc
     JOIN charge_types ct ON ct.id = rc.charge_type_id
     WHERE rc.lease_id = ?
-    ORDER BY CASE WHEN ct.name='Tiền phòng' THEN 0 ELSE 1 END, ct.name
-  `, [leaseId]);
+    ORDER BY ct.name ASC
+  `,
+    [leaseId],
+  ).map((r: any) => {
+    let meter_start: number | undefined;
+    try {
+      const cfg = r.config_json ? JSON.parse(r.config_json) : null;
+      meter_start = typeof cfg?.meterStart === 'number' ? cfg.meterStart : undefined;
+    } catch {}
+    return {
+      ...r,
+      meter_start,
+    };
+  });
 }
 export function updateRecurringChargeConfig(leaseId: string, chargeTypeId: string, partial: any) {
   const row = query<{config_json?: string}>(`
@@ -606,4 +665,25 @@ export function updateRecurringChargeConfig(leaseId: string, chargeTypeId: strin
   const merged = {...cfg, ...partial};
   exec(`UPDATE recurring_charges SET config_json = ? WHERE lease_id = ? AND charge_type_id = ?`,
       [JSON.stringify(merged), leaseId, chargeTypeId]);
+}
+export function addCustomRecurringCharges(
+  leaseId: string,
+  items: Array<{ name: string; isVariable: boolean; unit?: string; price?: number; meterStart?: number }>
+) {
+  for (const it of items) {
+    const ctId = upsertChargeType(
+      it.name,
+      it.unit,
+      it.isVariable ? 'per_unit' : 'flat',
+      it.price ?? 0,
+      it.isVariable
+    );
+    addRecurringCharge(
+      leaseId,
+      ctId,
+      it.price ?? 0,
+      it.isVariable ? 1 : 0,
+      it.isVariable && typeof it.meterStart === 'number' ? { meterStart: it.meterStart } : undefined
+    );
+  }
 }

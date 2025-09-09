@@ -1,5 +1,6 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -18,16 +19,25 @@ export default function RoomDetail({route, navigation}: Props) {
   const [lease, setLease] = useState<any>();
   const [cycles, setCycles] = useState<any[]>([]);
 
-  useEffect(() => {
+  const loadAll = useCallback(() => {
     const r = getRoom(roomId);
     setRoom(r);
-
     const l = getLeaseByRoom(roomId);
     setLease(l);
-
     if (l) setCycles(listCycles(l.id));
     else setCycles([]);
   }, [roomId]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // Reload khi quay lại màn hình
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [loadAll]),
+  );
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -38,7 +48,6 @@ export default function RoomDetail({route, navigation}: Props) {
       cy => String(cy.period_start) <= today && today <= String(cy.period_end),
     );
     if (current) return current;
-    // nearest upcoming
     const future = cycles
       .filter(cy => String(cy.period_start) > today)
       .sort((a, b) => (a.period_start < b.period_start ? -1 : 1));
