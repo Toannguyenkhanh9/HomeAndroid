@@ -81,7 +81,7 @@ if (ch.type === 'fixed') {
 }
     }
   } else {
-    const ctId = upsertChargeType('Gói bao phí', 'kỳ', 'flat', baseRent);
+    const ctId = upsertChargeType('Giá thuê cơ bản (Tiền Nhà)', 'kỳ', 'flat', baseRent);
     addRecurringCharge(id, ctId, baseRent, 0);
   }
 

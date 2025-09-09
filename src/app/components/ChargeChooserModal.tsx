@@ -43,6 +43,11 @@ function rid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// chuẩn hoá & nhận diện tên
+const norm = (s?: string) => (s || '').normalize('NFC').trim().toLowerCase();
+const isTienPhong = (name?: string) => norm(name).includes('tiền phòng');
+const isGoiBaoPhi = (name?: string) => norm(name).includes('gói bao phí');
+
 export default function ChargeChooserModal({
   visible,
   onClose,
@@ -61,14 +66,14 @@ export default function ChargeChooserModal({
   const [customName, setCustomName] = useState('');
   const [customIsVar, setCustomIsVar] = useState(false);
   const [customPrice, setCustomPrice] = useState('');
-  const [customMeter, setCustomMeter] = useState(''); // chỉ số đầu (nếu biến đổi)
+  const [customMeter, setCustomMeter] = useState('');
 
-  // Tải danh mục phí (lọc bỏ “Gói bao phí”)
+  // Tải danh mục phí (và LOẠI bỏ Tiền phòng + Gói bao phí)
   useEffect(() => {
     if (!visible) return;
-    const list = (listChargeTypes() as any[]) || [];
-    const filtered = list.filter(
-      x => typeof x?.name === 'string' && !x.name.toLowerCase().includes('gói bao phí'),
+    const list = listChargeTypes() as any[];
+    const filtered = (list || []).filter(
+      (x) => !isTienPhong(x?.name) && !isGoiBaoPhi(x?.name)
     );
     setRows(
       filtered.map((x) => ({
@@ -78,29 +83,30 @@ export default function ChargeChooserModal({
         pricing_model: x.pricing_model,
         unit_price: x.unit_price,
         meta_json: x.meta_json,
-      })),
+      }))
     );
   }, [visible]);
 
-  // Prefill khi mở modal (đợi rows có dữ liệu)
+  // Prefill khi mở modal (bỏ qua mọi item Tiền phòng/Gói bao phí nếu có trong initialSelected)
   useEffect(() => {
     if (!visible) return;
     const mapChecked: Record<string, boolean> = {};
     const mapValues: Record<string, {price: string; meterStart?: string}> = {};
-    (initialSelected || []).forEach((sel) => {
-      // Nếu item chưa có trong rows (VD mới thêm tuỳ chỉnh), vẫn prefill cho chắc
-      mapChecked[sel.id] = true;
-      mapValues[sel.id] = {
-        price: groupVN(String(sel.price ?? 0)),
-        meterStart:
-          typeof sel.meterStart === 'number'
-            ? groupVN(String(sel.meterStart))
-            : undefined,
-      };
-    });
+    (initialSelected || [])
+      .filter((sel) => !isTienPhong(sel.name) && !isGoiBaoPhi(sel.name))
+      .forEach((sel) => {
+        mapChecked[sel.id] = true;
+        mapValues[sel.id] = {
+          price: groupVN(String(sel.price ?? 0)),
+          meterStart:
+            typeof sel.meterStart === 'number'
+              ? groupVN(String(sel.meterStart))
+              : undefined,
+        };
+      });
     setChecked(mapChecked);
     setValues({...mapValues});
-  }, [visible, initialSelected, rows]);
+  }, [visible, initialSelected]);
 
   const parsed = useMemo(
     () =>
@@ -115,7 +121,7 @@ export default function ChargeChooserModal({
           default_price: Number(r.unit_price || 0),
         };
       }),
-    [rows],
+    [rows]
   );
 
   function toggle(id: string) {
@@ -157,12 +163,11 @@ export default function ChargeChooserModal({
 
   function addCustom() {
     const name = customName.trim();
-    if (!name) return;
+    if (!name || isTienPhong(name) || isGoiBaoPhi(name)) return; // không cho tự thêm tên cấm
     const id = 'custom:' + rid();
     const price = Number(onlyDigits(customPrice || '0')) || 0;
     const meterStart = Number(onlyDigits(customMeter || '0')) || 0;
 
-    // tích chọn + set value
     setChecked((prev) => ({...prev, [id]: true}));
     setValues((prev) => ({
       ...prev,
@@ -171,7 +176,6 @@ export default function ChargeChooserModal({
         meterStart: customIsVar ? groupVN(String(meterStart)) : undefined,
       },
     }));
-    // đưa vào list hiển thị như 1 item mới
     setRows((prev) => [
       ...prev,
       {
@@ -183,7 +187,6 @@ export default function ChargeChooserModal({
         meta_json: JSON.stringify({is_variable: customIsVar}),
       },
     ]);
-    // reset input
     setCustomName('');
     setCustomPrice('');
     setCustomMeter('');
@@ -196,6 +199,9 @@ export default function ChargeChooserModal({
       if (!checked[r.id]) continue;
       const v = values[r.id];
       const isVar = r.is_variable || r.pricing_model === 'per_unit';
+      // phòng ngừa: không gửi ra “Tiền phòng/Gói bao phí” nếu lọt
+      if (isTienPhong(r.name) || isGoiBaoPhi(r.name)) continue;
+
       out.push({
         id: r.id,
         name: r.name,
@@ -227,6 +233,7 @@ export default function ChargeChooserModal({
           <ScrollView contentContainerStyle={{paddingHorizontal:16, paddingBottom:16, gap:10}}>
             {parsed.map((r) => {
               const isChecked = !!checked[r.id];
+              const primaryBg = isChecked ? c.primary : 'transparent';
               const border = isChecked ? 'transparent' : '#2A2F3A';
               return (
                 <View
@@ -236,9 +243,8 @@ export default function ChargeChooserModal({
                     borderColor: border,
                     borderRadius:12,
                     overflow:'hidden',
-                    backgroundColor: isChecked ? '#0ea5e933' : c.card, // nhấn nổi bật nhẹ
+                    backgroundColor: isChecked ? primaryBg + '22' : c.card,
                   }}>
-                  {/* Header row */}
                   <TouchableOpacity
                     onPress={() => toggle(r.id)}
                     style={{
@@ -246,14 +252,14 @@ export default function ChargeChooserModal({
                       flexDirection:'row',
                       alignItems:'center',
                       justifyContent:'space-between',
-                      backgroundColor: isChecked ? '#0ea5e922' : 'transparent',
+                      backgroundColor: isChecked ? primaryBg + '33' : 'transparent',
                     }}>
                     <View style={{flexDirection:'row', alignItems:'center', gap:10, flex:1}}>
                       <View
                         style={{
                           width:20, height:20, borderRadius:6,
-                          borderWidth:2, borderColor: isChecked ? '#0ea5e9' : '#6B7280',
-                          backgroundColor: isChecked ? '#0ea5e9' : 'transparent',
+                          borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
+                          backgroundColor: isChecked ? c.primary : 'transparent',
                         }}
                       />
                       <Text style={{color:c.text, fontWeight:'700', flexShrink:1}}>
@@ -265,10 +271,8 @@ export default function ChargeChooserModal({
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Body inputs */}
                   {isChecked && (
                     <View style={{padding:12, gap:8}}>
-                      {/* Giá */}
                       <Text style={{color:c.subtext}}>
                         {r.is_variable ? 'Giá / đơn vị' : 'Giá / kỳ'}
                       </Text>
@@ -283,7 +287,6 @@ export default function ChargeChooserModal({
                         }}
                       />
 
-                      {/* Chỉ số đầu — chỉ cho biến đổi */}
                       {r.is_variable && (
                         <>
                           <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
@@ -305,7 +308,7 @@ export default function ChargeChooserModal({
               );
             })}
 
-            {/* --- Chi phí khác --- */}
+            {/* Chi phí khác */}
             <View style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:12, backgroundColor:c.card, padding:12, gap:8}}>
               <Text style={{color:c.text, fontWeight:'800'}}>Chi phí khác</Text>
               <Text style={{color:c.subtext}}>Tên phí</Text>
@@ -350,7 +353,6 @@ export default function ChargeChooserModal({
             </View>
           </ScrollView>
 
-          {/* Action bar */}
           <View style={{paddingHorizontal:16, flexDirection:'row', justifyContent:'space-between', gap:12}}>
             <Button title="Đóng" variant="ghost" onPress={onClose} />
             <Button title="Xác nhận" onPress={confirm} />
