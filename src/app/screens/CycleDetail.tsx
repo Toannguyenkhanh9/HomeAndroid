@@ -99,14 +99,16 @@ export default function CycleDetail({route}: Props) {
     } else {
       // chưa tất toán: lấy cấu hình phí hiện tại của Hợp đồng để cho phép chỉnh
       const list = listChargesForLease(lease.id) as any[];
-      const normalized: ChargeRow[] = list.map(it => ({
-        charge_type_id: it.charge_type_id,
-        name: it.name,
-        unit: it.unit,
-        is_variable: Number(it.is_variable),
-        unit_price: Number(it.unit_price) || 0,
-        meter_start: Number(it.meter_start || 0),
-        value: it.is_variable ? '' : groupVN(String(it.unit_price || 0)),
+      const normalized: ChargeRow[] = list.map(it => ([
+        it.charge_type_id,
+        it.name,
+        it.unit,
+        Number(it.is_variable),
+        Number(it.unit_price) || 0,
+        Number(it.meter_start || 0),
+      ] as const)).map(([charge_type_id, name, unit, is_variable, unit_price, meter_start]) => ({
+        charge_type_id, name, unit, is_variable, unit_price, meter_start,
+        value: is_variable ? '' : groupVN(String(unit_price || 0)),
       }));
       setRows(normalized);
 
@@ -190,14 +192,14 @@ export default function CycleDetail({route}: Props) {
       return;
     }
 
-    const variableInputs: Array<{ charge_type_id: string; quantity: number }> = [];
+    const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
     for (const r of rows) {
       if (r.is_variable === 1) {
         const current = Number(onlyDigits(r.value)) || 0;
         const consumed = Math.max(0, current - (r.meter_start || 0));
-        variableInputs.push({ charge_type_id: r.charge_type_id, quantity: consumed });
+        variableInputs.push({ charge_type_id: r.charge_type_id, quantity: consumed, meter_end: current });
       } else {
         const newPrice = Number(onlyDigits(r.value)) || 0;
         const delta = newPrice - (r.unit_price || 0);
@@ -350,7 +352,7 @@ export default function CycleDetail({route}: Props) {
               </View>
             ) : (
               <View style={{ alignItems: 'flex-end' }}>
-                <Button title="Thay đổi" onPress={() => setEditMode(true)} />
+                <Button title="Tất Toán" onPress={() => setEditMode(true)} />
               </View>
             )}
           </ScrollView>

@@ -1,3 +1,4 @@
+// src/app/screens/RoomDetail.tsx
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, Text, TouchableOpacity, FlatList} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
@@ -24,38 +25,47 @@ export default function RoomDetail({route, navigation}: Props) {
     setRoom(r);
     const l = getLeaseByRoom(roomId);
     setLease(l);
-    if (l) setCycles(listCycles(l.id));
+    if (l) setCycles(listCycles(l.id) || []);
     else setCycles([]);
   }, [roomId]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
-  useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // Reload mỗi lần quay về màn hình
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [loadAll]),
+  );
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // current hoặc upcoming gần nhất
-  const cycleToShow = useMemo(() => {
+  // Chu kỳ hiện tại nếu có, ngược lại là kỳ sắp tới gần nhất
+  const currentOrNext = useMemo(() => {
     if (!lease) return undefined;
-    const current = cycles.find(
+    const cur = cycles.find(
       cy => String(cy.period_start) <= today && today <= String(cy.period_end),
     );
-    if (current) return current;
+    if (cur) return cur;
     const future = cycles
       .filter(cy => String(cy.period_start) > today)
       .sort((a, b) => (a.period_start < b.period_start ? -1 : 1));
     return future[0];
   }, [cycles, lease, today]);
 
-  // danh sách đã tất toán (mới → cũ)
+  // Các chu kỳ đã tất toán: mới → cũ
   const settledList = useMemo(() => {
     return (cycles || [])
       .filter(cy => String(cy.status) === 'settled')
-      .sort((a,b) => (a.period_start < b.period_start ? 1 : -1));
+      .sort((a, b) => (a.period_end < b.period_end ? 1 : -1));
   }, [cycles]);
 
   return (
     <View style={{flex: 1, backgroundColor: c.bg}}>
-      <Header title="Chi tiết phòng" />
+      {/* Bỏ title “Chi tiết phòng” theo yêu cầu */}
+      <Header title="" />
 
       <View style={{padding: 12, gap: 12}}>
         {/* Thông tin phòng */}
@@ -65,13 +75,13 @@ export default function RoomDetail({route, navigation}: Props) {
           </Text>
           <Text style={{color: c.subtext}}>Tầng: {room?.floor ?? '—'}</Text>
           <Text style={{color: c.subtext}}>Diện tích: {room?.area ?? '—'} m2</Text>
-          <Text style={{color: c.subtext}}>Trạng thái: {room?.status}</Text>
+          <Text style={{color: c.subtext}}>Trạng thái: {room?.status || '—'}</Text>
         </Card>
 
         {/* Hợp đồng */}
         <Card>
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Text style={{color:c.text, fontWeight:'800'}}>Hợp đồng</Text>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text style={{color: c.text, fontWeight: '800'}}>Hợp đồng</Text>
             {lease ? (
               <Button
                 title="Xem chi tiết"
@@ -85,29 +95,36 @@ export default function RoomDetail({route, navigation}: Props) {
             <>
               <Text style={{color: c.subtext}}>Bắt đầu: {lease.start_date}</Text>
               <Text style={{color: c.subtext}}>Kết thúc: {lease.end_date || '—'}</Text>
-              <Text style={{color: c.subtext}}>Ngày thanh toán kỳ tới: {nextDueDate(lease.id) || '—'}</Text>
+              <Text style={{color: c.subtext}}>
+                Ngày thanh toán kỳ tới: {nextDueDate(lease.id) || '—'}
+              </Text>
             </>
           ) : (
-            <Text style={{color: c.subtext}}>Chưa có hợp đồng. Hãy tạo hợp đồng cho phòng này.</Text>
+            <Text style={{color: c.subtext}}>
+              Chưa có hợp đồng. Hãy tạo hợp đồng cho phòng này.
+            </Text>
           )}
 
           {!lease && (
             <View style={{marginTop: 8, alignItems: 'flex-end'}}>
-              <Button title="Tạo hợp đồng" onPress={() => navigation.navigate('LeaseForm', {roomId})} />
+              <Button
+                title="Tạo hợp đồng"
+                onPress={() => navigation.navigate('LeaseForm', {roomId})}
+              />
             </View>
           )}
         </Card>
 
-        {/* Chu kỳ hiện tại/gần nhất */}
+        {/* Chu kỳ: hiện 1 kỳ hiện tại hoặc gần nhất sắp tới */}
         <Card>
           <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Chu kỳ thuê</Text>
           {lease ? (
-            cycleToShow ? (
+            currentOrNext ? (
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('CycleDetail', {
-                    cycleId: cycleToShow.id,
-                    onSettled: loadAll,  // để sau tất toán quay lại tự refresh & xuất hiện kỳ mới
+                    cycleId: currentOrNext.id,
+                    onSettled: () => loadAll(), // callback: tất toán xong quay lại tự reload
                   })
                 }
                 style={{
@@ -121,67 +138,81 @@ export default function RoomDetail({route, navigation}: Props) {
                   alignItems: 'center',
                 }}>
                 <Text style={{color: c.text}}>
-                  {cycleToShow.period_start}  →  {cycleToShow.period_end}
+                  {currentOrNext.period_start} → {currentOrNext.period_end}
                 </Text>
                 <Text
                   style={{
                     fontStyle: 'italic',
-                    color: String(cycleToShow.status) === 'settled' ? '#10B981' : '#EF4444',
+                    color:
+                      String(currentOrNext.status) === 'settled' ? '#10B981' : '#EF4444',
                   }}>
-                  {String(cycleToShow.status) === 'settled' ? 'Đã Tất Toán' : 'Chưa Tất Toán'}
+                  {String(currentOrNext.status) === 'settled'
+                    ? 'Đã Tất Toán'
+                    : 'Chưa Tất Toán'}
                 </Text>
               </TouchableOpacity>
             ) : (
               <Text style={{color: c.subtext}}>Chưa có chu kỳ.</Text>
             )
           ) : (
-            <Text style={{color: c.subtext}}>Chưa có hợp đồng nên chưa phát sinh chu kỳ.</Text>
+            <Text style={{color: c.subtext}}>
+              Chưa có hợp đồng nên chưa phát sinh chu kỳ.
+            </Text>
           )}
         </Card>
 
         {/* Danh sách chu kỳ đã tất toán (mới → cũ) */}
-        {lease && (
-          <Card>
-            <Text style={{color:c.text, fontWeight:'800', marginBottom:8}}>Chu kỳ đã tất toán</Text>
-            {settledList.length === 0 ? (
-              <Text style={{color:c.subtext}}>Chưa có chu kỳ nào đã tất toán.</Text>
-            ) : (
-              <FlatList
-                data={settledList}
-                keyExtractor={i => i.id}
-                ItemSeparatorComponent={() => <View style={{height:8}} />}
-                renderItem={({item}) => (
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('CycleDetail', {cycleId: item.id})}
-                    style={{
-                      padding: 12,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#2A2F3A',
-                      backgroundColor: c.card,
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
-                    <Text style={{color: c.text}}>
-                      {item.period_start} → {item.period_end}
-                    </Text>
-                    <Text style={{color:'#10B981', fontStyle:'italic'}}>Đã Tất Toán</Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </Card>
-        )}
+        <Card>
+          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+            Chu kỳ đã tất toán
+          </Text>
+
+          {settledList.length === 0 ? (
+            <Text style={{color: c.subtext}}>Chưa có chu kỳ tất toán.</Text>
+          ) : (
+            <FlatList
+              data={settledList}
+              keyExtractor={item => item.id}
+              scrollEnabled={false}
+              renderItem={({item}) => (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('CycleDetail', {
+                      cycleId: item.id,
+                      onSettled: () => loadAll(),
+                    })
+                  }
+                  style={{
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#2A2F3A',
+                    backgroundColor: c.card,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                  <Text style={{color: c.text}}>
+                    {item.period_start} → {item.period_end}
+                  </Text>
+                  <Text style={{fontStyle: 'italic', color: '#10B981'}}>Đã Tất Toán</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </Card>
       </View>
 
-      {/* Nút kết thúc hợp đồng (dưới, bên phải) */}
+      {/* Nút kết thúc hợp đồng (cố định góc dưới bên phải) */}
       {lease ? (
         <View style={{position: 'absolute', right: 16, bottom: 16}}>
           <Button
             title="Kết thúc hợp đồng trước hạn"
             variant="danger"
-            onPress={() => navigation.navigate('EndLeaseEarly', {leaseId: lease.id})}
+            onPress={() =>
+              navigation.navigate('EndLeaseEarly', {leaseId: lease.id})
+            }
           />
         </View>
       ) : null}
