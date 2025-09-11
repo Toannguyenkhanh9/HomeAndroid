@@ -193,27 +193,27 @@ export default function ChargeChooserModal({
     setCustomIsVar(false);
   }
 
-  function confirm() {
-    const out: SelectedEntry[] = [];
-    for (const r of parsed) {
-      if (!checked[r.id]) continue;
-      const v = values[r.id];
-      const isVar = r.is_variable || r.pricing_model === 'per_unit';
-      // phòng ngừa: không gửi ra “Tiền phòng/Gói bao phí” nếu lọt
-      if (isTienPhong(r.name) || isGoiBaoPhi(r.name)) continue;
+function confirm() {
+  const out: SelectedEntry[] = [];
+  for (const r of parsed) {
+    if (!checked[r.id]) continue;
+    const v = values[r.id];
+    const isVar = r.is_variable || r.pricing_model === 'per_unit';
 
-      out.push({
-        id: r.id,
-        name: r.name,
-        isVariable: !!isVar,
-        unit: r.unit || undefined,
-        price: Number(onlyDigits(v?.price || '0')) || 0,
-        meterStart: isVar ? Number(onlyDigits(v?.meterStart || '0')) || 0 : undefined,
-      });
-    }
-    onConfirm(out);
-    onClose();
+    // 🛠 output with meter_start in the meta/config layer that the caller will translate
+    out.push({
+      id: r.id,
+      name: r.name,
+      isVariable: !!isVar,
+      unit: r.unit || undefined,
+      price: Number(onlyDigits(v?.price || '0')) || 0,
+      // keep meterStart for backward-compat with your types, but it's fine now
+      meterStart: isVar ? Number(onlyDigits(v?.meterStart || '0')) || 0 : undefined,
+    });
   }
+  onConfirm(out);
+  onClose();
+}
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
