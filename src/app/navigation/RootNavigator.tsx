@@ -16,7 +16,7 @@ import TenantForm from '../screens/TenantForm';
 import ApartmentActivityMonths from '../screens/ApartmentActivityMonths';
 import ApartmentActivityDetail from '../screens/ApartmentActivityDetail';
 import {initDb} from '../../db';
-import {ensureOperatingExpensesTable} from '../../db/patch_operating_expenses';
+import {ensureRecurringChargesTable} from '../../db/index';
 import {useNavTheme} from '../theme';
 import {closeExpiredLeases} from '../../services/rent';
 import {initNotifications} from '../../services/notifications';
@@ -52,7 +52,8 @@ function AppInner() {
   useEffect(()=> {
     try {
       initDb();
-      ensureOperatingExpensesTable();
+      ensureRecurringChargesTable();
+      //ensureOperatingExpensesTable();
       // runMigrations?.();
        seedChargeCatalogOnce();   
       initNotifications();

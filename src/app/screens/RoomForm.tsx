@@ -41,7 +41,6 @@ export default function RoomForm({route, navigation}: NativeStackScreenProps<Roo
 
   return (
     <View style={{flex: 1, backgroundColor: c.bg}}>
-      <Header title="Phòng" />
 
       {/* Thanh tìm kiếm */}
       <View style={{padding: 16}}>

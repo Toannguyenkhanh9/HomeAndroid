@@ -15,6 +15,11 @@ import {
   listChargesForLease,
   settleCycleWithInputs,
   updateRecurringChargePrice,
+  // Thêm các hàm phục vụ popup gia hạn
+  getRoom,
+  getTenant,
+  createNextCycleFromCycle,
+  concludeLeaseFromCycle,
 } from '../../services/rent';
 import {useCurrency} from '../../utils/currency';
 import {onlyDigits, groupVN} from '../../utils/number';
@@ -34,12 +39,12 @@ type ChargeRow = {
   is_variable: number;
   unit_price: number;
   meter_start?: number;
-  value: string; // edit: cố định=giá kỳ này, biến đổi=chỉ số hiện tại
+  value: string; // input: fixed = giá kỳ này, variable = chỉ số hiện tại
 };
 
 type ExtraItem = { name: string; amount: string };
 
-export default function CycleDetail({route}: Props) {
+export default function CycleDetail({route, navigation}: Props) {
   const {cycleId, onSettled} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
@@ -53,10 +58,15 @@ export default function CycleDetail({route}: Props) {
   const [status, setStatus] = useState<'open' | 'settled'>('open');
   const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
 
-  // map charge_type_id -> meter_end (đọc từ invoice_items.meta_json khi đã tất toán)
+  // Thông tin phòng / người thuê
+  const [roomCode, setRoomCode] = useState<string>('');
+  const [tenantName, setTenantName] = useState<string>('');
+  const [tenantPhone, setTenantPhone] = useState<string>('');
+
+  // charge_type_id -> meter_end (đọc từ invoice_items.meta_json khi đã tất toán)
   const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
 
-  // snapshot items của hóa đơn (chỉ dùng khi settled để hiển thị đúng lịch sử)
+  // snapshot các dòng của hóa đơn (chỉ dùng khi settled để hiển thị lịch sử đúng)
   const [settledItems, setSettledItems] = useState<any[]>([]);
 
   const [editMode, setEditMode] = useState(false);
@@ -76,8 +86,19 @@ export default function CycleDetail({route}: Props) {
     const lease = getLease(cyc.lease_id);
     setLeaseId(lease.id);
 
-    // nếu đã tất toán: đọc từ invoice items để hiển thị snapshot
+    // nạp phòng & người thuê
+    try {
+      const r = lease?.room_id ? getRoom(lease.room_id) : null;
+      setRoomCode(r?.code || '');
+    } catch {}
+    try {
+      const t = lease?.tenant_id ? getTenant(lease.tenant_id) : null;
+      setTenantName(t?.full_name || '');
+      setTenantPhone(t?.phone || '');
+    } catch {}
+
     if (cyc.invoice_id) {
+      // đã tất toán -> đọc từ invoice items
       setInvId(cyc.invoice_id);
       const inv = getInvoice(cyc.invoice_id);
       setInvTotal(inv?.total || 0);
@@ -85,7 +106,6 @@ export default function CycleDetail({route}: Props) {
       const items = getInvoiceItems(cyc.invoice_id) as any[];
       setSettledItems(items || []);
 
-      // đọc meter_end để hiển thị chỉ số hiện tại
       const map: Record<string, number> = {};
       for (const it of items) {
         if (it.charge_type_id && it.meta_json) {
@@ -96,19 +116,18 @@ export default function CycleDetail({route}: Props) {
         }
       }
       setCurrentReadings(map);
+      setRows([]); // không cho sửa các kỳ đã tất toán
     } else {
-      // chưa tất toán: lấy cấu hình phí hiện tại của Hợp đồng để cho phép chỉnh
+      // chưa tất toán -> lấy cấu hình phí hiện tại của hợp đồng
       const list = listChargesForLease(lease.id) as any[];
-      const normalized: ChargeRow[] = list.map(it => ([
-        it.charge_type_id,
-        it.name,
-        it.unit,
-        Number(it.is_variable),
-        Number(it.unit_price) || 0,
-        Number(it.meter_start || 0),
-      ] as const)).map(([charge_type_id, name, unit, is_variable, unit_price, meter_start]) => ({
-        charge_type_id, name, unit, is_variable, unit_price, meter_start,
-        value: is_variable ? '' : groupVN(String(unit_price || 0)),
+      const normalized: ChargeRow[] = list.map(it => ({
+        charge_type_id: it.charge_type_id,
+        name: it.name,
+        unit: it.unit,
+        is_variable: Number(it.is_variable),
+        unit_price: Number(it.unit_price) || 0,
+        meter_start: Number(it.meter_start || 0),
+        value: it.is_variable ? '' : groupVN(String(it.unit_price || 0)),
       }));
       setRows(normalized);
 
@@ -121,7 +140,7 @@ export default function CycleDetail({route}: Props) {
 
   useEffect(reload, [cycleId]);
 
-  // Tổng tạm tính (khi đang sửa)
+  // Tạm tính tổng khi đang nhập
   const previewTotal = useMemo(() => {
     let sum = 0;
     for (const r of rows) {
@@ -137,11 +156,10 @@ export default function CycleDetail({route}: Props) {
     return sum;
   }, [rows, extras]);
 
-  // Tổng Điện & Nước (đã tất toán hoặc tạm tính)
+  // Tổng điện/nước (đã tất toán hoặc tạm tính)
   const {elecTotal, waterTotal, previewElecTotal, previewWaterTotal} = useMemo(() => {
     const isWater = (u?: string|null) => (u||'').toLowerCase().includes('m3') || (u||'').includes('m³');
     const isElec  = (u?: string|null) => (u||'').toLowerCase().includes('kwh');
-
     let _elec = 0, _water = 0, _pElec = 0, _pWater = 0;
 
     if (status === 'settled' && invId) {
@@ -178,6 +196,7 @@ export default function CycleDetail({route}: Props) {
 
   function saveEdits(scope: 'cycle' | 'lease') {
     if (scope === 'lease') {
+      // chỉ cập nhật đơn giá của phí CỐ ĐỊNH cho các kỳ sau
       for (const r of rows) {
         if (r.is_variable === 0) {
           const newPrice = Number(onlyDigits(r.value)) || 0;
@@ -192,6 +211,7 @@ export default function CycleDetail({route}: Props) {
       return;
     }
 
+    // Lưu & tất toán kỳ này
     const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
@@ -211,30 +231,81 @@ export default function CycleDetail({route}: Props) {
       if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
-    const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
+    // settleCycleWithInputs bây giờ trả về {invoiceId,total,isLastCycle,nextStart}
+    const res = settleCycleWithInputs(cycleId, variableInputs, adjustments);
     setEditMode(false);
     setStatus('settled');
-    setInvId(inv.id);
-    setInvTotal(inv.total || 0);
+    setInvId(res.invoiceId);
+    setInvTotal(res.total || 0);
     setExtras([]);
     reload();
     onSettled?.();
-    Alert.alert('Hoàn tất', 'Đã tất toán chu kỳ.');
+
+    if (res.isLastCycle) {
+      Alert.alert(
+        'Gia hạn hợp đồng?',
+        'Đây là kỳ cuối cùng của hợp đồng. Bạn có muốn gia hạn và tạo chu kỳ mới không?',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          {
+            text: 'Kết thúc hợp đồng',
+            style: 'destructive',
+            onPress: () => {
+              try {
+                concludeLeaseFromCycle(cycleId);
+                Alert.alert('Đã kết thúc hợp đồng');
+                navigation.goBack();
+              } catch (e: any) {
+                Alert.alert('Lỗi', String(e?.message || e));
+              }
+            },
+          },
+          {
+            text: 'Gia hạn',
+            onPress: () => {
+              try {
+                createNextCycleFromCycle(cycleId);
+                Alert.alert('Đã gia hạn', 'Chu kỳ mới đã được tạo.');
+                reload();
+              } catch (e: any) {
+                Alert.alert('Lỗi', String(e?.message || e));
+              }
+            },
+          },
+        ],
+      );
+    } else {
+      Alert.alert('Hoàn tất', 'Đã tất toán chu kỳ.');
+    }
   }
 
   async function exportPdf() {
     if (!invId) return;
     const inv = getInvoice(invId);
     const items = getInvoiceItems(invId);
-    const rowsHtml = items.map((i:any) => `
-      <tr>
-        <td style="padding:8px;border:1px solid #ddd;">${i.description}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${i.quantity ?? 1} ${i.unit ?? ''}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.unit_price)}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.amount)}</td>
-      </tr>`).join('');
+    const rowsHtml = items.map((i:any) => {
+      let extraInfo = '';
+      if (i.meta_json) {
+        try {
+          const m = JSON.parse(i.meta_json);
+          if (m && typeof m.meter_start === 'number' && typeof m.meter_end === 'number') {
+            extraInfo = `<div style="font-size:12px;color:#555">Chỉ số trước: ${groupVN(String(m.meter_start))} • Chỉ số này: ${groupVN(String(m.meter_end))}</div>`;
+          }
+        } catch {}
+      }
+      return `
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;">
+            ${i.description}
+            ${extraInfo}
+          </td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${i.quantity ?? 1} ${i.unit ?? ''}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.unit_price)}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.amount)}</td>
+        </tr>`;
+    }).join('');
     const html = `
-    <html><meta charset="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
+    <html><meta charSet="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
     <h2>Hóa đơn kỳ ${inv.period_start} → ${inv.period_end}</h2>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
@@ -248,7 +319,7 @@ export default function CycleDetail({route}: Props) {
       <tbody>${rowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colspan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>Tổng</b></td>
+          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>Tổng</b></td>
           <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(inv.total)}</b></td>
         </tr>
       </tfoot>
@@ -269,32 +340,78 @@ export default function CycleDetail({route}: Props) {
       <Header title="Chu kỳ" />
       <ViewShot ref={viewShotRef} options={{format:'png', quality:1}}>
         {!editMode ? (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+            {/* Card Kỳ / Trạng thái / Tổng */}
             <Card>
               <Text style={{ color: c.text }}>Kỳ: {period.s}  →  {period.e}</Text>
               <Text style={{ color: c.text }}>Trạng thái: {status}</Text>
               {invId ? <Text style={{ color: c.text }}>Tổng hoá đơn: {format(invTotal)}</Text> : null}
             </Card>
 
+            {/* Card Phòng / Người thuê */}
+            <Card>
+              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>Thông tin phòng</Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>
+                Phòng: {roomCode || '—'}
+              </Text>
+
+              <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>Người thuê</Text>
+              {(tenantName || tenantPhone) ? (
+                <Text style={{ color: c.text }}>
+                  {tenantName || '—'}{tenantPhone ? ` — ${tenantPhone}` : ''}
+                </Text>
+              ) : (
+                <Text style={{ color: c.subtext }}>Chưa có người thuê</Text>
+              )}
+            </Card>
+
+            {/* Card các khoản phí */}
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phí</Text>
 
-              {/* settled => hiển thị snapshot từ invoice items */}
               {status === 'settled' && settledItems.length > 0 ? (
                 <>
-                  {settledItems.map(it => (
-                    <View key={it.id} style={{ borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10 }}>
-                      <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:6}}>
-                        <Text style={{color:c.text, fontWeight:'700'}}>{it.description}</Text>
-                        <Text style={{color:c.subtext}}>{it.unit ? `(${it.unit})` : 'Cố định'}</Text>
+                  {settledItems.map(it => {
+                    let meterInfo: {start?: number; end?: number} = {};
+                    let forStart: string | undefined;
+                    let forEnd: string | undefined;
+                    if (it.meta_json) {
+                      try {
+                        const m = JSON.parse(it.meta_json);
+                        if (typeof m?.meter_start === 'number') meterInfo.start = m.meter_start;
+                        if (typeof m?.meter_end === 'number') meterInfo.end = m.meter_end;
+                        if (m?.for_period_start) forStart = m.for_period_start;
+                        if (m?.for_period_end)   forEnd   = m.for_period_end;
+                      } catch {}
+                    }
+                    return (
+                      <View key={it.id} style={{ borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10 }}>
+                        <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:6}}>
+                          <Text style={{color:c.text, fontWeight:'700'}}>{it.description}</Text>
+                          <Text style={{color:c.subtext}}>{it.unit ? `(${it.unit})` : 'Cố định'}</Text>
+                        </View>
+
+                        {forStart && forEnd ? (
+                          <Text style={{color:c.subtext, marginBottom:4}}>
+                            Thu cho kỳ: <Text style={{color:c.text}}>{forStart} → {forEnd}</Text>
+                          </Text>
+                        ) : null}
+
+                        {!!(meterInfo.start != null || meterInfo.end != null) && (
+                          <Text style={{color:c.subtext, marginBottom:4}}>
+                            Chỉ số trước: <Text style={{color:c.text}}>{groupVN(String(meterInfo.start ?? 0))}</Text>{'  '}•{'  '}
+                            Chỉ số này: <Text style={{color:c.text}}>{groupVN(String(meterInfo.end ?? 0))}</Text>
+                          </Text>
+                        )}
+
+                        <Text style={{color:c.subtext}}>
+                          SL: <Text style={{color:c.text}}>{it.quantity ?? 1}</Text> •{' '}
+                          Đơn giá: <Text style={{color:c.text}}>{format(it.unit_price)}</Text> •{' '}
+                          Thành tiền: <Text style={{color:c.text}}>{format(it.amount)}</Text>
+                        </Text>
                       </View>
-                      <Text style={{color:c.subtext}}>
-                        SL: <Text style={{color:c.text}}>{it.quantity ?? 1}</Text> •
-                        Đơn giá: <Text style={{color:c.text}}>{format(it.unit_price)}</Text> •
-                        Thành tiền: <Text style={{color:c.text}}>{format(it.amount)}</Text>
-                      </Text>
-                    </View>
-                  ))}
+                    );
+                  })}
                   <View style={{marginTop:6}}>
                     <Text style={{color:c.text}}>Tổng tiền Điện: {format(elecTotal)}</Text>
                     <Text style={{color:c.text}}>Tổng tiền Nước: {format(waterTotal)}</Text>
@@ -344,7 +461,6 @@ export default function CycleDetail({route}: Props) {
               )}
             </Card>
 
-            {/* Nút hành động */}
             {status==='settled' ? (
               <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
                 <Button title="Xuất PDF" onPress={exportPdf}/>
@@ -352,12 +468,12 @@ export default function CycleDetail({route}: Props) {
               </View>
             ) : (
               <View style={{ alignItems: 'flex-end' }}>
-                <Button title="Tất Toán" onPress={() => setEditMode(true)} />
+                <Button title="Thay đổi / Tất Toán" onPress={() => setEditMode(true)} />
               </View>
             )}
           </ScrollView>
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phí</Text>
 
@@ -383,7 +499,7 @@ export default function CycleDetail({route}: Props) {
                           Đơn giá: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text> / {r.unit || 'đv'}
                         </Text>
                         <Text style={{ color: c.subtext }}>
-                          Chỉ số đầu: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
+                          Chỉ số trước: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
                         </Text>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
@@ -405,7 +521,7 @@ export default function CycleDetail({route}: Props) {
                         </View>
 
                         <Text style={{ color: c.subtext, marginTop: 6 }}>
-                          Tiêu thụ: <Text style={{ color: c.text }}>{groupVN(String(consumed))}</Text> {r.unit || 'đv'} — Thành tiền{' '}
+                          Tiêu thụ: <Text style={{ color: c.text }}>{groupVN(String(consumed))}</Text> {r.unit || 'đv'} — Thành tiền:{' '}
                           <Text style={{ color: c.text }}>{format(partial)}</Text>
                         </Text>
                       </>
@@ -488,19 +604,8 @@ export default function CycleDetail({route}: Props) {
               </View>
             </Card>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <Button title="Lưu (chu kỳ này)" onPress={() => saveEdits('cycle')} />
-              <Button
-                title="Lưu (toàn hợp đồng)"
-                variant="ghost"
-                onPress={() =>
-                  Alert.alert(
-                    'Cập nhật đơn giá',
-                    'Cập nhật giá cho các kỳ sau (chỉ phí cố định)?',
-                    [{ text: 'Huỷ', style: 'cancel' }, { text: 'Đồng ý', onPress: () => saveEdits('lease') }],
-                  )
-                }
-              />
+            <View style={{ alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <Button title="Tất Toán" onPress={() => saveEdits('cycle')} />
               <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
             </View>
           </ScrollView>

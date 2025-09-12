@@ -39,6 +39,7 @@ type SelectedEntry = {
 export default function LeaseForm({route, navigation}: Props) {
   const {roomId} = route.params as any;
   const c = useThemeColors();
+  const [baseCollect, setBaseCollect] = useState<'start'|'end'>('start');
 
   // Tenant
   const [tenantName, setTenantName] = useState('');
@@ -126,7 +127,7 @@ export default function LeaseForm({route, navigation}: Props) {
       durationDays,
       isAllInclusive: allIn,
       endDateISO: undefined,
-      charges: undefined, // để tự addRecurringCharge bên dưới (cần meterStart)
+      charges: undefined, // tự addRecurringCharge bên dưới (cần meter_start)
       tenant: tenantName.trim()
         ? {
             full_name: tenantName.trim(),
@@ -134,6 +135,7 @@ export default function LeaseForm({route, navigation}: Props) {
             id_number: tenantId.trim() || undefined,
           }
         : undefined,
+      baseRentCollect: baseCollect, 
     });
 
     // Nếu KHÔNG bao phí => add các phí đã chọn
@@ -151,8 +153,9 @@ export default function LeaseForm({route, navigation}: Props) {
         }
         const price = Number(ch.price || 0);
         if (ch.isVariable) {
+          // NOTE: dùng key 'meter_start' (snake_case) để DB đọc đúng — KHÔNG dùng 'meterStart'
           addRecurringCharge(leaseId, ctId, price, 1, {
-            meterStart: Number(ch.meterStart || 0),
+            meter_start: Number(ch.meterStart || 0),
           });
         } else {
           // tránh trùng với baseRent nếu user lỡ tick “Tiền phòng”
@@ -170,7 +173,7 @@ export default function LeaseForm({route, navigation}: Props) {
     <View style={{flex: 1, backgroundColor: c.bg}}>
       <Header title="Tạo hợp đồng" />
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{padding: 12, gap: 12}}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{padding: 12, gap: 12, paddingBottom: 120}}>
         {/* Thông tin người thuê */}
         <Card>
           <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Thông tin người thuê</Text>
@@ -241,7 +244,7 @@ export default function LeaseForm({route, navigation}: Props) {
           {hasTerm && (
             <>
               <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>
-                {billing === 'daily' ? 'Số ngày' : billing === 'monthly' ? 'Số tháng' : 'Số năm'}
+                {durationLabel}
               </Text>
               <TextInput
                 keyboardType="numeric"
@@ -253,8 +256,47 @@ export default function LeaseForm({route, navigation}: Props) {
               />
             </>
           )}
+          <Text style={{color:c.text, fontWeight:'800', marginTop:12, marginBottom:6}}>
+    Thu tiền nhà
+  </Text>
+  <View style={{flexDirection:'row', gap:10}}>
+    <TouchableOpacity
+      onPress={()=>setBaseCollect('start')}
+      style={{
+        paddingVertical:10,paddingHorizontal:14,borderRadius:10,
+        backgroundColor: baseCollect==='start'?c.primary:'transparent',
+        borderWidth:1, borderColor: baseCollect==='start'?'transparent':'#2A2F3A'
+      }}>
+      <Text style={{color: baseCollect==='start'?'#fff':c.text, fontWeight:'700'}}>Đầu kỳ</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={()=>setBaseCollect('end')}
+      style={{
+        paddingVertical:10,paddingHorizontal:14,borderRadius:10,
+        backgroundColor: baseCollect==='end'?c.primary:'transparent',
+        borderWidth:1, borderColor: baseCollect==='end'?'transparent':'#2A2F3A'
+      }}>
+      <Text style={{color: baseCollect==='end'?'#fff':c.text, fontWeight:'700'}}>Cuối kỳ</Text>
+    </TouchableOpacity>
+  </View>
 
-          {/* Giá thuê cơ bản & tiền cọc */}
+          <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Tiền cọc</Text>
+          <TextInput
+            keyboardType="numeric"
+            value={depositText}
+            onChangeText={setDepositText}
+            onBlur={() => setDepositText(groupVN(depositText))}
+            placeholderTextColor={c.subtext}
+            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+          />
+
+          {/* Bao toàn bộ phí */}
+          <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:12}}>
+            <Text style={{color:c.text, fontWeight:'700'}}>Chi phí trọn gói</Text>
+            <Switch value={allIn} onValueChange={setAllIn} />
+          </View>
+
+                    {/* Giá thuê cơ bản & tiền cọc */}
           {!allIn && (
             <>
               <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Giá thuê cơ bản (tiền nhà)</Text>
@@ -269,22 +311,6 @@ export default function LeaseForm({route, navigation}: Props) {
             </>
           )}
 
-          <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Tiền cọc</Text>
-          <TextInput
-            keyboardType="numeric"
-            value={depositText}
-            onChangeText={setDepositText}
-            onBlur={() => setDepositText(groupVN(depositText))}
-            placeholderTextColor={c.subtext}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-          />
-
-          {/* Bao toàn bộ phí */}
-          <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:12}}>
-            <Text style={{color:c.text, fontWeight:'700'}}>Bao toàn bộ phí</Text>
-            <Switch value={allIn} onValueChange={setAllIn} />
-          </View>
-
           {!allIn ? (
             <TouchableOpacity
               onPress={() => setOpenCharges(true)}
@@ -293,7 +319,7 @@ export default function LeaseForm({route, navigation}: Props) {
             </TouchableOpacity>
           ) : (
             <>
-              <Text style={{color:c.text, marginTop:12, marginBottom:6}}>Tổng phí trọn gói</Text>
+              <Text style={{color:c.text, marginTop:12, marginBottom:6}}>Tổng phí trọn gói (Tiền nhà + Phí phát sinh)</Text>
               <TextInput
                 keyboardType="numeric"
                 value={allInAmountText}
@@ -304,6 +330,7 @@ export default function LeaseForm({route, navigation}: Props) {
               />
             </>
           )}
+          
         </Card>
 
         {/* Action */}
