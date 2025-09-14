@@ -22,6 +22,13 @@ import {closeExpiredLeases} from '../../services/rent';
 import {initNotifications} from '../../services/notifications';
 import {I18nProvider, useI18n} from '../../i18n';
 import {seedChargeCatalogOnce} from '../../services/rent';
+import LeaseHistory  from '../screens/LeaseHistory';
+import LeaseHistoryDetail from '../screens/LeaseHistoryDetail';
+import OperatingCosts from '../screens/OperatingCosts';
+import OperatingCostDetail from '../screens/ApartmentActivityDetail';
+import ApartmentReport from '../screens/ApartmentReport';
+import OperatingCostSettings from '../screens/OperatingCostSettings';
+import OperatingCostMonth from '../screens/OperatingCostMonth';
 // Nếu bạn có runMigrations:
 // import {runMigrations} from '../../db/migrations';
 
@@ -40,6 +47,13 @@ export type RootStackParamList = {
   TenantForm: undefined;
   ApartmentActivityMonths: { apartmentId: string };
   ApartmentActivityDetail: { apartmentId: string; year: number; month: number };
+  LeaseHistory: { roomId: string };
+  LeaseHistoryDetail: { leaseId: string };
+    OperatingCosts: { apartmentId: string };
+  OperatingCostDetail: { apartmentId: string; ym: string };
+  ApartmentReport: { apartmentId: string };
+   OperatingCostMonth: { apartmentId: string; ym: string };
+   OperatingCostSettings: { apartmentId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -82,6 +96,13 @@ function AppInner() {
         <Stack.Screen name="TenantForm" component={TenantForm} options={{title:'Thêm người thuê'}} />
         <Stack.Screen name="ApartmentActivityMonths" component={ApartmentActivityMonths} options={{title:'Lịch sử hoạt động'}} />
         <Stack.Screen name="ApartmentActivityDetail" component={ApartmentActivityDetail} options={{title:'Hoạt động theo tháng'}} />
+        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{ title: 'Lịch sử hợp đồng' }} />
+        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{ title: 'Chi tiết hợp đồng' }} />
+<Stack.Screen name="OperatingCosts" component={require('../screens/OperatingCosts').default} />
+<Stack.Screen name="OperatingCostDetail" component={require('../screens/OperatingCostDetail').default} />
+<Stack.Screen name="ApartmentReport" component={require('../screens/ApartmentReport').default} />
+<Stack.Screen name="OperatingCostSettings" component={OperatingCostSettings} />
+<Stack.Screen name="OperatingCostMonth" component={OperatingCostMonth} />
       </Stack.Navigator>
     </NavigationContainer>
   );

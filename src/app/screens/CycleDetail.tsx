@@ -1,6 +1,6 @@
 // src/app/screens/CycleDetail.tsx
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {View, Text, TextInput, Alert, ScrollView} from 'react-native';
+import {View, Text, TextInput, Alert, ScrollView, Modal,Share} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -15,16 +15,16 @@ import {
   listChargesForLease,
   settleCycleWithInputs,
   updateRecurringChargePrice,
-  // Thêm các hàm phục vụ popup gia hạn
   getRoom,
   getTenant,
-  createNextCycleFromCycle,
-  concludeLeaseFromCycle,
+  isLastCycle,
+  endLeaseWithSettlement,
+  // NEW: gia hạn hợp đồng + tạo chu kỳ mới
+  extendLeaseAndAddCycles,
 } from '../../services/rent';
 import {useCurrency} from '../../utils/currency';
 import {onlyDigits, groupVN} from '../../utils/number';
 
-// Export PDF / Image
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import ViewShot, {captureRef} from 'react-native-view-shot';
 
@@ -39,7 +39,7 @@ type ChargeRow = {
   is_variable: number;
   unit_price: number;
   meter_start?: number;
-  value: string; // input: fixed = giá kỳ này, variable = chỉ số hiện tại
+  value: string;
 };
 
 type ExtraItem = { name: string; amount: string };
@@ -48,27 +48,26 @@ export default function CycleDetail({route, navigation}: Props) {
   const {cycleId, onSettled} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
-
   const viewShotRef = useRef<ViewShot>(null);
 
   const [leaseId, setLeaseId] = useState<string>('');
+  const [leaseInfo, setLeaseInfo] = useState<any>(null); // NEW: để biết billing_cycle
   const [rows, setRows] = useState<ChargeRow[]>([]);
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
   const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
 
-  // Thông tin phòng / người thuê
+  // Phòng/khách
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
-  // charge_type_id -> meter_end (đọc từ invoice_items.meta_json khi đã tất toán)
+  // settled snapshot
+  const [settledItems, setSettledItems] = useState<any[]>([]);
   const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
 
-  // snapshot các dòng của hóa đơn (chỉ dùng khi settled để hiển thị lịch sử đúng)
-  const [settledItems, setSettledItems] = useState<any[]>([]);
-
+  // chỉnh sửa kỳ
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
@@ -76,6 +75,23 @@ export default function CycleDetail({route, navigation}: Props) {
     setExtras(prev => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const removeExtra = (i: number) =>
     setExtras(prev => prev.filter((_, idx) => idx !== i));
+
+  // ===== Modal kết thúc hợp đồng (quyết toán cọc) =====
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [endExtras, setEndExtras] = useState<ExtraItem[]>([]);
+  const addEndExtra = () => setEndExtras(p => [...p, {name: '', amount: ''}]);
+  const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
+    setEndExtras(p => p.map((x, idx) => (idx === i ? {...x, ...patch} : x)));
+  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
+  const endExtrasTotal = useMemo(
+    () => endExtras.reduce((s, it) => s + (Number(onlyDigits(it.amount || '')) || 0), 0),
+    [endExtras]
+  );
+  const [depositPreview, setDepositPreview] = useState<number>(0);
+
+  // ===== Modal gia hạn hợp đồng (nhập số tháng/ngày) =====
+  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [extendCount, setExtendCount] = useState<string>('');
 
   const reload = () => {
     const cyc = getCycle(cycleId);
@@ -85,8 +101,9 @@ export default function CycleDetail({route, navigation}: Props) {
 
     const lease = getLease(cyc.lease_id);
     setLeaseId(lease.id);
+    setLeaseInfo(lease); // NEW
+    setDepositPreview(Number(lease.deposit_amount || 0));
 
-    // nạp phòng & người thuê
     try {
       const r = lease?.room_id ? getRoom(lease.room_id) : null;
       setRoomCode(r?.code || '');
@@ -98,7 +115,6 @@ export default function CycleDetail({route, navigation}: Props) {
     } catch {}
 
     if (cyc.invoice_id) {
-      // đã tất toán -> đọc từ invoice items
       setInvId(cyc.invoice_id);
       const inv = getInvoice(cyc.invoice_id);
       setInvTotal(inv?.total || 0);
@@ -116,9 +132,8 @@ export default function CycleDetail({route, navigation}: Props) {
         }
       }
       setCurrentReadings(map);
-      setRows([]); // không cho sửa các kỳ đã tất toán
+      setRows([]);
     } else {
-      // chưa tất toán -> lấy cấu hình phí hiện tại của hợp đồng
       const list = listChargesForLease(lease.id) as any[];
       const normalized: ChargeRow[] = list.map(it => ({
         charge_type_id: it.charge_type_id,
@@ -130,7 +145,6 @@ export default function CycleDetail({route, navigation}: Props) {
         value: it.is_variable ? '' : groupVN(String(it.unit_price || 0)),
       }));
       setRows(normalized);
-
       setInvId(undefined);
       setInvTotal(0);
       setCurrentReadings({});
@@ -140,7 +154,6 @@ export default function CycleDetail({route, navigation}: Props) {
 
   useEffect(reload, [cycleId]);
 
-  // Tạm tính tổng khi đang nhập
   const previewTotal = useMemo(() => {
     let sum = 0;
     for (const r of rows) {
@@ -156,7 +169,6 @@ export default function CycleDetail({route, navigation}: Props) {
     return sum;
   }, [rows, extras]);
 
-  // Tổng điện/nước (đã tất toán hoặc tạm tính)
   const {elecTotal, waterTotal, previewElecTotal, previewWaterTotal} = useMemo(() => {
     const isWater = (u?: string|null) => (u||'').toLowerCase().includes('m3') || (u||'').includes('m³');
     const isElec  = (u?: string|null) => (u||'').toLowerCase().includes('kwh');
@@ -194,9 +206,9 @@ export default function CycleDetail({route, navigation}: Props) {
     );
   };
 
+  // ====== Lưu kỳ & xử lý cuối kỳ ======
   function saveEdits(scope: 'cycle' | 'lease') {
     if (scope === 'lease') {
-      // chỉ cập nhật đơn giá của phí CỐ ĐỊNH cho các kỳ sau
       for (const r of rows) {
         if (r.is_variable === 0) {
           const newPrice = Number(onlyDigits(r.value)) || 0;
@@ -211,7 +223,7 @@ export default function CycleDetail({route, navigation}: Props) {
       return;
     }
 
-    // Lưu & tất toán kỳ này
+    // settle kỳ
     const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
@@ -231,48 +243,28 @@ export default function CycleDetail({route, navigation}: Props) {
       if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
-    // settleCycleWithInputs bây giờ trả về {invoiceId,total,isLastCycle,nextStart}
-    const res = settleCycleWithInputs(cycleId, variableInputs, adjustments);
+    const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
     setEditMode(false);
     setStatus('settled');
-    setInvId(res.invoiceId);
-    setInvTotal(res.total || 0);
+    setInvId(inv.id);
+    setInvTotal(inv.total || 0);
     setExtras([]);
     reload();
     onSettled?.();
 
-    if (res.isLastCycle) {
+    // Nếu là chu kỳ cuối => hỏi tiếp
+    if (isLastCycle(cycleId)) {
       Alert.alert(
-        'Gia hạn hợp đồng?',
-        'Đây là kỳ cuối cùng của hợp đồng. Bạn có muốn gia hạn và tạo chu kỳ mới không?',
+        'Chu kỳ cuối',
+        'Bạn muốn kết thúc hợp đồng hay tiếp tục duy trì?',
         [
-          { text: 'Để sau', style: 'cancel' },
+          {text: 'Kết thúc hợp đồng', onPress: () => setShowEndModal(true)},
           {
-            text: 'Kết thúc hợp đồng',
-            style: 'destructive',
-            onPress: () => {
-              try {
-                concludeLeaseFromCycle(cycleId);
-                Alert.alert('Đã kết thúc hợp đồng');
-                navigation.goBack();
-              } catch (e: any) {
-                Alert.alert('Lỗi', String(e?.message || e));
-              }
-            },
+            text: 'Tiếp tục duy trì',
+            onPress: () => setShowExtendModal(true), // mở modal nhập thời gian gia hạn
           },
-          {
-            text: 'Gia hạn',
-            onPress: () => {
-              try {
-                createNextCycleFromCycle(cycleId);
-                Alert.alert('Đã gia hạn', 'Chu kỳ mới đã được tạo.');
-                reload();
-              } catch (e: any) {
-                Alert.alert('Lỗi', String(e?.message || e));
-              }
-            },
-          },
-        ],
+          {text: 'Đóng', style: 'cancel'},
+        ]
       );
     } else {
       Alert.alert('Hoàn tất', 'Đã tất toán chu kỳ.');
@@ -290,6 +282,9 @@ export default function CycleDetail({route, navigation}: Props) {
           const m = JSON.parse(i.meta_json);
           if (m && typeof m.meter_start === 'number' && typeof m.meter_end === 'number') {
             extraInfo = `<div style="font-size:12px;color:#555">Chỉ số trước: ${groupVN(String(m.meter_start))} • Chỉ số này: ${groupVN(String(m.meter_end))}</div>`;
+          }
+          if (m?.for_period_start && m?.for_period_end) {
+            extraInfo += `<div style="font-size:12px;color:#555">Thu cho kỳ: ${m.for_period_start} → ${m.for_period_end}</div>`;
           }
         } catch {}
       }
@@ -328,6 +323,19 @@ export default function CycleDetail({route, navigation}: Props) {
     const res = await RNHTMLtoPDF.convert({html, fileName:`invoice_${inv.id}`, base64:false});
     Alert.alert('Đã xuất PDF', res.filePath || '—');
   }
+  async function shareImage() {
+    try {
+      if (!viewShotRef.current) return;
+      const uri = await captureRef(viewShotRef, {format: 'png', quality: 1});
+      await Share.share({
+        url: uri, // iOS và Android đều nhận url file://
+        message: 'Thông tin chu kỳ thuê', // dùng khi app nhận message
+        title: 'Chia sẻ chu kỳ',
+      });
+    } catch (e: any) {
+      Alert.alert('Không thể chia sẻ', e?.message || 'Vui lòng thử lại.');
+    }
+  }
 
   async function exportImage() {
     if (!viewShotRef.current) return;
@@ -335,25 +343,15 @@ export default function CycleDetail({route, navigation}: Props) {
     Alert.alert('Đã xuất ảnh', uri);
   }
 
+  // ====== UI ======
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Header title="Chu kỳ" />
       <ViewShot ref={viewShotRef} options={{format:'png', quality:1}}>
         {!editMode ? (
           <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
-            {/* Card Kỳ / Trạng thái / Tổng */}
-            <Card>
-              <Text style={{ color: c.text }}>Kỳ: {period.s}  →  {period.e}</Text>
-              <Text style={{ color: c.text }}>Trạng thái: {status}</Text>
-              {invId ? <Text style={{ color: c.text }}>Tổng hoá đơn: {format(invTotal)}</Text> : null}
-            </Card>
-
-            {/* Card Phòng / Người thuê */}
             <Card>
               <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>Thông tin phòng</Text>
-              <Text style={{ color: roomCode ? c.text : c.subtext }}>
-                Phòng: {roomCode || '—'}
-              </Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>Phòng: {roomCode || '—'}</Text>
 
               <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>Người thuê</Text>
               {(tenantName || tenantPhone) ? (
@@ -364,8 +362,12 @@ export default function CycleDetail({route, navigation}: Props) {
                 <Text style={{ color: c.subtext }}>Chưa có người thuê</Text>
               )}
             </Card>
+                        <Card>
+              <Text style={{ color: c.text }}>Kỳ: {period.s}  →  {period.e}</Text>
+              <Text style={{ color: c.text }}>Trạng thái: {status}</Text>
+              {invId ? <Text style={{ color: c.text }}>Tổng hoá đơn: {format(invTotal)}</Text> : null}
+            </Card>
 
-            {/* Card các khoản phí */}
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phí</Text>
 
@@ -412,10 +414,6 @@ export default function CycleDetail({route, navigation}: Props) {
                       </View>
                     );
                   })}
-                  <View style={{marginTop:6}}>
-                    <Text style={{color:c.text}}>Tổng tiền Điện: {format(elecTotal)}</Text>
-                    <Text style={{color:c.text}}>Tổng tiền Nước: {format(waterTotal)}</Text>
-                  </View>
                 </>
               ) : (
                 <>
@@ -453,22 +451,21 @@ export default function CycleDetail({route, navigation}: Props) {
                       )}
                     </View>
                   ))}
-                  <View style={{marginTop:6}}>
+                  {/* <View style={{marginTop:6}}>
                     <Text style={{color:c.text}}>Điện (tạm tính): {format(previewElecTotal)}</Text>
                     <Text style={{color:c.text}}>Nước (tạm tính): {format(previewWaterTotal)}</Text>
-                  </View>
+                  </View> */}
                 </>
               )}
             </Card>
 
             {status==='settled' ? (
               <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-                <Button title="Xuất PDF" onPress={exportPdf}/>
-                <Button title="Xuất ảnh" onPress={exportImage}/>
+                <Button title="Chia Sẻ" onPress={shareImage}/>
               </View>
             ) : (
               <View style={{ alignItems: 'flex-end' }}>
-                <Button title="Thay đổi / Tất Toán" onPress={() => setEditMode(true)} />
+                <Button title="Tất Toán" onPress={() => setEditMode(true)} />
               </View>
             )}
           </ScrollView>
@@ -557,7 +554,7 @@ export default function CycleDetail({route, navigation}: Props) {
                 );
               })}
 
-              {/* Phụ phí phát sinh */}
+              {/* Phụ phí phát sinh của kỳ */}
               <View style={{ marginTop: 4 }}>
                 <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>Phụ phí phát sinh</Text>
                 {extras.map((ex, idx) => (
@@ -604,13 +601,127 @@ export default function CycleDetail({route, navigation}: Props) {
               </View>
             </Card>
 
-            <View style={{ alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <View style={{  alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               <Button title="Tất Toán" onPress={() => saveEdits('cycle')} />
               <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
             </View>
           </ScrollView>
         )}
       </ViewShot>
+
+      {/* ===== Modal kết thúc hợp đồng / quyết toán cọc ===== */}
+      <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={() => setShowEndModal(false)}>
+        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'flex-end'}}>
+          <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16, gap:10}}>
+            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Kết thúc hợp đồng</Text>
+            <Text style={{color:c.text}}>Tiền cọc: {format(depositPreview)}</Text>
+
+            <Card style={{gap:8}}>
+              <Text style={{color:c.text, fontWeight:'700'}}>Phụ phí phát sinh</Text>
+              {endExtras.map((ex, idx) => (
+                <View key={idx} style={{ gap: 6 }}>
+                  <TextInput
+                    placeholder="Tên khoản"
+                    placeholderTextColor={c.subtext}
+                    value={ex.name}
+                    onChangeText={t => updEndExtra(idx, { name: t })}
+                    style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                  />
+                  <View style={{flexDirection:'row', gap:8}}>
+                    <TextInput
+                      placeholder="Số tiền (+ là trừ cọc, - là hoàn thêm)"
+                      placeholderTextColor={c.subtext}
+                      keyboardType="numeric"
+                      value={ex.amount}
+                      onChangeText={t => updEndExtra(idx, { amount: t })}
+                      onBlur={() => updEndExtra(idx, { amount: groupVN(ex.amount || '') })}
+                      style={{flex:1, borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                    />
+                    <Button title="Xoá" variant="ghost" onPress={() => delEndExtra(idx)} />
+                  </View>
+                </View>
+              ))}
+              <Button title="+ Thêm khoản" variant="ghost" onPress={addEndExtra} />
+            </Card>
+
+            <Text style={{color:c.text}}>
+              Tổng phát sinh: {format(endExtrasTotal)}
+            </Text>
+            <Text style={{color:c.text, fontWeight:'700'}}>
+              Số dư sau quyết toán: {format(depositPreview - endExtrasTotal)}
+            </Text>
+            <Text style={{color:c.subtext}}>
+              {depositPreview - endExtrasTotal > 0
+                ? `→ Trả lại khách: ${format(depositPreview - endExtrasTotal)}`
+                : depositPreview - endExtrasTotal < 0
+                  ? `→ Cần thu thêm của khách: ${format(Math.abs(depositPreview - endExtrasTotal))}`
+                  : '→ Không phát sinh thêm'}
+            </Text>
+
+            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+              <Button title="Hủy" variant="ghost" onPress={() => setShowEndModal(false)} />
+              <Button
+                title="Kết thúc"
+                onPress={() => {
+                  const payload = endExtras
+                    .filter(it => it.name.trim())
+                    .map(it => ({name: it.name.trim(), amount: Number(onlyDigits(it.amount || '')) || 0}));
+                  const res = endLeaseWithSettlement(leaseId, payload);
+                  setShowEndModal(false);
+                  Alert.alert(
+                    'Đã kết thúc hợp đồng',
+                    res.finalBalance > 0
+                      ? `Trả lại khách ${format(res.finalBalance)}`
+                      : res.finalBalance < 0
+                        ? `Cần thu thêm của khách ${format(Math.abs(res.finalBalance))}`
+                        : 'Không phát sinh thêm',
+                    [{text:'OK', onPress: () => navigation.goBack()}]
+                  );
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ===== Modal gia hạn hợp đồng (nhập số tháng/ngày) ===== */}
+      <Modal visible={showExtendModal} transparent animationType="fade" onRequestClose={() => setShowExtendModal(false)}>
+        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'center', padding:16}}>
+          <View style={{backgroundColor:c.bg, borderRadius:12, padding:16, gap:10}}>
+            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Gia hạn hợp đồng</Text>
+            <Text style={{color:c.subtext}}>
+              Nhập số {leaseInfo?.billing_cycle === 'daily' ? 'ngày' : 'tháng'} muốn gia hạn thêm.
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={extendCount}
+              onChangeText={setExtendCount}
+              placeholder={leaseInfo?.billing_cycle === 'daily' ? 'VD: 7 (ngày)' : 'VD: 3 (tháng)'}
+              placeholderTextColor={c.subtext}
+              style={{
+                borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                padding:10, color:c.text, backgroundColor:c.card
+              }}
+            />
+            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+              <Button title="Huỷ" variant="ghost" onPress={()=>{ setShowExtendModal(false); setExtendCount(''); }} />
+              <Button title="Xác nhận" onPress={()=>{
+                const n = Number(extendCount);
+                if (!n || n<=0) { Alert.alert('Lỗi', 'Vui lòng nhập số hợp lệ.'); return; }
+                try {
+                  extendLeaseAndAddCycles(leaseId, n);
+                  setShowExtendModal(false);
+                  setExtendCount('');
+                  reload();
+                  Alert.alert('Thành công', 'Đã gia hạn và tạo chu kỳ mới.');
+                } catch(e:any) {
+                  Alert.alert('Lỗi', e?.message || 'Không thể gia hạn');
+                }
+              }}/>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

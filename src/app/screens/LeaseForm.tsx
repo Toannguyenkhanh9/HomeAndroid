@@ -1,14 +1,6 @@
 // src/app/screens/LeaseForm.tsx
 import React, {useMemo, useState} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  Switch,
-} from 'react-native';
+import {View, Text, TextInput, ScrollView, Alert, TouchableOpacity} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -16,336 +8,407 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import {groupVN, onlyDigits} from '../../utils/number';
-import {
-  startLeaseAdvanced,
-  addRecurringCharge,
-  addCustomChargeType,
-} from '../../services/rent';
-import ChargeChooserModal from '../components/ChargeChooserModal';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import {useCurrency} from '../../utils/currency';
+import {startLeaseAdvanced} from '../../services/rent';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
-type Billing = 'daily' | 'monthly' | 'yearly';
 
-type SelectedEntry = {
-  id: string;
+type ChargeDraft = {
   name: string;
-  isVariable: boolean;
-  unit?: string | null;
-  price?: number;
-  meterStart?: number;
+  isVariable: boolean;               // true = biến đổi
+  unit?: string;
+  price?: string;                    // chuỗi để nhập 3.000.000 đ
+  meterStart?: string;               // chỉ cho biến đổi
 };
 
 export default function LeaseForm({route, navigation}: Props) {
-  const {roomId} = route.params as any;
+  const roomId = (route.params as any)?.roomId;
   const c = useThemeColors();
-  const [baseCollect, setBaseCollect] = useState<'start'|'end'>('start');
+  const {format} = useCurrency();
 
-  // Tenant
-  const [tenantName, setTenantName] = useState('');
-  const [tenantId, setTenantId] = useState('');
-  const [tenantPhone, setTenantPhone] = useState('');
+  // ====== Tenant ======
+  const [fullName, setFullName] = useState('');
+  const [idNumber, setIdNumber] = useState('');
+  const [phone, setPhone] = useState('');
 
-  // Có thời hạn / Không có thời hạn
-  const [hasTerm, setHasTerm] = useState(true);
+  // ====== Billing / Duration ======
+  const [mode, setMode] = useState<'monthly' | 'daily'>('monthly'); // bỏ yearly theo yêu cầu
+  const [startISO, setStartISO] = useState(new Date().toISOString().slice(0, 10));
+  const [months, setMonths] = useState('12');   // khi mode=monthly
+  const [days, setDays] = useState('');         // khi mode=daily (1 kỳ duy nhất)
 
-  // Chu kỳ thanh toán
-  const [billing, setBilling] = useState<Billing>('monthly');
+  // ====== Base rent collect time ======
+  const [collect, setCollect] = useState<'start' | 'end'>('start');
 
-  // Ngày bắt đầu
-  const [startDate, setStartDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
-  const startYMD = useMemo(() => startDate.toISOString().slice(0, 10), [startDate]);
-
-  // Thời lượng (khi có thời hạn)
-  const [durationText, setDurationText] = useState('');
-
-  // Giá cơ bản & cọc
+  // ====== Base rent & deposit ======
   const [baseRentText, setBaseRentText] = useState('');
   const [depositText, setDepositText] = useState('');
 
-  // Bao toàn bộ phí
-  const [allIn, setAllIn] = useState(false);
-  const [allInAmountText, setAllInAmountText] = useState('');
+  // ====== All-inclusive (phí trọn gói) ======
+  const [allInclusive, setAllInclusive] = useState(false);
+  const [allInclusiveAmount, setAllInclusiveAmount] = useState('');
 
-  // Chọn phí (khi không bao phí)
-  const [openCharges, setOpenCharges] = useState(false);
-  const [charges, setCharges] = useState<SelectedEntry[]>([]);
+  // ====== Charges (ẩn đi nếu bật allInclusive) ======
+  const [charges, setCharges] = useState<ChargeDraft[]>([]);
+  const addCharge = () =>
+    setCharges(p => [...p, {name: '', isVariable: false, unit: 'tháng', price: ''}]);
+  const updCharge = (i: number, patch: Partial<ChargeDraft>) =>
+    setCharges(p => p.map((x, idx) => (idx === i ? {...x, ...patch} : x)));
+  const delCharge = (i: number) => setCharges(p => p.filter((_, idx) => idx !== i));
 
-  const durationLabel =
-    billing === 'daily' ? 'Số ngày' : billing === 'monthly' ? 'Số tháng' : 'Số năm';
+  // ====== Helpers ======
+  const durationHint = useMemo(() => {
+    if (mode === 'daily') {
+      const n = Number(onlyDigits(days)) || 0;
+      return n > 0 ? `${n} ngày` : '—';
+    }
+    const m = Number(onlyDigits(months)) || 0;
+    return m > 0 ? `${m} tháng` : '—';
+  }, [mode, days, months]);
 
-  const Tab = ({
-    title,
-    active,
-    onPress,
-  }: {
-    title: string;
-    active: boolean;
-    onPress: () => void;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 10,
-        backgroundColor: active ? c.primary : 'transparent',
-        borderWidth: 1,
-        borderColor: active ? 'transparent' : '#2A2F3A',
-      }}>
-      <Text style={{color: active ? '#fff' : c.text, fontWeight: '700'}}>{title}</Text>
-    </TouchableOpacity>
-  );
+  function validate(): string | null {
+    if (!roomId) return 'Thiếu roomId';
+    if (!startISO) return 'Chưa nhập ngày bắt đầu';
+    if (mode === 'monthly') {
+      const m = Number(onlyDigits(months)) || 0;
+      if (m <= 0) return 'Số tháng phải > 0';
+    } else {
+      const d = Number(onlyDigits(days)) || 0;
+      if (d <= 0) return 'Số ngày phải > 0';
+    }
+    if (allInclusive) {
+      const pack = Number(onlyDigits(allInclusiveAmount)) || 0;
+      if (pack <= 0) return 'Nhập số tiền trọn gói hợp lệ';
+      return null;
+    }
+    const base = Number(onlyDigits(baseRentText)) || 0;
+    if (base <= 0) return 'Nhập giá thuê cơ bản hợp lệ';
+    return null;
+  }
 
-  function onSave() {
-    const deposit = Number(onlyDigits(depositText)) || 0;
-
-    // Loại hợp đồng & thời lượng ngày (nếu có thời hạn + theo ngày)
-    const leaseType: 'short_term' | 'long_term' =
-      hasTerm && billing === 'daily' ? 'short_term' : 'long_term';
-
-    const durationDays =
-      hasTerm && billing === 'daily'
-        ? Math.max(1, Number(onlyDigits(durationText)) || 0)
-        : undefined;
-
-    // Nếu bao phí: baseRent = tổng gói, bật isAllInclusive
-    // Nếu không bao phí: baseRent là tiền nhà cơ bản
-    const baseRent = allIn
-      ? Number(onlyDigits(allInAmountText)) || 0
-      : Number(onlyDigits(baseRentText)) || 0;
-
-    // Tạo hợp đồng (không tự thêm charges ở đây — mình tự add sau để có meterStart)
-    const leaseId = startLeaseAdvanced({
-      roomId,
-      leaseType,
-      billing,
-      startDateISO: startYMD,
-      baseRent,
-      deposit,
-      durationDays,
-      isAllInclusive: allIn,
-      endDateISO: undefined,
-      charges: undefined, // tự addRecurringCharge bên dưới (cần meter_start)
-      tenant: tenantName.trim()
-        ? {
-            full_name: tenantName.trim(),
-            phone: tenantPhone.trim() || undefined,
-            id_number: tenantId.trim() || undefined,
-          }
-        : undefined,
-      baseRentCollect: baseCollect, 
-    });
-
-    // Nếu KHÔNG bao phí => add các phí đã chọn
-    if (!allIn && charges.length > 0) {
-      charges.forEach(ch => {
-        let ctId = ch.id;
-        // Nếu là custom (id dạng 'custom:...') => tạo charge type trước
-        if (ctId.startsWith('custom:')) {
-          ctId = addCustomChargeType(
-            ch.name,
-            ch.isVariable,
-            ch.unit || undefined,
-            Number(ch.price || 0),
-          );
-        }
-        const price = Number(ch.price || 0);
-        if (ch.isVariable) {
-          // NOTE: dùng key 'meter_start' (snake_case) để DB đọc đúng — KHÔNG dùng 'meterStart'
-          addRecurringCharge(leaseId, ctId, price, 1, {
-            meter_start: Number(ch.meterStart || 0),
-          });
-        } else {
-          // tránh trùng với baseRent nếu user lỡ tick “Tiền phòng”
-          if (ch.name?.toLowerCase() === 'tiền phòng') return;
-          addRecurringCharge(leaseId, ctId, price, 0);
-        }
-      });
+  function submit() {
+    const err = validate();
+    if (err) {
+      Alert.alert('Thiếu thông tin', err);
+      return;
     }
 
-    // Quay lại và để RoomDetail reload bằng useFocusEffect
-    navigation.goBack();
+    const baseRent = allInclusive
+      ? Number(onlyDigits(allInclusiveAmount)) || 0
+      : Number(onlyDigits(baseRentText)) || 0;
+
+    const deposit = Number(onlyDigits(depositText)) || 0;
+
+    // build charges array (bỏ qua nếu allInclusive)
+    const outCharges: NonNullable<
+      Parameters<typeof startLeaseAdvanced>[0]
+    >['charges'] = !allInclusive
+      ? charges
+          .filter(ch => ch.name.trim() && (Number(onlyDigits(ch.price || '')) > 0))
+          .map(ch => ({
+            name: ch.name.trim(),
+            type: ch.isVariable ? 'variable' : 'fixed',
+            unit: ch.unit || (ch.isVariable ? 'đv' : 'tháng'),
+            unitPrice: Number(onlyDigits(ch.price || '')) || 0,
+            meterStart: ch.isVariable ? Number(onlyDigits(ch.meterStart || '')) || 0 : undefined,
+          }))
+      : undefined;
+
+    const payload = {
+      roomId,
+      leaseType: 'long_term' as const,
+      billing: mode, // 'monthly' | 'daily'
+      startDateISO: startISO,
+      baseRent,
+      baseRentCollect: collect, // 'start' | 'end'
+      deposit,
+      durationDays: mode === 'daily' ? Number(onlyDigits(days)) || 1 : undefined,
+      endDateISO:
+        mode === 'monthly'
+          ? (() => {
+              const s = new Date(startISO);
+              const m = Number(onlyDigits(months)) || 0;
+              const end = new Date(s);
+              end.setMonth(end.getMonth() + m);
+              end.setDate(end.getDate() - 1);
+              return end.toISOString().slice(0, 10);
+            })()
+          : undefined,
+      tenant: fullName
+        ? {full_name: fullName.trim(), id_number: idNumber.trim(), phone: phone.trim()}
+        : undefined,
+      charges: outCharges,
+      isAllInclusive: allInclusive,
+    };
+
+    try {
+      const leaseId = startLeaseAdvanced(payload as any);
+      Alert.alert('Thành công', 'Đã tạo hợp đồng', [
+        {text: 'OK', onPress: () => navigation.replace('LeaseDetail', {leaseId})},
+      ]);
+    } catch (e: any) {
+      Alert.alert('Lỗi', String(e?.message || e));
+    }
   }
 
   return (
     <View style={{flex: 1, backgroundColor: c.bg}}>
-      <Header title="Tạo hợp đồng" />
-
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{padding: 12, gap: 12, paddingBottom: 120}}>
-        {/* Thông tin người thuê */}
-        <Card>
-          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Thông tin người thuê</Text>
+      <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
+        {/* Khách thuê */}
+        <Card style={{gap: 8}}>
           <TextInput
             placeholder="Tên người thuê"
             placeholderTextColor={c.subtext}
-            value={tenantName}
-            onChangeText={setTenantName}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card, marginBottom: 8}}
+            value={fullName}
+            onChangeText={setFullName}
+            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
             placeholder="Số CCCD/CMND"
             placeholderTextColor={c.subtext}
-            value={tenantId}
-            onChangeText={setTenantId}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card, marginBottom: 8}}
+            value={idNumber}
+            onChangeText={setIdNumber}
+            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
             placeholder="Số điện thoại"
             placeholderTextColor={c.subtext}
+            value={phone}
+            onChangeText={setPhone}
             keyboardType="phone-pad"
-            value={tenantPhone}
-            onChangeText={setTenantPhone}
             style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
         </Card>
 
-        {/* Loại hợp đồng */}
-        <Card>
-          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Loại hợp đồng</Text>
-          <View style={{flexDirection: 'row', gap: 10}}>
-            <Tab title="Có thời hạn" active={hasTerm} onPress={() => setHasTerm(true)} />
-            <Tab title="Không có thời hạn" active={!hasTerm} onPress={() => setHasTerm(false)} />
+        {/* Loại chu kỳ & thời hạn */}
+        <Card style={{gap: 10}}>
+          <Text style={{color: c.text, fontWeight: '800'}}>Loại hợp đồng</Text>
+
+          {/* Toggle Tháng / Ngày */}
+          <View style={{flexDirection: 'row', gap: 8}}>
+            {(['monthly', 'daily'] as const).map(k => (
+              <TouchableOpacity
+                key={k}
+                onPress={() => setMode(k)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  backgroundColor: mode === k ? '#1f6feb' : c.card,
+                  borderWidth: 1,
+                  borderColor: '#2A2F3A',
+                }}>
+                <Text style={{color: mode === k ? 'white' : c.text}}>
+                  {k === 'monthly' ? 'Tháng' : 'Ngày'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* Chu kỳ: ẩn khi không có thời hạn */}
-          {hasTerm && (
-            <>
-              <Text style={{color: c.text, fontWeight: '800', marginVertical: 10}}>Chu kỳ</Text>
-              <View style={{flexDirection: 'row', gap: 10}}>
-                <Tab title="Ngày" active={billing === 'daily'} onPress={() => setBilling('daily')} />
-                <Tab title="Tháng" active={billing === 'monthly'} onPress={() => setBilling('monthly')} />
-                <Tab title="Năm" active={billing === 'yearly'} onPress={() => setBilling('yearly')} />
-              </View>
-            </>
-          )}
+          <Text style={{color: c.subtext, marginTop: 6}}>Ngày bắt đầu</Text>
+          <TextInput
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={c.subtext}
+            value={startISO}
+            onChangeText={setStartISO}
+            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+          />
 
-          {/* Ngày bắt đầu — luôn hiển thị */}
-          <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Ngày bắt đầu</Text>
-          <TouchableOpacity
-            onPress={() => setShowPicker(true)}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 12, backgroundColor: c.card}}>
-            <Text style={{color: c.text}}>{startYMD}</Text>
-          </TouchableOpacity>
-          {showPicker && (
-            <DateTimePicker
-              value={startDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={(e, d) => {
-                setShowPicker(false);
-                if (d) setStartDate(d);
-              }}
-            />
-          )}
-
-          {/* Thời lượng — chỉ khi Có thời hạn */}
-          {hasTerm && (
+          {mode === 'monthly' ? (
             <>
-              <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>
-                {durationLabel}
-              </Text>
+              <Text style={{color: c.subtext, marginTop: 6}}>Số tháng</Text>
               <TextInput
                 keyboardType="numeric"
-                value={durationText}
-                onChangeText={setDurationText}
-                onBlur={() => setDurationText(groupVN(durationText))}
-                placeholderTextColor={c.subtext}
+                value={months}
+                onChangeText={setMonths}
+                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={{color: c.subtext, marginTop: 6}}>Số ngày</Text>
+              <TextInput
+                keyboardType="numeric"
+                value={days}
+                onChangeText={setDays}
                 style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
-          <Text style={{color:c.text, fontWeight:'800', marginTop:12, marginBottom:6}}>
-    Thu tiền nhà
-  </Text>
-  <View style={{flexDirection:'row', gap:10}}>
-    <TouchableOpacity
-      onPress={()=>setBaseCollect('start')}
-      style={{
-        paddingVertical:10,paddingHorizontal:14,borderRadius:10,
-        backgroundColor: baseCollect==='start'?c.primary:'transparent',
-        borderWidth:1, borderColor: baseCollect==='start'?'transparent':'#2A2F3A'
-      }}>
-      <Text style={{color: baseCollect==='start'?'#fff':c.text, fontWeight:'700'}}>Đầu kỳ</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={()=>setBaseCollect('end')}
-      style={{
-        paddingVertical:10,paddingHorizontal:14,borderRadius:10,
-        backgroundColor: baseCollect==='end'?c.primary:'transparent',
-        borderWidth:1, borderColor: baseCollect==='end'?'transparent':'#2A2F3A'
-      }}>
-      <Text style={{color: baseCollect==='end'?'#fff':c.text, fontWeight:'700'}}>Cuối kỳ</Text>
-    </TouchableOpacity>
-  </View>
 
-          <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Tiền cọc</Text>
-          <TextInput
-            keyboardType="numeric"
-            value={depositText}
-            onChangeText={setDepositText}
-            onBlur={() => setDepositText(groupVN(depositText))}
-            placeholderTextColor={c.subtext}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-          />
+          <Text style={{color: c.subtext}}>Thời hạn: {durationHint}</Text>
+        </Card>
 
-          {/* Bao toàn bộ phí */}
-          <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:12}}>
-            <Text style={{color:c.text, fontWeight:'700'}}>Chi phí trọn gói</Text>
-            <Switch value={allIn} onValueChange={setAllIn} />
+        {/* Thu tiền nhà */}
+        <Card>
+          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Thu tiền nhà</Text>
+          <View style={{flexDirection: 'row', gap: 8}}>
+            {(['start', 'end'] as const).map(k => (
+              <TouchableOpacity
+                key={k}
+                onPress={() => setCollect(k)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  backgroundColor: collect === k ? '#10b981' : c.card,
+                  borderWidth: 1,
+                  borderColor: '#2A2F3A',
+                }}>
+                <Text style={{color: collect === k ? 'white' : c.text}}>
+                  {k === 'start' ? 'Đầu kỳ' : 'Cuối kỳ'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        {/* PHÍ TRỌN GÓI */}
+        <Card style={{gap: 8}}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text style={{color: c.text, fontWeight: '800'}}>Phí trọn gói</Text>
+            <TouchableOpacity
+              onPress={() => setAllInclusive(v => !v)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: '#2A2F3A',
+                backgroundColor: allInclusive ? '#0ea5e9' : c.card,
+              }}>
+              <Text style={{color: allInclusive ? 'white' : c.text}}>
+                {allInclusive ? 'Bật' : 'Tắt'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-                    {/* Giá thuê cơ bản & tiền cọc */}
-          {!allIn && (
+          {allInclusive ? (
             <>
-              <Text style={{color: c.text, marginTop: 12, marginBottom: 6}}>Giá thuê cơ bản (tiền nhà)</Text>
+              <Text style={{color: c.subtext}}>Số tiền trọn gói (thay cho tiền nhà)</Text>
+              <TextInput
+                keyboardType="numeric"
+                value={allInclusiveAmount}
+                onChangeText={setAllInclusiveAmount}
+                onBlur={() => setAllInclusiveAmount(groupVN(allInclusiveAmount))}
+                placeholder="VD: 3.000.000 đ"
+                placeholderTextColor={c.subtext}
+                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+              />
+              <Text style={{color: c.subtext}}>
+                * Khi bật “Phí trọn gói”, hệ thống sẽ không yêu cầu nhập các khoản phí khác. Số tiền trọn gói sẽ dùng làm giá thuê cơ bản.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{color: c.subtext}}>Giá thuê cơ bản (tiền nhà)</Text>
               <TextInput
                 keyboardType="numeric"
                 value={baseRentText}
                 onChangeText={setBaseRentText}
                 onBlur={() => setBaseRentText(groupVN(baseRentText))}
+                placeholder="VD: 3.000.000 đ"
                 placeholderTextColor={c.subtext}
                 style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
 
-          {!allIn ? (
-            <TouchableOpacity
-              onPress={() => setOpenCharges(true)}
-              style={{marginTop:10, padding:12, borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, backgroundColor:c.card}}>
-              <Text style={{color:c.subtext}}>Chọn các khoản phí (cố định/không cố định)</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <Text style={{color:c.text, marginTop:12, marginBottom:6}}>Tổng phí trọn gói (Tiền nhà + Phí phát sinh)</Text>
-              <TextInput
-                keyboardType="numeric"
-                value={allInAmountText}
-                onChangeText={setAllInAmountText}
-                onBlur={()=> setAllInAmountText(groupVN(allInAmountText))}
-                placeholderTextColor={c.subtext}
-                style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
-              />
-            </>
-          )}
-          
+          <Text style={{color: c.subtext, marginTop: 6}}>Tiền cọc</Text>
+          <TextInput
+            keyboardType="numeric"
+            value={depositText}
+            onChangeText={setDepositText}
+            onBlur={() => setDepositText(groupVN(depositText))}
+            placeholder={format(0)}
+            placeholderTextColor={c.subtext}
+            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+          />
         </Card>
 
-        {/* Action */}
-        <View style={{alignItems:'flex-end', marginBottom:24}}>
-          <Button title="Lưu" onPress={onSave} />
+        {/* CHARGES – ẩn nếu allInclusive */}
+        {!allInclusive && (
+          <Card style={{gap: 10}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+              <Text style={{color: c.text, fontWeight: '800'}}>Chọn các khoản phí (cố định/không cố định)</Text>
+              <Button title="+ Thêm" onPress={addCharge} />
+            </View>
+
+            {charges.map((ch, idx) => (
+              <View
+                key={idx}
+                style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10, gap: 8}}>
+                <TextInput
+                  placeholder="Tên phí (VD: Điện, Nước, Internet...)"
+                  placeholderTextColor={c.subtext}
+                  value={ch.name}
+                  onChangeText={t => updCharge(idx, {name: t})}
+                  style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                />
+
+                <View style={{flexDirection: 'row', gap: 8}}>
+                  <TouchableOpacity
+                    onPress={() => updCharge(idx, {isVariable: false, unit: 'tháng'})}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 10,
+                      backgroundColor: ch.isVariable ? c.card : '#10b981',
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                    }}>
+                    <Text style={{color: ch.isVariable ? c.text : 'white'}}>Cố định</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => updCharge(idx, {isVariable: true, unit: 'đv'})}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 10,
+                      backgroundColor: ch.isVariable ? '#10b981' : c.card,
+                      borderWidth: 1,
+                      borderColor: '#2A2F3A',
+                    }}>
+                    <Text style={{color: ch.isVariable ? 'white' : c.text}}>Biến đổi</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={{color: c.subtext}}>
+                  {ch.isVariable ? 'Đơn giá / đơn vị' : 'Đơn giá / kỳ'}
+                </Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={ch.price}
+                  onChangeText={t => updCharge(idx, {price: t})}
+                  onBlur={() => updCharge(idx, {price: groupVN(ch.price || '')})}
+                  style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                />
+
+                {ch.isVariable && (
+                  <>
+                    <Text style={{color: c.subtext}}>Chỉ số đầu</Text>
+                    <TextInput
+                      keyboardType="numeric"
+                      value={ch.meterStart}
+                      onChangeText={t => updCharge(idx, {meterStart: t})}
+                      onBlur={() => updCharge(idx, {meterStart: groupVN(ch.meterStart || '')})}
+                      style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                    />
+                  </>
+                )}
+
+                <Button title="Xoá" variant="ghost" onPress={() => delCharge(idx)} />
+              </View>
+            ))}
+          </Card>
+        )}
+
+        {/* ACTIONS */}
+        <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 12}}>
+          <Button title="Huỷ" variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title="Tạo hợp đồng" onPress={submit} />
         </View>
       </ScrollView>
-
-      {/* Modal chọn phí */}
-      <ChargeChooserModal
-        visible={openCharges}
-        onClose={()=> setOpenCharges(false)}
-        initialSelected={charges}
-        onConfirm={(list)=> setCharges(list)}
-      />
     </View>
   );
 }
