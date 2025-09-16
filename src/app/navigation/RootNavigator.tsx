@@ -1,6 +1,14 @@
+// src/app/navigation/RootNavigator.tsx
 import React, {useEffect, useState} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {useColorScheme} from 'react-native';
+import {
+  NavigationContainer,
+  DarkTheme as NavDarkTheme,
+  DefaultTheme as NavLightTheme,
+} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import ApartmentsList from '../screens/ApartmentsList';
 import ApartmentForm from '../screens/ApartmentForm';
 import RoomForm from '../screens/RoomForm';
@@ -15,24 +23,24 @@ import TenantsList from '../screens/TenantsList';
 import TenantForm from '../screens/TenantForm';
 import ApartmentActivityMonths from '../screens/ApartmentActivityMonths';
 import ApartmentActivityDetail from '../screens/ApartmentActivityDetail';
+
 import {initDb} from '../../db';
 import {ensureRecurringChargesTable} from '../../db/index';
-import {useNavTheme} from '../theme';
-import {closeExpiredLeases} from '../../services/rent';
+import {closeExpiredLeases, seedChargeCatalogOnce} from '../../services/rent';
 import {initNotifications} from '../../services/notifications';
 import {I18nProvider, useI18n} from '../../i18n';
-import {seedChargeCatalogOnce} from '../../services/rent';
-import LeaseHistory  from '../screens/LeaseHistory';
+
+import LeaseHistory from '../screens/LeaseHistory';
 import LeaseHistoryDetail from '../screens/LeaseHistoryDetail';
 import OperatingCosts from '../screens/OperatingCosts';
 import OperatingCostDetail from '../screens/ApartmentActivityDetail';
 import ApartmentReport from '../screens/ApartmentReport';
 import OperatingCostSettings from '../screens/OperatingCostSettings';
 import OperatingCostMonth from '../screens/OperatingCostMonth';
-// Nếu bạn có runMigrations:
-// import {runMigrations} from '../../db/migrations';
+import Onboarding from '../screens/Onboarding';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
   ApartmentsList: undefined;
   ApartmentForm: undefined;
   RoomForm: { apartmentId: string };
@@ -49,39 +57,65 @@ export type RootStackParamList = {
   ApartmentActivityDetail: { apartmentId: string; year: number; month: number };
   LeaseHistory: { roomId: string };
   LeaseHistoryDetail: { leaseId: string };
-    OperatingCosts: { apartmentId: string };
+  OperatingCosts: { apartmentId: string };
   OperatingCostDetail: { apartmentId: string; ym: string };
   ApartmentReport: { apartmentId: string };
-   OperatingCostMonth: { apartmentId: string; ym: string };
-   OperatingCostSettings: { apartmentId: string };
+  OperatingCostMonth: { apartmentId: string; ym: string };
+  OperatingCostSettings: { apartmentId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const ONBOARD_KEY = 'has_seen_onboarding';
 
 function AppInner() {
-  const navTheme = useNavTheme();
-  const {ready} = useI18n();
-  const [dbReady, setDbReady] = useState(false);
+  // Dùng theme của hệ thống (hoặc thay bằng store/theme context của bạn)
+  const isDark = useColorScheme() === 'dark';
+  const navTheme = isDark ? NavDarkTheme : NavLightTheme;
 
-  useEffect(()=> {
-    try {
-      initDb();
-      ensureRecurringChargesTable();
-      //ensureOperatingExpensesTable();
-      // runMigrations?.();
-       seedChargeCatalogOnce();   
-      initNotifications();
-      closeExpiredLeases();
-    } finally {
-      setDbReady(true);
-    }
+  const {ready} = useI18n();
+
+  const [dbReady, setDbReady] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        initDb();
+        ensureRecurringChargesTable();
+        seedChargeCatalogOnce();
+        initNotifications();
+        closeExpiredLeases();
+      } finally {
+        setDbReady(true);
+      }
+      try {
+        const v = await AsyncStorage.getItem(ONBOARD_KEY);
+        setShowOnboarding(v ? false : true);
+      } catch {
+        setShowOnboarding(true);
+      }
+    })();
   }, []);
 
-  if (!ready || !dbReady) return null; // chờ cả i18n & DB
+  if (!ready || !dbReady || showOnboarding === null) return null;
 
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator>
+      <Stack.Navigator
+        initialRouteName={showOnboarding ? 'Onboarding' : 'ApartmentsList'}>
+        <Stack.Screen
+          name="Onboarding"
+          component={Onboarding as any}
+          options={{headerShown: false}}
+          initialParams={{
+            onDone: async (navigation: any) => {
+              await AsyncStorage.setItem(ONBOARD_KEY, '1');
+              setShowOnboarding(false);
+              navigation.replace('ApartmentsList');
+            },
+          }}
+        />
+
         <Stack.Screen name="ApartmentsList" component={ApartmentsList} options={{title:'Căn hộ'}} />
         <Stack.Screen name="ApartmentForm" component={ApartmentForm} options={{title:'Thêm căn hộ'}} />
         <Stack.Screen name="RoomForm" component={RoomForm} options={{title:'Phòng'}} />
@@ -96,13 +130,13 @@ function AppInner() {
         <Stack.Screen name="TenantForm" component={TenantForm} options={{title:'Thêm người thuê'}} />
         <Stack.Screen name="ApartmentActivityMonths" component={ApartmentActivityMonths} options={{title:'Lịch sử hoạt động'}} />
         <Stack.Screen name="ApartmentActivityDetail" component={ApartmentActivityDetail} options={{title:'Hoạt động theo tháng'}} />
-        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{ title: 'Lịch sử hợp đồng' }} />
-        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{ title: 'Chi tiết hợp đồng' }} />
-<Stack.Screen name="OperatingCosts" component={require('../screens/OperatingCosts').default} />
-<Stack.Screen name="OperatingCostDetail" component={require('../screens/OperatingCostDetail').default} />
-<Stack.Screen name="ApartmentReport" component={require('../screens/ApartmentReport').default} />
-<Stack.Screen name="OperatingCostSettings" component={OperatingCostSettings} />
-<Stack.Screen name="OperatingCostMonth" component={OperatingCostMonth} />
+        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{title:'Lịch sử hợp đồng'}} />
+        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{title:'Chi tiết hợp đồng'}} />
+        <Stack.Screen name="OperatingCosts" component={OperatingCosts} />
+        <Stack.Screen name="OperatingCostDetail" component={OperatingCostDetail} />
+        <Stack.Screen name="ApartmentReport" component={ApartmentReport} />
+        <Stack.Screen name="OperatingCostSettings" component={OperatingCostSettings} />
+        <Stack.Screen name="OperatingCostMonth" component={OperatingCostMonth} />
       </Stack.Navigator>
     </NavigationContainer>
   );

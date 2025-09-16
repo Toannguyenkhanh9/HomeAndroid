@@ -87,7 +87,6 @@ export default function OperatingCostSettings({route, navigation}: Props) {
 
   return (
     <View style={{flex:1, backgroundColor:c.bg}}>
-      <Header title="Cài đặt chi phí" />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{padding:12, gap:12}}

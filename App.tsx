@@ -6,6 +6,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {SettingsProvider, useSettings} from './src/app/state/SettingsContext';
 import i18n from './src/app/i18n';
 import {I18nextProvider} from 'react-i18next';
+import {ThemeProvider} from './src/app/theme';
 
 // ❌ BỎ import NavigationContainer ở đây
 // import {NavigationContainer} from '@react-navigation/native';
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SettingsProvider>
+        <ThemeProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <I18nextProvider i18n={i18n}>
           <LanguageSync>
@@ -33,6 +35,7 @@ export default function App() {
             <RootNavigator />
           </LanguageSync>
         </I18nextProvider>
+        </ThemeProvider>
       </SettingsProvider>
     </SafeAreaProvider>
   );

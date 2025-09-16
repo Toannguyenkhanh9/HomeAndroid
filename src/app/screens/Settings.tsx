@@ -11,10 +11,13 @@ import { exportAllAsJson, importFromJson } from '../../services/backup';
 import { seedDemo } from '../../services/seed';
 import { useI18n } from '../../i18n';
 import { useSettings } from '../state/SettingsContext'; // << dùng context mới
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useNavigation} from '@react-navigation/native';
 
 export default function Settings() {
   const c = useThemeColors();
   const { t, setLang } = useI18n();
+  const navigation = useNavigation<any>();
 
   // theme + notifications từ UI store cũ
   const {
@@ -138,6 +141,18 @@ export default function Settings() {
           }}
         />
       </Card>
+       <Card>
+          <Text style={{ color: c.text, fontWeight: '700' }}>Hướng dẫn sử dụng</Text>
+          <View style={{ height: 8 }} />
+          <Button
+            title="Xem hướng dẫn"
+            onPress={async () => {
+              await AsyncStorage.removeItem('has_seen_onboarding');
+              // chuyển sang Onboarding
+              navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+            }}
+          />
+        </Card>
 
       {/* Sample data */}
       <Card>

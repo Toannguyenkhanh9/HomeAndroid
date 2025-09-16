@@ -1,7 +1,8 @@
 // src/app/screens/OperatingCosts.tsx
-import React, {useEffect, useState} from 'react';
-import {View, Text, ScrollView, TouchableOpacity, Alert} from 'react-native';
+import React, {useEffect, useState, useCallback} from 'react';
+import {View, Text, ScrollView, TouchableOpacity} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {useFocusEffect} from '@react-navigation/native';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
 import Card from '../components/Card';
@@ -24,14 +25,21 @@ export default function OperatingCosts({route, navigation}: Props) {
   const [months, setMonths] = useState<any[]>([]);
   const [isSetup, setIsSetup] = useState(false);
 
-  const reload = () => {
+  const reload = useCallback(() => {
     const ok = hasOperatingCostSetup(apartmentId);
     setIsSetup(ok);
     setMonths(ok ? (listOperatingCostMonths(apartmentId) || []) : []);
     setReady(true);
-  };
+  }, [apartmentId]);
 
-  useEffect(reload, [apartmentId]);
+  useEffect(() => { reload(); }, [reload]);
+
+  // <<< Quan trọng: reload mỗi lần màn hình được focus trở lại
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload])
+  );
 
   const addCurrentMonth = () => {
     const ym = monthLabel(new Date());
@@ -49,7 +57,7 @@ export default function OperatingCosts({route, navigation}: Props) {
             </Text>
             <Button
               title="Cài đặt chi phí"
-              onPress={()=>navigation.navigate('OperatingCostSettings', {apartmentId})}
+              onPress={() => navigation.navigate('OperatingCostSettings', {apartmentId})}
             />
           </Card>
         </ScrollView>
@@ -64,7 +72,7 @@ export default function OperatingCosts({route, navigation}: Props) {
               <TouchableOpacity
                 key={m.id}
                 activeOpacity={0.7}
-                onPress={()=>navigation.navigate('OperatingCostMonth', {apartmentId, ym: m.ym})}
+                onPress={() => navigation.navigate('OperatingCostMonth', {apartmentId, ym: m.ym})}
               >
                 <View style={{borderWidth:1,borderColor:'#263042', borderRadius:10, padding:10, marginTop:8}}>
                   <Text style={{color:c.text, fontWeight:'700'}}>{m.ym}</Text>
@@ -77,7 +85,7 @@ export default function OperatingCosts({route, navigation}: Props) {
               <Button
                 title="Cài đặt chi phí"
                 variant="ghost"
-                onPress={()=>navigation.navigate('OperatingCostSettings', {apartmentId})}
+                onPress={() => navigation.navigate('OperatingCostSettings', {apartmentId})}
               />
             </View>
           </Card>
