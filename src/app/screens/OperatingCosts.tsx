@@ -48,7 +48,7 @@ export default function OperatingCosts({route, navigation}: Props) {
   };
 
   return (
-    <View style={{flex:1, backgroundColor:c.bg}}>
+    <View style={{flex:1, backgroundColor:'transparent'}}>
       {!ready ? null : !isSetup ? (
         <ScrollView contentContainerStyle={{padding:12, gap:12}}>
           <Card style={{gap:8}}>
@@ -74,7 +74,7 @@ export default function OperatingCosts({route, navigation}: Props) {
                 activeOpacity={0.7}
                 onPress={() => navigation.navigate('OperatingCostMonth', {apartmentId, ym: m.ym})}
               >
-                <View style={{borderWidth:1,borderColor:'#263042', borderRadius:10, padding:10, marginTop:8}}>
+                <View style={{ borderRadius:10, padding:10, marginTop:8}}>
                   <Text style={{color:c.text, fontWeight:'700'}}>{m.ym}</Text>
                   <Text style={{color:c.subtext}}>Nhấn để xem/nhập chi phí</Text>
                 </View>

@@ -83,7 +83,7 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
   }, [lease]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor:'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
         <Card>
           <Text style={{ color: c.text }}>Bắt đầu: {lease?.start_date || '—'}</Text>
@@ -106,7 +106,7 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
                 onPress={() => navigation.navigate('CycleDetail', { cycleId: cy.id })}
                 activeOpacity={0.7}
               >
-                <View style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10 }}>
+                <View style={{ borderRadius: 10, padding: 10 }}>
                   <Text style={{ color: c.text, fontWeight: '700' }}>
                     {cy.period_start} → {cy.period_end}
                   </Text>
@@ -131,7 +131,7 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
                   adjustments.map((it, idx) => (
                     <View
                       key={`${it.name}-${idx}`}
-                      style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 8 }}
+                      style={{  borderRadius: 10, padding: 8 }}
                     >
                       <Text style={{ color: c.text, fontWeight: '600' }}>
                         {it.name || 'Khoản phí'}

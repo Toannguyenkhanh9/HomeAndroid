@@ -48,7 +48,7 @@ export default function OperatingCostDetail({route}: Props) {
   );
 
   return (
-    <View style={{flex:1, backgroundColor:c.bg}}>
+    <View style={{flex:1, backgroundColor:'transparent'}}>
       <Header title={`Chi phí ${ym}`} />
       <ScrollView contentContainerStyle={{padding:12, gap:12}}>
         <Card>
@@ -56,7 +56,7 @@ export default function OperatingCostDetail({route}: Props) {
           {items.length === 0 ? (
             <Text style={{color:c.subtext}}>— Chưa có chi phí.</Text>
           ) : items.map(it => (
-            <View key={it.id} style={{borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10, marginTop:8}}>
+            <View key={it.id} style={{ borderRadius:10, padding:10, marginTop:8}}>
               <Text style={{color:c.text, fontWeight:'700'}}>{it.name}</Text>
               <Text style={{color:c.subtext}}>{it.type === 'fixed' ? 'Cố định' : 'Không cố định'}</Text>
               <Text style={{color:c.text}}>Số tiền: {format(it.amount || 0)}</Text>
@@ -77,7 +77,7 @@ export default function OperatingCostDetail({route}: Props) {
             placeholderTextColor={c.subtext}
             value={name}
             onChangeText={setName}
-            style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+            style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
           />
           <TextInput
             placeholder="Số tiền"
@@ -86,7 +86,7 @@ export default function OperatingCostDetail({route}: Props) {
             value={amount}
             onChangeText={setAmount}
             onBlur={()=>setAmount(groupVN(amount))}
-            style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+            style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
           />
           <Button
             title="Lưu"
@@ -105,7 +105,7 @@ export default function OperatingCostDetail({route}: Props) {
           {templates.length===0 ? (
             <Text style={{color:c.subtext}}>— Chưa có mẫu.</Text>
           ) : templates.map(t => (
-            <View key={t.id} style={{borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10}}>
+            <View key={t.id} style={{ borderRadius:10, padding:10}}>
               <Text style={{color:c.text, fontWeight:'700'}}>{t.name}</Text>
               <Text style={{color:c.text}}>Mặc định: {format(t.amount || 0)}</Text>
               <View style={{alignItems:'flex-end'}}>
@@ -119,7 +119,7 @@ export default function OperatingCostDetail({route}: Props) {
             placeholderTextColor={c.subtext}
             value={tplName}
             onChangeText={setTplName}
-            style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+            style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
           />
           <TextInput
             placeholder="Số tiền mặc định"
@@ -128,7 +128,7 @@ export default function OperatingCostDetail({route}: Props) {
             value={tplAmount}
             onChangeText={setTplAmount}
             onBlur={()=>setTplAmount(groupVN(tplAmount))}
-            style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+            style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
           />
           <Button title="Thêm mẫu" onPress={()=>{
             const v = Number(onlyDigits(tplAmount))||0;

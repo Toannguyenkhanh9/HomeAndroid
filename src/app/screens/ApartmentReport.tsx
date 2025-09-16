@@ -95,7 +95,7 @@ export default function ApartmentReport({ route }: Props) {
   const finalBalance = useMemo(() => incomeByRoom.total - operatingCost.total, [incomeByRoom.total, operatingCost.total]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
 
         {/* Khoảng thời gian + DateTimePicker */}
@@ -106,8 +106,6 @@ export default function ApartmentReport({ route }: Props) {
             activeOpacity={0.7}
             onPress={() => setShowFrom(true)}
             style={{
-              borderWidth: 1,
-              borderColor: '#2A2F3A',
               borderRadius: 10,
               padding: 10,
               backgroundColor: c.card,
@@ -121,8 +119,6 @@ export default function ApartmentReport({ route }: Props) {
             activeOpacity={0.7}
             onPress={() => setShowTo(true)}
             style={{
-              borderWidth: 1,
-              borderColor: '#2A2F3A',
               borderRadius: 10,
               padding: 10,
               backgroundColor: c.card,
@@ -166,7 +162,7 @@ export default function ApartmentReport({ route }: Props) {
             <Text style={{ color: c.subtext }}>—</Text>
           ) : (
             incomeByRoom.rows.map((r, i) => (
-              <View key={i} style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10 }}>
+              <View key={i} style={{ borderRadius: 10, padding: 10 }}>
                 <Text style={{ color: c.text, fontWeight: '700' }}>Phòng {r.room_code}</Text>
                 <Text style={{ color: c.subtext }}>
                   Tổng thu: <Text style={{ color: c.text }}>{format(Number(r.total) || 0)}</Text>
@@ -184,7 +180,7 @@ export default function ApartmentReport({ route }: Props) {
             <Text style={{ color: c.subtext }}>—</Text>
           ) : (
             operatingCost.detail.map((d, idx) => (
-              <View key={idx} style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10 }}>
+              <View key={idx} style={{ borderRadius: 10, padding: 10 }}>
                 <Text style={{ color: c.text, fontWeight: '700' }}>
                   {d.ym} — {d.name}
                 </Text>

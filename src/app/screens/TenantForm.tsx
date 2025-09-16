@@ -16,7 +16,7 @@ export default function TenantForm({navigation}: NativeStackScreenProps<RootStac
   const [idnum,setIdnum] = useState('');
   const [note,setNote] = useState('');
   return (
-    <View style={{flex:1, padding:16, backgroundColor:c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor:'transparent'}}>
       <Header title="Thêm người thuê" />
       <Card>
         <Input placeholder="Họ tên" value={name} onChangeText={setName} />

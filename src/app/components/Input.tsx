@@ -17,7 +17,7 @@ export default function Input({label, error, helperText, style, containerStyle, 
         {...rest}
         placeholderTextColor={c.subtext}
         style={[
-          {borderWidth:1, borderColor: error ? '#ef4444' : '#2A2F3A', backgroundColor:c.card, color:c.text, padding:12, borderRadius:12},
+          { backgroundColor:c.card, color:c.text, padding:12, borderRadius:12},
           style as any
         ]}
       />

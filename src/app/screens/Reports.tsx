@@ -19,7 +19,7 @@ export default function Reports() {
   const {t} = useI18n();
   const {format} = useCurrency();
   return (
-    <View style={{flex:1, padding:16, backgroundColor:c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor:'transparent'}}>
       <Header title={t('reportsTitle')} />
       <Card>
         <Input placeholder={t('year')} value={y} onChangeText={setY} keyboardType="numeric" />

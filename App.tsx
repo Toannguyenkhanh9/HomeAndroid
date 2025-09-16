@@ -1,5 +1,9 @@
 import React from 'react';
-import {StatusBar, useColorScheme} from 'react-native';
+import {
+  StatusBar,
+  useColorScheme,
+  ImageBackground,
+} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 // Settings + i18n
@@ -8,7 +12,7 @@ import i18n from './src/app/i18n';
 import {I18nextProvider} from 'react-i18next';
 import {ThemeProvider} from './src/app/theme';
 
-// ❌ BỎ import NavigationContainer ở đây
+// ❌ KHÔNG import NavigationContainer ở đây
 // import {NavigationContainer} from '@react-navigation/native';
 
 import RootNavigator from './src/app/navigation/RootNavigator';
@@ -28,13 +32,19 @@ export default function App() {
     <SafeAreaProvider>
       <SettingsProvider>
         <ThemeProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <I18nextProvider i18n={i18n}>
-          <LanguageSync>
-            {/* ❌ KHÔNG bọc NavigationContainer ở đây */}
-            <RootNavigator />
-          </LanguageSync>
-        </I18nextProvider>
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+          <I18nextProvider i18n={i18n}>
+            <LanguageSync>
+              {/* Hình nền toàn app */}
+              <ImageBackground
+                source={require('./src/app/assets/bg.png')}
+                resizeMode="cover"
+                style={{flex: 1}}
+              >
+                <RootNavigator />
+              </ImageBackground>
+            </LanguageSync>
+          </I18nextProvider>
         </ThemeProvider>
       </SettingsProvider>
     </SafeAreaProvider>

@@ -152,7 +152,7 @@ export default function LeaseForm({route, navigation}: Props) {
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg}}>
+    <View style={{flex: 1, backgroundColor: 'transparent'}}>
       <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
         {/* Khách thuê */}
         <Card style={{gap: 8}}>
@@ -161,14 +161,14 @@ export default function LeaseForm({route, navigation}: Props) {
             placeholderTextColor={c.subtext}
             value={fullName}
             onChangeText={setFullName}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
             placeholder="Số CCCD/CMND"
             placeholderTextColor={c.subtext}
             value={idNumber}
             onChangeText={setIdNumber}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
             placeholder="Số điện thoại"
@@ -176,7 +176,7 @@ export default function LeaseForm({route, navigation}: Props) {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
         </Card>
 
@@ -195,8 +195,6 @@ export default function LeaseForm({route, navigation}: Props) {
                   paddingVertical: 8,
                   borderRadius: 10,
                   backgroundColor: mode === k ? '#1f6feb' : c.card,
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                 }}>
                 <Text style={{color: mode === k ? 'white' : c.text}}>
                   {k === 'monthly' ? 'Tháng' : 'Ngày'}
@@ -211,7 +209,7 @@ export default function LeaseForm({route, navigation}: Props) {
             placeholderTextColor={c.subtext}
             value={startISO}
             onChangeText={setStartISO}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
 
           {mode === 'monthly' ? (
@@ -221,7 +219,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 keyboardType="numeric"
                 value={months}
                 onChangeText={setMonths}
-                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           ) : (
@@ -231,7 +229,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 keyboardType="numeric"
                 value={days}
                 onChangeText={setDays}
-                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
@@ -252,8 +250,6 @@ export default function LeaseForm({route, navigation}: Props) {
                   paddingVertical: 8,
                   borderRadius: 10,
                   backgroundColor: collect === k ? '#10b981' : c.card,
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                 }}>
                 <Text style={{color: collect === k ? 'white' : c.text}}>
                   {k === 'start' ? 'Đầu kỳ' : 'Cuối kỳ'}
@@ -273,8 +269,6 @@ export default function LeaseForm({route, navigation}: Props) {
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#2A2F3A',
                 backgroundColor: allInclusive ? '#0ea5e9' : c.card,
               }}>
               <Text style={{color: allInclusive ? 'white' : c.text}}>
@@ -293,7 +287,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 onBlur={() => setAllInclusiveAmount(groupVN(allInclusiveAmount))}
                 placeholder="VD: 3.000.000 đ"
                 placeholderTextColor={c.subtext}
-                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
               <Text style={{color: c.subtext}}>
                 * Khi bật “Phí trọn gói”, hệ thống sẽ không yêu cầu nhập các khoản phí khác. Số tiền trọn gói sẽ dùng làm giá thuê cơ bản.
@@ -309,7 +303,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 onBlur={() => setBaseRentText(groupVN(baseRentText))}
                 placeholder="VD: 3.000.000 đ"
                 placeholderTextColor={c.subtext}
-                style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
@@ -322,7 +316,7 @@ export default function LeaseForm({route, navigation}: Props) {
             onBlur={() => setDepositText(groupVN(depositText))}
             placeholder={format(0)}
             placeholderTextColor={c.subtext}
-            style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
         </Card>
 
@@ -337,13 +331,13 @@ export default function LeaseForm({route, navigation}: Props) {
             {charges.map((ch, idx) => (
               <View
                 key={idx}
-                style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10, gap: 8}}>
+                style={{ borderRadius: 10, padding: 10, gap: 8}}>
                 <TextInput
                   placeholder="Tên phí (VD: Điện, Nước, Internet...)"
                   placeholderTextColor={c.subtext}
                   value={ch.name}
                   onChangeText={t => updCharge(idx, {name: t})}
-                  style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                  style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
                 <View style={{flexDirection: 'row', gap: 8}}>
@@ -354,8 +348,6 @@ export default function LeaseForm({route, navigation}: Props) {
                       paddingVertical: 6,
                       borderRadius: 10,
                       backgroundColor: ch.isVariable ? c.card : '#10b981',
-                      borderWidth: 1,
-                      borderColor: '#2A2F3A',
                     }}>
                     <Text style={{color: ch.isVariable ? c.text : 'white'}}>Cố định</Text>
                   </TouchableOpacity>
@@ -366,8 +358,6 @@ export default function LeaseForm({route, navigation}: Props) {
                       paddingVertical: 6,
                       borderRadius: 10,
                       backgroundColor: ch.isVariable ? '#10b981' : c.card,
-                      borderWidth: 1,
-                      borderColor: '#2A2F3A',
                     }}>
                     <Text style={{color: ch.isVariable ? 'white' : c.text}}>Biến đổi</Text>
                   </TouchableOpacity>
@@ -381,7 +371,7 @@ export default function LeaseForm({route, navigation}: Props) {
                   value={ch.price}
                   onChangeText={t => updCharge(idx, {price: t})}
                   onBlur={() => updCharge(idx, {price: groupVN(ch.price || '')})}
-                  style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                  style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
                 {ch.isVariable && (
@@ -392,7 +382,7 @@ export default function LeaseForm({route, navigation}: Props) {
                       value={ch.meterStart}
                       onChangeText={t => updCharge(idx, {meterStart: t})}
                       onBlur={() => updCharge(idx, {meterStart: groupVN(ch.meterStart || '')})}
-                      style={{borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                      style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                     />
                   </>
                 )}

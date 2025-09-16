@@ -345,7 +345,7 @@ export default function CycleDetail({route, navigation}: Props) {
 
   // ====== UI ======
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <ViewShot ref={viewShotRef} options={{format:'png', quality:1}}>
         {!editMode ? (
           <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
@@ -387,7 +387,7 @@ export default function CycleDetail({route, navigation}: Props) {
                       } catch {}
                     }
                     return (
-                      <View key={it.id} style={{ borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10 }}>
+                      <View key={it.id} style={{ borderRadius:10, padding:10 }}>
                         <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:6}}>
                           <Text style={{color:c.text, fontWeight:'700'}}>{it.description}</Text>
                           <Text style={{color:c.subtext}}>{it.unit ? `(${it.unit})` : 'Cố định'}</Text>
@@ -419,7 +419,7 @@ export default function CycleDetail({route, navigation}: Props) {
                 <>
                   {rows.map(r => (
                     <View key={r.charge_type_id}
-                      style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10 }}>
+                      style={{  borderRadius: 10, padding: 10 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                         <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
                         <Text style={{ color: c.subtext }}>
@@ -482,7 +482,7 @@ export default function CycleDetail({route, navigation}: Props) {
 
                 return (
                   <View key={r.charge_type_id}
-                    style={{ borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10 }}>
+                    style={{ borderRadius: 10, padding: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                       <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
                       <Text style={{ color: c.subtext }}>
@@ -507,8 +507,6 @@ export default function CycleDetail({route, navigation}: Props) {
                             onChangeText={t => onChangeValue(r.charge_type_id, t)}
                             style={{
                               flex: 1,
-                              borderWidth: 1,
-                              borderColor: '#2A2F3A',
                               backgroundColor: c.card,
                               color: c.text,
                               padding: 10,
@@ -536,8 +534,6 @@ export default function CycleDetail({route, navigation}: Props) {
                             onBlur={() => onBlurValue(r.charge_type_id)}
                             style={{
                               flex: 1,
-                              borderWidth: 1,
-                              borderColor: '#2A2F3A',
                               backgroundColor: c.card,
                               color: c.text,
                               padding: 10,
@@ -565,7 +561,7 @@ export default function CycleDetail({route, navigation}: Props) {
                       value={ex.name}
                       onChangeText={t => updateExtra(idx, { name: t })}
                       style={{
-                        borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10,
+                         borderRadius: 10,
                         padding: 10, color: c.text, backgroundColor: c.card,
                       }}
                     />
@@ -578,7 +574,7 @@ export default function CycleDetail({route, navigation}: Props) {
                         onChangeText={t => updateExtra(idx, { amount: t })}
                         onBlur={() => updateExtra(idx, { amount: groupVN(ex.amount || '') })}
                         style={{
-                          flex: 1, borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10,
+                          flex: 1, borderRadius: 10,
                           padding: 10, color: c.text, backgroundColor: c.card,
                         }}
                       />
@@ -625,7 +621,7 @@ export default function CycleDetail({route, navigation}: Props) {
                     placeholderTextColor={c.subtext}
                     value={ex.name}
                     onChangeText={t => updEndExtra(idx, { name: t })}
-                    style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                    style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                   />
                   <View style={{flexDirection:'row', gap:8}}>
                     <TextInput
@@ -635,7 +631,7 @@ export default function CycleDetail({route, navigation}: Props) {
                       value={ex.amount}
                       onChangeText={t => updEndExtra(idx, { amount: t })}
                       onBlur={() => updEndExtra(idx, { amount: groupVN(ex.amount || '') })}
-                      style={{flex:1, borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                      style={{flex:1, borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                     />
                     <Button title="Xoá" variant="ghost" onPress={() => delEndExtra(idx)} />
                   </View>
@@ -699,7 +695,7 @@ export default function CycleDetail({route, navigation}: Props) {
               placeholder={leaseInfo?.billing_cycle === 'daily' ? 'VD: 7 (ngày)' : 'VD: 3 (tháng)'}
               placeholderTextColor={c.subtext}
               style={{
-                borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                 borderRadius:10,
                 padding:10, color:c.text, backgroundColor:c.card
               }}
             />

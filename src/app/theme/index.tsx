@@ -80,8 +80,8 @@ export const cardStyle = (c: ReturnType<typeof useThemeColors>) => ({
   backgroundColor: c.card,
   borderRadius: 12,
   padding: 14,
-  borderWidth: 1,
-  borderColor: c.border,
+  // borderWidth: 1,
+  //borderColor: c.border,
   // shadow cho iOS
   shadowColor: '#000',
   shadowOpacity: 0.06,

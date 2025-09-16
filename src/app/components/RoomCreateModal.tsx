@@ -47,7 +47,7 @@ export default function RoomCreateModal({
               placeholderTextColor={c.subtext}
               value={code}
               onChangeText={setCode}
-              style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
+              style={{backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
             />
             <TextInput
               placeholder="Tầng"
@@ -55,7 +55,7 @@ export default function RoomCreateModal({
               keyboardType="numeric"
               value={floor}
               onChangeText={setFloor}
-              style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
+              style={{ backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
             />
             <TextInput
               placeholder="Diện tích (m2)"
@@ -63,7 +63,7 @@ export default function RoomCreateModal({
               keyboardType="numeric"
               value={area}
               onChangeText={setArea}
-              style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:16}}
+              style={{backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:16}}
             />
 
             <View style={{flexDirection:'row', justifyContent:'flex-end', gap:8}}>

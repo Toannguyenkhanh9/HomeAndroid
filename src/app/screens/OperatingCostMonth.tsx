@@ -112,14 +112,14 @@ export default function OperatingCostMonth({route, navigation}: Props) {
 
   if (!loaded) {
     return (
-      <View style={{flex: 1, backgroundColor: c.bg}}>
+      <View style={{flex: 1, backgroundColor: 'transparent'}}>
         <Header title={`Chi phí ${ym}`} />
       </View>
     );
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg}}>
+    <View style={{flex: 1, backgroundColor: 'transparent'}}>
       <Header title={`Chi phí ${ym}`} />
       <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
         <Card style={{gap: 10}}>
@@ -129,8 +129,6 @@ export default function OperatingCostMonth({route, navigation}: Props) {
             <View
               key={(r.id ?? 'new') + '-' + idx}
               style={{
-                borderWidth: 1,
-                borderColor: '#263042',
                 borderRadius: 10,
                 padding: 10,
                 gap: 8,
@@ -147,8 +145,6 @@ export default function OperatingCostMonth({route, navigation}: Props) {
                 value={r.name}
                 onChangeText={t => updateName(idx, t)}
                 style={{
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                   borderRadius: 10,
                   padding: 10,
                   color: c.text,

@@ -18,7 +18,7 @@ export default function TenantsList({navigation}: NativeStackScreenProps<RootSta
   useFocusEffect(useCallback(()=>{ reload(); }, [reload]));
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor:c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor:'transparent'}}>
       <Header title="Người thuê" right={<Button title="Thêm" onPress={()=>navigation.navigate('TenantForm')} />} />
       <FlatList
         data={rows}

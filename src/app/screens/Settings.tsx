@@ -53,7 +53,7 @@ export default function Settings() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 16, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, padding: 16, backgroundColor:'transparent' }}>
       <ScrollView
         contentContainerStyle={{
           padding: 16,
@@ -77,11 +77,11 @@ export default function Settings() {
       </Card>
 
       {/* Theme */}
-      <Card>
+      {/* <Card>
         <Text style={{ color: c.text }}>{t('theme')}: {String(themeMode)}</Text>
         <View style={{ height: 8 }} />
         <Button title={t('switchTheme')} onPress={toggleTheme} />
-      </Card>
+      </Card> */}
 
       {/* Date format (đã bỏ Currency) */}
       <Card>

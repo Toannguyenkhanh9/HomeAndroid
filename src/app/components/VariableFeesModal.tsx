@@ -39,7 +39,7 @@ export default function VariableFeesModal({
               <View style={{flexDirection:'row', alignItems:'center', gap:8, marginVertical:6}}>
                 <Text style={{color:c.text, flex:1}}>{item.name}{item.unit? ` (${item.unit})`:''}</Text>
                 <TextInput
-                  style={{borderWidth:1, borderColor:'#ddd', padding:6, borderRadius:8, width:120, color:c.text}}
+                  style={{ padding:6, borderRadius:8, width:120, color:c.text}}
                   keyboardType="numeric" placeholder="Số lượng"
                   value={item.quantity}
                   onChangeText={(t)=> setQty(item.charge_type_id, t)}
@@ -55,8 +55,8 @@ export default function VariableFeesModal({
             keyExtractor={(_,i)=>String(i)}
             renderItem={({item, index})=>(
               <View style={{flexDirection:'row', gap:8, marginVertical:6}}>
-                <TextInput style={{flex:1, borderWidth:1, borderColor:'#ddd', padding:6, borderRadius:8, color:c.text}} placeholder="Tên chi phí" value={item.name} onChangeText={(t)=> setExtra(index, 'name', t)}/>
-                <TextInput style={{width:120, borderWidth:1, borderColor:'#ddd', padding:6, borderRadius:8, color:c.text}} placeholder="Số tiền" keyboardType="numeric" value={item.amount} onChangeText={(t)=> setExtra(index, 'amount', t)}/>
+                <TextInput style={{padding:6, borderRadius:8, color:c.text}} placeholder="Tên chi phí" value={item.name} onChangeText={(t)=> setExtra(index, 'name', t)}/>
+                <TextInput style={{width:120, padding:6, borderRadius:8, color:c.text}} placeholder="Số tiền" keyboardType="numeric" value={item.amount} onChangeText={(t)=> setExtra(index, 'amount', t)}/>
               </View>
             )}
             ListFooterComponent={<Button title="Thêm dòng" variant="ghost" onPress={()=> setExtras(prev=> [...prev, {name:'', amount:''}])} />}

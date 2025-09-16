@@ -22,8 +22,8 @@ export default function Button({title, onPress, variant='solid', style}: Props) 
         paddingHorizontal: 16,
         borderRadius: 10,
         backgroundColor: isGhost ? 'transparent' : c.primary,
-        borderWidth: isGhost ? 1 : 0,
-        borderColor: isGhost ? c.border : 'transparent',
+        // borderWidth: isGhost ? 1 : 0,
+        // borderColor: isGhost ? c.border : 'transparent',
       }, style]} // <-- nhận style từ ngoài
     >
       <Text style={{

@@ -67,10 +67,25 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const ONBOARD_KEY = 'has_seen_onboarding';
 
+// Tạo theme trong suốt
+const LightNavTheme = {
+  ...NavLightTheme,
+  colors: {
+    ...NavLightTheme.colors,
+    background: 'transparent',
+  },
+};
+const DarkNavTheme = {
+  ...NavDarkTheme,
+  colors: {
+    ...NavDarkTheme.colors,
+    background: 'transparent',
+  },
+};
+
 function AppInner() {
-  // Dùng theme của hệ thống (hoặc thay bằng store/theme context của bạn)
   const isDark = useColorScheme() === 'dark';
-  const navTheme = isDark ? NavDarkTheme : NavLightTheme;
+  const navTheme = isDark ? DarkNavTheme : LightNavTheme;
 
   const {ready} = useI18n();
 
@@ -102,7 +117,12 @@ function AppInner() {
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
-        initialRouteName={showOnboarding ? 'Onboarding' : 'ApartmentsList'}>
+        initialRouteName={showOnboarding ? 'Onboarding' : 'ApartmentsList'}
+        screenOptions={{
+          contentStyle: { backgroundColor: 'transparent' }, // 👈 cho scene trong suốt
+          headerStyle: { backgroundColor: 'transparent' },  // 👈 header trong suốt
+        }}
+      >
         <Stack.Screen
           name="Onboarding"
           component={Onboarding as any}
@@ -115,23 +135,26 @@ function AppInner() {
             },
           }}
         />
-
-        <Stack.Screen name="ApartmentsList" component={ApartmentsList} options={{title:'Căn hộ'}} />
-        <Stack.Screen name="ApartmentForm" component={ApartmentForm} options={{title:'Thêm căn hộ'}} />
-        <Stack.Screen name="RoomForm" component={RoomForm} options={{title:'Phòng'}} />
-        <Stack.Screen name="RoomDetail" component={RoomDetail} options={{title:'Chi tiết phòng'}} />
-        <Stack.Screen name="LeaseForm" component={LeaseForm} options={{title:'Tạo hợp đồng'}} />
-        <Stack.Screen name="LeaseDetail" component={LeaseDetail} options={{title:'Hợp đồng'}} />
-        <Stack.Screen name="CycleDetail" component={CycleDetail} options={{title:'Chu kỳ'}} />
-        <Stack.Screen name="InvoiceDetail" component={InvoiceDetail} options={{title:'Hóa đơn'}} />
-        <Stack.Screen name="Reports" component={Reports} options={{title:'Báo cáo'}} />
-        <Stack.Screen name="Settings" component={Settings} options={{title:'Cài đặt'}} />
-        <Stack.Screen name="TenantsList" component={TenantsList} options={{title:'Người thuê'}} />
-        <Stack.Screen name="TenantForm" component={TenantForm} options={{title:'Thêm người thuê'}} />
-        <Stack.Screen name="ApartmentActivityMonths" component={ApartmentActivityMonths} options={{title:'Lịch sử hoạt động'}} />
-        <Stack.Screen name="ApartmentActivityDetail" component={ApartmentActivityDetail} options={{title:'Hoạt động theo tháng'}} />
-        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{title:'Lịch sử hợp đồng'}} />
-        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{title:'Chi tiết hợp đồng'}} />
+        <Stack.Screen
+          name="ApartmentsList"
+          component={ApartmentsList}
+          options={{title: 'Căn hộ'}}
+        />
+        <Stack.Screen name="ApartmentForm" component={ApartmentForm} options={{title: 'Thêm căn hộ'}} />
+        <Stack.Screen name="RoomForm" component={RoomForm} options={{title: 'Phòng'}} />
+        <Stack.Screen name="RoomDetail" component={RoomDetail} options={{title: 'Chi tiết phòng'}} />
+        <Stack.Screen name="LeaseForm" component={LeaseForm} options={{title: 'Tạo hợp đồng'}} />
+        <Stack.Screen name="LeaseDetail" component={LeaseDetail} options={{title: 'Hợp đồng'}} />
+        <Stack.Screen name="CycleDetail" component={CycleDetail} options={{title: 'Chu kỳ'}} />
+        <Stack.Screen name="InvoiceDetail" component={InvoiceDetail} options={{title: 'Hóa đơn'}} />
+        <Stack.Screen name="Reports" component={Reports} options={{title: 'Báo cáo'}} />
+        <Stack.Screen name="Settings" component={Settings} options={{title: 'Cài đặt'}} />
+        <Stack.Screen name="TenantsList" component={TenantsList} options={{title: 'Người thuê'}} />
+        <Stack.Screen name="TenantForm" component={TenantForm} options={{title: 'Thêm người thuê'}} />
+        <Stack.Screen name="ApartmentActivityMonths" component={ApartmentActivityMonths} options={{title: 'Lịch sử hoạt động'}} />
+        <Stack.Screen name="ApartmentActivityDetail" component={ApartmentActivityDetail} options={{title: 'Hoạt động theo tháng'}} />
+        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{title: 'Lịch sử hợp đồng'}} />
+        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{title: 'Chi tiết hợp đồng'}} />
         <Stack.Screen name="OperatingCosts" component={OperatingCosts} />
         <Stack.Screen name="OperatingCostDetail" component={OperatingCostDetail} />
         <Stack.Screen name="ApartmentReport" component={ApartmentReport} />

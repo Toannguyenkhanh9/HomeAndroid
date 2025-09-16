@@ -24,7 +24,7 @@ export default function InvoiceDetail({route}: NativeStackScreenProps<RootStackP
   if (!inv) return <View style={{flex:1, justifyContent:'center', alignItems:'center'}}><Text style={{color:c.text}}>Không tìm thấy hóa đơn</Text></View>;
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor: 'transparent'}}>
       <Header title="Hóa đơn" />
       <Card>
         <Text style={{color: c.text, fontWeight:'700'}}>Kỳ: {inv.period_start} → {inv.period_end}</Text>

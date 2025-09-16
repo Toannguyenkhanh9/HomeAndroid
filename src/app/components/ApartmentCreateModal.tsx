@@ -43,14 +43,14 @@ export default function ApartmentCreateModal({
               placeholderTextColor={c.subtext}
               value={name}
               onChangeText={setName}
-              style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
+              style={{backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
             />
             <TextInput
               placeholder="Địa chỉ (tuỳ chọn)"
               placeholderTextColor={c.subtext}
               value={address}
               onChangeText={setAddress}
-              style={{borderWidth:1, borderColor:'#2A2F3A', backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:16}}
+              style={{backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:16}}
             />
 
             <View style={{flexDirection:'row', justifyContent:'flex-end', gap:8}}>

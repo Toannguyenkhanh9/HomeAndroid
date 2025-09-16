@@ -33,7 +33,7 @@ export default function ApartmentActivityDetail({route}: NativeStackScreenProps<
   const isCurrentMonth = (now.getFullYear() === year && (now.getMonth()+1) === month);
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor: 'transparent'}}>
       <Header title={`Hoạt động ${year}-${String(month).padStart(2,'0')}`} />
       <Card>
         <Text style={{color:c.text}}>Tổng thu (các phòng): <Text style={{fontWeight:'700'}}>{formatMoney(income, currency)}</Text></Text>
@@ -60,8 +60,8 @@ export default function ApartmentActivityDetail({route}: NativeStackScreenProps<
         <Card>
           <Text style={{color:c.text, fontWeight:'700', marginBottom:8}}>Thêm chi phí hoạt động (tháng hiện tại)</Text>
           <View style={{flexDirection:'row', gap:8}}>
-            <TextInput placeholder="Tên khoản phí (VD: thuê, điện, nước, internet, rác, sửa chữa, bảo trì, ...)" value={expenseName} onChangeText={setExpenseName} style={{flex:1, borderWidth:1, borderColor:c.border, color:c.text, padding:8, borderRadius:8}}/>
-            <TextInput placeholder="Số tiền" value={expenseAmount} onChangeText={setExpenseAmount} keyboardType="numeric" style={{width:140, borderWidth:1, borderColor:c.border, color:c.text, padding:8, borderRadius:8}}/>
+            <TextInput placeholder="Tên khoản phí (VD: thuê, điện, nước, internet, rác, sửa chữa, bảo trì, ...)" value={expenseName} onChangeText={setExpenseName} style={{flex:1, color:c.text, padding:8, borderRadius:8}}/>
+            <TextInput placeholder="Số tiền" value={expenseAmount} onChangeText={setExpenseAmount} keyboardType="numeric" style={{width:140,  color:c.text, padding:8, borderRadius:8}}/>
           </View>
           <Button title="Thêm chi phí" onPress={()=>{
             if (!expenseName.trim() || !expenseAmount.trim()) return Alert.alert('Vui lòng nhập tên & số tiền');

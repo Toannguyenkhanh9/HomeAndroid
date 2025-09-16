@@ -113,7 +113,7 @@ export default function Onboarding({navigation}: Props) {
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg, paddingTop: 16}}>
+    <View style={{flex: 1, backgroundColor: 'transparent', paddingTop: 16}}>
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -126,8 +126,6 @@ export default function Onboarding({navigation}: Props) {
             <View
               style={{
                 marginTop: 32,
-                borderWidth: 1,
-                borderColor: '#263042',
                 borderRadius: 16,
                 backgroundColor: c.card,
                 padding: 20,
@@ -146,8 +144,6 @@ export default function Onboarding({navigation}: Props) {
                   marginTop: 16,
                   borderRadius: 14,
                   overflow: 'hidden',
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                 }}
               >
                 {s.illustration ? (
@@ -190,8 +186,6 @@ export default function Onboarding({navigation}: Props) {
           style={{
             paddingVertical: 12,
             paddingHorizontal: 16,
-            borderRadius: 10,
-            borderWidth: 1,
             borderColor: '#2A2F3A',
           }}
         >

@@ -24,7 +24,7 @@ export default function LeaseHistory({ route, navigation }: Props) {
   }, [roomId]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
         {leases.length === 0 ? (
           <Card><Text style={{ color: c.subtext }}>Chưa có hợp đồng nào.</Text></Card>

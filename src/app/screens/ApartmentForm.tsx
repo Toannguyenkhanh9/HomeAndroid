@@ -14,7 +14,7 @@ export default function ApartmentForm({navigation}: NativeStackScreenProps<RootS
   const [address, setAddress] = useState('');
   const c = useThemeColors();
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor: 'transparent'}}>
       <Header title="Thêm căn hộ" />
       <Card>
         <Input placeholder="Tên căn hộ" value={name} onChangeText={setName} />

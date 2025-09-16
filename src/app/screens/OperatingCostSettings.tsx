@@ -86,7 +86,7 @@ export default function OperatingCostSettings({route, navigation}: Props) {
   };
 
   return (
-    <View style={{flex:1, backgroundColor:c.bg}}>
+    <View style={{flex:1, backgroundColor:'transparent'}}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{padding:12, gap:12}}
@@ -150,14 +150,14 @@ const FixedRowItem = memo(function FixedRowItem({
   onRemove: ()=>void;
 }) {
   return (
-    <View style={{borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10, gap:8}}>
+    <View style={{ borderRadius:10, padding:10, gap:8}}>
       <TextInput
         placeholder="Tên khoản chi"
         placeholderTextColor={c.subtext}
         value={row.name ?? ''}
         onChangeText={onChangeName}
         blurOnSubmit={false}
-        style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+        style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
       <TextInput
         placeholder="Số tiền mặc định"
@@ -167,7 +167,7 @@ const FixedRowItem = memo(function FixedRowItem({
         onChangeText={onChangeAmount}
         onBlur={onBlurAmount}
         blurOnSubmit={false}
-        style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+        style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
       <Button title="Xoá" variant="ghost" onPress={onRemove}/>
     </View>
@@ -186,14 +186,14 @@ const VarRowItem = memo(function VarRowItem({
   onRemove: ()=>void;
 }) {
   return (
-    <View style={{borderWidth:1, borderColor:'#263042', borderRadius:10, padding:10, gap:8}}>
+    <View style={{borderRadius:10, padding:10, gap:8}}>
       <TextInput
         placeholder="Tên khoản chi (không cố định)"
         placeholderTextColor={c.subtext}
         value={row.name ?? ''}
         onChangeText={onChangeName}
         blurOnSubmit={false}
-        style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+        style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
       <Button title="Xoá" variant="ghost" onPress={onRemove}/>
     </View>

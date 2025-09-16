@@ -239,8 +239,8 @@ function confirm() {
                 <View
                   key={r.id}
                   style={{
-                    borderWidth:1,
-                    borderColor: border,
+                    // borderWidth:1,
+                    // borderColor: border,
                     borderRadius:12,
                     overflow:'hidden',
                     backgroundColor: isChecked ? primaryBg + '22' : c.card,
@@ -258,7 +258,7 @@ function confirm() {
                       <View
                         style={{
                           width:20, height:20, borderRadius:6,
-                          borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
+                          //borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
                           backgroundColor: isChecked ? c.primary : 'transparent',
                         }}
                       />
@@ -282,7 +282,7 @@ function confirm() {
                         onChangeText={(t)=> onPriceChange(r.id, t)}
                         onBlur={()=> onPriceBlur(r.id)}
                         style={{
-                          borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                           borderRadius:10,
                           padding:10, color:c.text, backgroundColor:c.card,
                         }}
                       />
@@ -296,7 +296,7 @@ function confirm() {
                             onChangeText={(t)=> onMeterChange(r.id, t)}
                             onBlur={()=> onMeterBlur(r.id)}
                             style={{
-                              borderWidth:1, borderColor:'#2A2F3A', borderRadius:10,
+                               borderRadius:10,
                               padding:10, color:c.text, backgroundColor:c.card,
                             }}
                           />
@@ -309,7 +309,7 @@ function confirm() {
             })}
 
             {/* Chi phí khác */}
-            <View style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:12, backgroundColor:c.card, padding:12, gap:8}}>
+            <View style={{ borderRadius:12, backgroundColor:c.card, padding:12, gap:8}}>
               <Text style={{color:c.text, fontWeight:'800'}}>Chi phí khác</Text>
               <Text style={{color:c.subtext}}>Tên phí</Text>
               <TextInput
@@ -317,7 +317,7 @@ function confirm() {
                 onChangeText={setCustomName}
                 placeholder="Tên phí..."
                 placeholderTextColor={c.subtext}
-                style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
               />
               <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
                 <Text style={{color:c.text, fontWeight:'700'}}>Biến đổi</Text>
@@ -331,7 +331,7 @@ function confirm() {
                 onBlur={()=> setCustomPrice(groupVN(customPrice))}
                 placeholder="0"
                 placeholderTextColor={c.subtext}
-                style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
               />
               {customIsVar && (
                 <>
@@ -343,7 +343,7 @@ function confirm() {
                     onBlur={()=> setCustomMeter(groupVN(customMeter))}
                     placeholder="0"
                     placeholderTextColor={c.subtext}
-                    style={{borderWidth:1, borderColor:'#2A2F3A', borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                    style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                   />
                 </>
               )}

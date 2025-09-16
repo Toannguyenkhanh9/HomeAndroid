@@ -182,7 +182,6 @@ export default function LeaseDetail({route, navigation}: Props) {
       onPress={onPress}
       style={{
         paddingHorizontal:12, paddingVertical:8, borderRadius:10,
-        borderWidth:1, borderColor:'#2A2F3A',
         backgroundColor: active ? '#1f3348' : c.card,
       }}>
       <Text style={{color: c.text, fontWeight: active ? '800' : '600'}}>{title}</Text>
@@ -190,7 +189,7 @@ export default function LeaseDetail({route, navigation}: Props) {
   );
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg}}>
+    <View style={{flex: 1, backgroundColor: 'transparent'}}>
       {/* <Header title="Hợp đồng" /> */}
 
       {!editMode ? (
@@ -220,7 +219,7 @@ export default function LeaseDetail({route, navigation}: Props) {
             <Text style={{color: c.text, fontWeight: '800'}}>Các khoản phí đang áp dụng</Text>
             {charges.map(it => (
               // 🔑 dùng id của recurring_charges để tránh duplicate key
-              <View key={it.id} style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10}}>
+              <View key={it.id} style={{borderRadius: 10, padding: 10}}>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                   <Text style={{color: c.text, fontWeight: '700'}}>{it.name}</Text>
                   <Text style={{color: c.subtext}}>
@@ -255,8 +254,6 @@ export default function LeaseDetail({route, navigation}: Props) {
               onChangeText={setBaseRentText}
               onBlur={() => setBaseRentText(groupVN(baseRentText))}
               style={{
-                borderWidth: 1,
-                borderColor: '#2A2F3A',
                 borderRadius: 10,
                 padding: 10,
                 color: c.text,
@@ -276,8 +273,6 @@ export default function LeaseDetail({route, navigation}: Props) {
                   onChangeText={t => setFixed(s => ({...s, [it.charge_type_id]: t}))}
                   onBlur={() => setFixed(s => ({...s, [it.charge_type_id]: groupVN(s[it.charge_type_id] || '')}))}
                   style={{
-                    borderWidth: 1,
-                    borderColor: '#2A2F3A',
                     borderRadius: 10,
                     padding: 10,
                     color: c.text,
@@ -309,8 +304,6 @@ export default function LeaseDetail({route, navigation}: Props) {
                     }))
                   }
                   style={{
-                    borderWidth: 1,
-                    borderColor: '#2A2F3A',
                     borderRadius: 10,
                     padding: 10,
                     color: c.text,
@@ -329,7 +322,7 @@ export default function LeaseDetail({route, navigation}: Props) {
             </View>
 
             {newItems.map((it, idx) => (
-              <View key={idx} style={{borderWidth: 1, borderColor: '#263042', borderRadius: 10, padding: 10, gap: 10}}>
+              <View key={idx} style={{ borderRadius: 10, padding: 10, gap: 10}}>
                 {/* Tên phí */}
                 <TextInput
                   placeholder="Tên phí"
@@ -337,7 +330,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                   value={it.name}
                   onChangeText={t => updateItem(idx, {name: t})}
                   style={{
-                    borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10,
+                     borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
                   }}
                 />
@@ -363,7 +356,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                   value={it.unit}
                   onChangeText={t => updateItem(idx, {unit: t})}
                   style={{
-                    borderWidth: 1, borderColor: '#2A2F3A', borderRadius: 10,
+                     borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
                   }}
                 />
@@ -377,8 +370,6 @@ export default function LeaseDetail({route, navigation}: Props) {
                   onChangeText={t => updateItem(idx, {price: t})}
                   onBlur={() => updateItem(idx, {price: groupVN(it.price || '')})}
                   style={{
-                    borderWidth: 1,
-                    borderColor: '#2A2F3A',
                     borderRadius: 10,
                     padding: 10,
                     color: c.text,
@@ -395,8 +386,6 @@ export default function LeaseDetail({route, navigation}: Props) {
                     onChangeText={t => updateItem(idx, {meterStart: t})}
                     onBlur={() => updateItem(idx, {meterStart: groupVN(it.meterStart || '')})}
                     style={{
-                      borderWidth: 1,
-                      borderColor: '#2A2F3A',
                       borderRadius: 10,
                       padding: 10,
                       color: c.text,
@@ -433,7 +422,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                     placeholderTextColor={c.subtext}
                     value={ex.name}
                     onChangeText={t=>updEndExtra(idx,{name:t})}
-                    style={{borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+                    style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
                   />
                   <View style={{flexDirection:'row',gap:8}}>
                     <TextInput
@@ -443,7 +432,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                       value={ex.amount}
                       onChangeText={t=>updEndExtra(idx,{amount:t})}
                       onBlur={()=>updEndExtra(idx,{amount:groupVN(ex.amount||'')})}
-                      style={{flex:1,borderWidth:1,borderColor:'#2A2F3A',borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
+                      style={{flex:1,borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
                     />
                     <Button title="Xoá" variant="ghost" onPress={()=>delEndExtra(idx)}/>
                   </View>

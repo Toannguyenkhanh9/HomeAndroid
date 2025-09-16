@@ -100,7 +100,7 @@ export default function RoomForm({
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg}}>
+    <View style={{flex: 1, backgroundColor: 'transparent'}}>
       <FlatList
         data={filtered}
         keyExtractor={i => i.id}
@@ -137,8 +137,8 @@ export default function RoomForm({
               value={q}
               onChangeText={setQ}
               style={{
-                borderWidth: 1,
-                borderColor: '#2A2F3A',
+                // borderWidth: 1,
+                // borderColor: '#2A2F3A',
                 backgroundColor: c.card,
                 color: c.text,
                 padding: 10,
@@ -179,8 +179,8 @@ export default function RoomForm({
             <View
               style={{
                 padding: 12,
-                borderWidth: 1,
-                borderColor: '#2A2F3A',
+                // borderWidth: 1,
+                // borderColor: '#2A2F3A',
                 backgroundColor: c.card,
                 borderRadius: 12,
                 marginBottom: 10,

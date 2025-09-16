@@ -19,7 +19,7 @@ export default function ApartmentActivityMonths({route, navigation}: NativeStack
   const curYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor: 'transparent'}}>
       <Header title="Lịch sử hoạt động" />
       <Card>
         <Button title="Xem tháng hiện tại" onPress={()=> navigation.navigate('ApartmentActivityDetail', {apartmentId, year: now.getFullYear(), month: now.getMonth()+1})} />

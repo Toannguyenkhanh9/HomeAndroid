@@ -63,7 +63,7 @@ export default function RoomDetail({route, navigation}: Props) {
   }, [cycles, mainCycle]);
 
   return (
-    <View style={{flex: 1, backgroundColor: c.bg}}>
+    <View style={{flex: 1, backgroundColor: 'transparent'}}>
 
 
       <View style={{padding: 12, gap: 12}}>
@@ -133,8 +133,6 @@ export default function RoomDetail({route, navigation}: Props) {
                 style={{
                   padding: 12,
                   borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                   backgroundColor: c.card,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
@@ -174,8 +172,6 @@ export default function RoomDetail({route, navigation}: Props) {
                 style={{
                   padding: 12,
                   borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                   backgroundColor: c.card,
                   flexDirection: 'row',
                   justifyContent: 'space-between',

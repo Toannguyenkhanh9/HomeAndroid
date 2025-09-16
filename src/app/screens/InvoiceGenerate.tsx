@@ -26,7 +26,7 @@ export default function InvoiceGenerate({route, navigation}: NativeStackScreenPr
   }
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor: c.bg}}>
+    <View style={{flex:1, padding:16, backgroundColor:'transparent'}}>
       <Header title="Tạo hóa đơn" />
       <Card>
         <Text style={{color:c.subtext}}>Kỳ từ</Text>

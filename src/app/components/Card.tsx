@@ -15,11 +15,11 @@ export default function Card({ children, style }: Props) {
       style={[
         {
           backgroundColor: c.card,   // màu nền theo theme
-          borderRadius: 12,          // bo góc
+          borderRadius: 26,          // bo góc
           padding: 12,               // padding bên trong
           marginBottom: 12,          // khoảng cách giữa các Card
-          borderWidth: 1,
-          borderColor: c.border,     // màu viền mờ
+          // borderWidth: 1,
+          // borderColor: c.border,     // màu viền mờ
           shadowColor: '#000',
           shadowOpacity: 0.08,
           shadowRadius: 4,
