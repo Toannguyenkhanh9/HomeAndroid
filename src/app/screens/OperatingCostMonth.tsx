@@ -10,6 +10,8 @@ import {useThemeColors} from '../theme';
 import {getOperatingMonth, saveOperatingMonth} from '../../services/rent';
 import {useCurrency} from '../../utils/currency';
 import {groupVN, onlyDigits} from '../../utils/number';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostMonth'>;
 
@@ -22,6 +24,7 @@ type Row = {
 };
 
 export default function OperatingCostMonth({route, navigation}: Props) {
+  const {dateFormat, language} = useSettings();
   const {apartmentId, ym} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();

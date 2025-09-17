@@ -1,6 +1,5 @@
-// src/app/screens/CycleDetail.tsx
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {View, Text, TextInput, Alert, ScrollView, Modal,Share} from 'react-native';
+import {View, Text, TextInput, Alert, ScrollView, Modal, Share} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -19,14 +18,16 @@ import {
   getTenant,
   isLastCycle,
   endLeaseWithSettlement,
-  // NEW: gia hạn hợp đồng + tạo chu kỳ mới
   extendLeaseAndAddCycles,
 } from '../../services/rent';
 import {useCurrency} from '../../utils/currency';
-import {onlyDigits, groupVN} from '../../utils/number';
+import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
 
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import ViewShot, {captureRef} from 'react-native-view-shot';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
@@ -44,30 +45,40 @@ type ChargeRow = {
 
 type ExtraItem = { name: string; amount: string };
 
+// ===== Helpers =====
+function parseAmount(s: string) {
+  const digits = (s || '').replace(/[^\d]/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+function formatTyping(s: string) {
+  const digits = s.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('vi-VN');
+}
+
 export default function CycleDetail({route, navigation}: Props) {
+  const {dateFormat, language} = useSettings();
   const {cycleId, onSettled} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
   const viewShotRef = useRef<ViewShot>(null);
 
   const [leaseId, setLeaseId] = useState<string>('');
-  const [leaseInfo, setLeaseInfo] = useState<any>(null); // NEW: để biết billing_cycle
+  const [leaseInfo, setLeaseInfo] = useState<any>(null);
   const [rows, setRows] = useState<ChargeRow[]>([]);
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
   const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
 
-  // Phòng/khách
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
-  // settled snapshot
   const [settledItems, setSettledItems] = useState<any[]>([]);
   const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
 
-  // chỉnh sửa kỳ
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
@@ -76,7 +87,6 @@ export default function CycleDetail({route, navigation}: Props) {
   const removeExtra = (i: number) =>
     setExtras(prev => prev.filter((_, idx) => idx !== i));
 
-  // ===== Modal kết thúc hợp đồng (quyết toán cọc) =====
   const [showEndModal, setShowEndModal] = useState(false);
   const [endExtras, setEndExtras] = useState<ExtraItem[]>([]);
   const addEndExtra = () => setEndExtras(p => [...p, {name: '', amount: ''}]);
@@ -84,12 +94,11 @@ export default function CycleDetail({route, navigation}: Props) {
     setEndExtras(p => p.map((x, idx) => (idx === i ? {...x, ...patch} : x)));
   const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
-    () => endExtras.reduce((s, it) => s + (Number(onlyDigits(it.amount || '')) || 0), 0),
+    () => endExtras.reduce((s, it) => s + parseAmount(it.amount), 0),
     [endExtras]
   );
   const [depositPreview, setDepositPreview] = useState<number>(0);
 
-  // ===== Modal gia hạn hợp đồng (nhập số tháng/ngày) =====
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extendCount, setExtendCount] = useState<string>('');
 
@@ -101,7 +110,7 @@ export default function CycleDetail({route, navigation}: Props) {
 
     const lease = getLease(cyc.lease_id);
     setLeaseId(lease.id);
-    setLeaseInfo(lease); // NEW
+    setLeaseInfo(lease);
     setDepositPreview(Number(lease.deposit_amount || 0));
 
     try {
@@ -141,7 +150,7 @@ export default function CycleDetail({route, navigation}: Props) {
         unit: it.unit,
         is_variable: Number(it.is_variable),
         unit_price: Number(it.unit_price) || 0,
-        meter_start: Number(it.meter_start || 0),
+        meter_start: Number(it.meter_start) || 0,
         value: it.is_variable ? '' : groupVN(String(it.unit_price || 0)),
       }));
       setRows(normalized);
@@ -158,14 +167,14 @@ export default function CycleDetail({route, navigation}: Props) {
     let sum = 0;
     for (const r of rows) {
       if (r.is_variable === 1) {
-        const current = Number(onlyDigits(r.value)) || 0;
+        const current = parseAmount(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
         sum += consumed * (r.unit_price || 0);
       } else {
-        sum += Number(onlyDigits(r.value)) || 0;
+        sum += parseAmount(r.value);
       }
     }
-    for (const ex of extras) sum += Number(onlyDigits(ex.amount)) || 0;
+    for (const ex of extras) sum += parseAmount(ex.amount);
     return sum;
   }, [rows, extras]);
 
@@ -184,7 +193,7 @@ export default function CycleDetail({route, navigation}: Props) {
     } else {
       for (const r of rows) {
         if (r.is_variable !== 1) continue;
-        const current = Number(onlyDigits(r.value)) || 0;
+        const current = parseAmount(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
         const money = consumed * (r.unit_price || 0);
         if (isElec(r.unit)) _pElec += money;
@@ -195,8 +204,15 @@ export default function CycleDetail({route, navigation}: Props) {
   }, [rows, status, invId]);
 
   const onChangeValue = (id: string, text: string) => {
-    setRows(prev => prev.map(r => (r.charge_type_id === id ? { ...r, value: text } : r)));
+    setRows(prev =>
+      prev.map(r =>
+        r.charge_type_id === id
+          ? { ...r, value: formatTyping(text) }
+          : r
+      )
+    );
   };
+
   const onBlurValue = (id: string) => {
     setRows(prev =>
       prev.map(r => {
@@ -205,6 +221,13 @@ export default function CycleDetail({route, navigation}: Props) {
       }),
     );
   };
+  // format khi gõ số
+function formatTyping(s: string) {
+  const digits = s.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('vi-VN');
+}
+
 
   // ====== Lưu kỳ & xử lý cuối kỳ ======
   function saveEdits(scope: 'cycle' | 'lease') {
@@ -363,7 +386,7 @@ export default function CycleDetail({route, navigation}: Props) {
               )}
             </Card>
                         <Card>
-              <Text style={{ color: c.text }}>Kỳ: {period.s}  →  {period.e}</Text>
+              <Text style={{ color: c.text }}>Kỳ: {formatDateISO(period.s, dateFormat, language)}  →  {formatDateISO(period.e, dateFormat, language)}</Text>
               <Text style={{ color: c.text }}>Trạng thái: {status}</Text>
               {invId ? <Text style={{ color: c.text }}>Tổng hoá đơn: {format(invTotal)}</Text> : null}
             </Card>
@@ -395,7 +418,7 @@ export default function CycleDetail({route, navigation}: Props) {
 
                         {forStart && forEnd ? (
                           <Text style={{color:c.subtext, marginBottom:4}}>
-                            Thu cho kỳ: <Text style={{color:c.text}}>{forStart} → {forEnd}</Text>
+                            Thu cho kỳ: <Text style={{color:c.text}}>{formatDateISO(forStart, dateFormat, language)} → {formatDateISO(forEnd, dateFormat, language)}</Text>
                           </Text>
                         ) : null}
 
@@ -531,7 +554,6 @@ export default function CycleDetail({route, navigation}: Props) {
                             keyboardType="numeric"
                             value={r.value}
                             onChangeText={t => onChangeValue(r.charge_type_id, t)}
-                            onBlur={() => onBlurValue(r.charge_type_id)}
                             style={{
                               flex: 1,
                               backgroundColor: c.card,
@@ -571,8 +593,7 @@ export default function CycleDetail({route, navigation}: Props) {
                         placeholderTextColor={c.subtext}
                         keyboardType="numeric"
                         value={ex.amount}
-                        onChangeText={t => updateExtra(idx, { amount: t })}
-                        onBlur={() => updateExtra(idx, { amount: groupVN(ex.amount || '') })}
+                        onChangeText={t => updateExtra(idx, { amount: formatTyping(t) })}
                         style={{
                           flex: 1, borderRadius: 10,
                           padding: 10, color: c.text, backgroundColor: c.card,
@@ -597,7 +618,7 @@ export default function CycleDetail({route, navigation}: Props) {
               </View>
             </Card>
 
-            <View style={{  alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <View style={{  alignItems: 'flex-end',  justifyContent: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               <Button title="Tất Toán" onPress={() => saveEdits('cycle')} />
               <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
             </View>
@@ -620,7 +641,7 @@ export default function CycleDetail({route, navigation}: Props) {
                     placeholder="Tên khoản"
                     placeholderTextColor={c.subtext}
                     value={ex.name}
-                    onChangeText={t => updEndExtra(idx, { name: t })}
+                    onChangeText={t => updEndExtra(idx, { amount: formatTyping(t) })}
                     style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                   />
                   <View style={{flexDirection:'row', gap:8}}>
@@ -629,8 +650,7 @@ export default function CycleDetail({route, navigation}: Props) {
                       placeholderTextColor={c.subtext}
                       keyboardType="numeric"
                       value={ex.amount}
-                      onChangeText={t => updEndExtra(idx, { amount: t })}
-                      onBlur={() => updEndExtra(idx, { amount: groupVN(ex.amount || '') })}
+                      onChangeText={t => updEndExtra(idx,{ amount: formatTyping(t) })}
                       style={{flex:1, borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                     />
                     <Button title="Xoá" variant="ghost" onPress={() => delEndExtra(idx)} />

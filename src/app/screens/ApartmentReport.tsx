@@ -14,10 +14,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getOperatingMonth } from '../../services/rent';
 import { query } from '../../db';
 import { onlyDigits } from '../../utils/number';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ApartmentReport'>;
 
-const toYMD = (d: Date) => d.toISOString().slice(0, 10);
+const toYMD = (d: Date) =>  d.toISOString().slice(0, 10);
 const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const firstDay = (y: number, m0: number) => new Date(y, m0, 1);
 const lastDay = (y: number, m0: number) => new Date(y, m0 + 1, 0);
@@ -42,6 +44,7 @@ function monthsInRange(from: Date, to: Date): string[] {
 }
 
 export default function ApartmentReport({ route }: Props) {
+  const {dateFormat, language} = useSettings();
   const { apartmentId } = route.params as any;
   const c = useThemeColors();
   const { format } = useCurrency();
@@ -112,7 +115,7 @@ export default function ApartmentReport({ route }: Props) {
               marginBottom: 8,
             }}
           >
-            <Text style={{ color: c.text }}>{toYMD(fromDate)}</Text>
+            <Text style={{ color: c.text }}>{formatDateISO(toYMD(fromDate), dateFormat, language)}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -124,7 +127,7 @@ export default function ApartmentReport({ route }: Props) {
               backgroundColor: c.card,
             }}
           >
-            <Text style={{ color: c.text }}>{toYMD(toDate)}</Text>
+            <Text style={{ color: c.text }}>{formatDateISO(toYMD(toDate), dateFormat, language)}</Text>
           </TouchableOpacity>
 
           {showFrom && (

@@ -4,21 +4,25 @@ import {View, Text, TouchableOpacity} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
-import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import {getLeaseByRoom, getRoom, listCycles, nextDueDate} from '../../services/rent';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomDetail'>;
 
 export default function RoomDetail({route, navigation}: Props) {
+  const {t} = useTranslation();
   const {roomId} = route.params as any;
   const c = useThemeColors();
 
   const [room, setRoom] = useState<any>();
   const [lease, setLease] = useState<any>();
   const [cycles, setCycles] = useState<any[]>([]);
+  const {dateFormat, language} = useSettings();
 
   const loadAll = useCallback(() => {
     const r = getRoom(roomId);
@@ -64,34 +68,32 @@ export default function RoomDetail({route, navigation}: Props) {
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
-
-
       <View style={{padding: 12, gap: 12}}>
         {/* Thông tin phòng */}
         <Card>
           <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
             <Text style={{color: c.text, fontWeight: '800', fontSize: 18}}>
-              Phòng {room?.code || ''}
+              {t('roomInfo')} {room?.code || ''}
             </Text>
             <Button
-              title="Lịch sử"
+              title={t('history')}
               variant="ghost"
               onPress={() => navigation.navigate('LeaseHistory', {roomId})}
             />
           </View>
 
-          <Text style={{color: c.subtext}}>Tầng: {room?.floor ?? '—'}</Text>
-          <Text style={{color: c.subtext}}>Diện tích: {room?.area ?? '—'} m2</Text>
-          <Text style={{color: c.subtext}}>Trạng thái: {room?.status}</Text>
+          <Text style={{color: c.subtext}}>{t('floor')}: {room?.floor ?? '—'}</Text>
+          <Text style={{color: c.subtext}}>{t('acreage')}: {room?.area ?? '—'} m2</Text>
+          <Text style={{color: c.subtext}}>{t('status')}: {room?.status === 'occupied' ?  t('occupied') : t('available')}</Text>
         </Card>
 
         {/* Hợp đồng */}
         <Card>
           <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>Hợp đồng</Text>
+            <Text style={{color: c.text, fontWeight: '800'}}>{t('contract')}</Text>
             {lease ? (
               <Button
-                title="Xem chi tiết"
+                title={t('viewDetail')}
                 variant="ghost"
                 onPress={() => navigation.navigate('LeaseDetail', {leaseId: lease.id})}
               />
@@ -100,20 +102,24 @@ export default function RoomDetail({route, navigation}: Props) {
 
           {lease ? (
             <>
-              <Text style={{color: c.subtext}}>Bắt đầu: {lease.start_date}</Text>
-              <Text style={{color: c.subtext}}>Kết thúc: {lease.end_date || '—'}</Text>
               <Text style={{color: c.subtext}}>
-                Ngày thanh toán kỳ tới: {nextDueDate(lease.id) || '—'}
+                {t('startDate')}: {formatDateISO(lease.start_date, dateFormat, language)}
+              </Text>
+              <Text style={{color: c.subtext}}>
+                {t('endDate')}: { lease.end_date ? formatDateISO(lease.end_date, dateFormat, language) : '—'}
+              </Text>
+              <Text style={{color: c.subtext}}>
+                {t('nextDueDate')}: {formatDateISO(nextDueDate(lease.id), dateFormat, language) || '—'}
               </Text>
             </>
           ) : (
             <>
               <Text style={{color: c.subtext}}>
-                Chưa có hợp đồng. Hãy tạo hợp đồng cho phòng này.
+                {t('noContract')}
               </Text>
               <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
                 <Button
-                  title="Tạo hợp đồng"
+                  title={t('createLease')}
                   onPress={() => navigation.navigate('LeaseForm', {roomId})}
                 />
               </View>
@@ -123,7 +129,7 @@ export default function RoomDetail({route, navigation}: Props) {
 
         {/* Chu kỳ thuê (hiện tại hoặc sắp tới) */}
         <Card>
-          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Chu kỳ thuê</Text>
+          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>{t('leaseCycle')}</Text>
           {lease ? (
             mainCycle ? (
               <TouchableOpacity
@@ -139,22 +145,22 @@ export default function RoomDetail({route, navigation}: Props) {
                   alignItems: 'center',
                 }}>
                 <Text style={{color: c.text}}>
-                  {mainCycle.period_start}  →  {mainCycle.period_end}
+                  {formatDateISO(mainCycle.period_start, dateFormat, language)}  →  {formatDateISO(mainCycle.period_end, dateFormat, language)}
                 </Text>
                 <Text
                   style={{
                     fontStyle: 'italic',
                     color: String(mainCycle.status) === 'settled' ? '#10B981' : '#EF4444',
                   }}>
-                  {String(mainCycle.status) === 'settled' ? 'Đã Tất Toán' : 'Chưa Tất Toán'}
+                  {String(mainCycle.status) === 'settled' ? t('settledYes') : t('settledNo')}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={{color: c.subtext}}>Chưa có chu kỳ.</Text>
+              <Text style={{color: c.subtext}}>{t('noCycle')}</Text>
             )
           ) : (
             <Text style={{color: c.subtext}}>
-              Chưa có hợp đồng nên chưa phát sinh chu kỳ.
+              {t('noLeaseNoCycle')}
             </Text>
           )}
         </Card>
@@ -163,7 +169,7 @@ export default function RoomDetail({route, navigation}: Props) {
         {settledList.length > 0 && (
           <Card>
             <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
-              Chu kỳ đã tất toán
+              {t('cycleSettledList')}
             </Text>
             {settledList.map(cy => (
               <TouchableOpacity
@@ -179,9 +185,9 @@ export default function RoomDetail({route, navigation}: Props) {
                   marginBottom: 8,
                 }}>
                 <Text style={{color: c.text}}>
-                  {cy.period_start}  →  {cy.period_end}
+                   {formatDateISO(cy.period_start, dateFormat, language)}  →   {formatDateISO(cy.period_end, dateFormat, language)}
                 </Text>
-                <Text style={{fontStyle: 'italic', color: '#10B981'}}>Đã Tất Toán</Text>
+                <Text style={{fontStyle: 'italic', color: '#10B981'}}>{t('settledYes')}</Text>
               </TouchableOpacity>
             ))}
           </Card>

@@ -104,49 +104,52 @@ export default function RoomForm({
       <FlatList
         data={filtered}
         keyExtractor={i => i.id}
-        contentContainerStyle={{paddingHorizontal: 16, paddingBottom: 96, paddingTop: 12, gap: 12}}
-        ListHeaderComponent={
-          <View style={{gap: 12}}>
-            {/* Thông tin căn hộ + nút điều hướng */}
-            {apt ? (
-              <Card>
-                <Text style={{color: c.text, fontWeight: '800'}}>{apt.name}</Text>
-                <Text style={{color: c.subtext}}>{apt.address || '—'}</Text>
-                <Text style={{color: c.text, marginTop: 6}}>
-                  Tổng phòng: {apt.total} • Đang thuê: {apt.occupied} • Trống: {apt.available}
-                </Text>
+        numColumns={2}
+        columnWrapperStyle={{justifyContent: 'space-between', marginBottom: 12}}
+        contentContainerStyle={{paddingHorizontal: 16, paddingBottom: 96, paddingTop: 12}}
+ListHeaderComponent={
+  <View style={{width: '100%', marginBottom: 12}}>
+    <View style={{gap: 12}}>
+      {/* Thông tin căn hộ + nút điều hướng */}
+      {apt ? (
+        <Card>
+          <Text style={{color: c.text, fontWeight: '800'}}>{apt.name}</Text>
+          <Text style={{color: c.subtext}}>{apt.address || '—'}</Text>
+          <Text style={{color: c.text, marginTop: 6}}>
+            Tổng phòng: {apt.total} • Đang thuê: {apt.occupied} • Trống: {apt.available}
+          </Text>
 
-                <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
-                  <Button
-                    title="Chi phí hoạt động"
-                    onPress={() => navigation.navigate('OperatingCosts', {apartmentId})}
-                  />
-                  <Button
-                    title="Báo cáo"
-                    variant="ghost"
-                    onPress={() => navigation.navigate('ApartmentReport', {apartmentId})}
-                  />
-                </View>
-              </Card>
-            ) : null}
-
-            {/* Thanh tìm kiếm */}
-            <TextInput
-              placeholder="Tìm phòng theo mã/trạng thái..."
-              placeholderTextColor={c.subtext}
-              value={q}
-              onChangeText={setQ}
-              style={{
-                // borderWidth: 1,
-                // borderColor: '#2A2F3A',
-                backgroundColor: c.card,
-                color: c.text,
-                padding: 10,
-                borderRadius: 10,
-              }}
+          <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
+            <Button
+              title="Chi phí hoạt động"
+              onPress={() => navigation.navigate('OperatingCosts', {apartmentId})}
+            />
+            <Button
+              title="Báo cáo"
+              variant="ghost"
+              onPress={() => navigation.navigate('ApartmentReport', {apartmentId})}
             />
           </View>
-        }
+        </Card>
+      ) : null}
+
+      {/* Thanh tìm kiếm */}
+      <TextInput
+        placeholder="Tìm phòng theo mã/trạng thái..."
+        placeholderTextColor={c.subtext}
+        value={q}
+        onChangeText={setQ}
+        style={{
+          backgroundColor: c.card,
+          color: c.text,
+          padding: 10,
+          borderRadius: 10,
+        }}
+      />
+    </View>
+  </View>
+}
+
         ListEmptyComponent={
           <View>
             <Card>
@@ -175,32 +178,42 @@ export default function RoomForm({
                   },
                 },
               ]);
+            }}
+            style={{
+              width: '48%',
+              backgroundColor: c.card,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 18,
+              // border & shadow nhẹ
+              borderWidth: 1,
+              borderColor: c.border,
+              shadowColor: '#000',
+              shadowOpacity: 0.06,
+              shadowRadius: 6,
+              shadowOffset: {width: 0, height: 2},
+              elevation: 2,
             }}>
-            <View
-              style={{
-                padding: 12,
-                // borderWidth: 1,
-                // borderColor: '#2A2F3A',
-                backgroundColor: c.card,
-                borderRadius: 12,
-                marginBottom: 10,
-              }}>
-              {/* Hàng tiêu đề: icon • “Mã – Tầng” • trạng thái (bên phải, in nghiêng, tô màu) */}
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text style={{fontSize: 22, marginRight: 10}}>🛏️</Text>
-                <Text style={{color: c.text, fontWeight: '700', flex: 1}}>
-                  {item.code}{item.floor ? ` – Tầng ${item.floor}` : ''}
-                </Text>
-                <Text style={statusStyle(item.status)}>{item.status}</Text>
-              </View>
+            {/* Icon cửa lớn */}
+            <Text style={{fontSize: 48, marginBottom: 6}}>🚪</Text>
 
-              {/* Thông tin phụ (diện tích nếu có) */}
-              {item.area ? (
-                <Text style={{color: c.subtext, marginTop: 6}}>
-                  Diện tích: {item.area} m²
-                </Text>
-              ) : null}
-            </View>
+            {/* Mã phòng */}
+            <Text style={{color: c.text, fontWeight: '700', fontSize: 16}}>
+              {item.code}{item.floor ? ` – T${item.floor}` : ''}
+            </Text>
+
+            {/* Trạng thái */}
+            <Text style={[statusStyle(item.status), {marginTop: 4}]}>
+              {item.status}
+            </Text>
+
+            {/* Diện tích nếu có */}
+            {item.area ? (
+              <Text style={{color: c.subtext, fontSize: 13, marginTop: 4}}>
+                {item.area} m²
+              </Text>
+            ) : null}
           </TouchableOpacity>
         )}
       />

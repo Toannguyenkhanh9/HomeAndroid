@@ -7,11 +7,18 @@ import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
-import {groupVN, onlyDigits} from '../../utils/number';
+import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
 import {listOperatingCostTemplates, replaceOperatingCostTemplates} from '../../services/rent';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostSettings'>;
 type Row = {name:string; isVariable:boolean; defaultAmount?:string};
+
+// === Format ngay khi gõ ===
+function formatTyping(s: string) {
+  const digits = s.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString(undefined); // dùng locale hệ thống/app
+}
 
 export default function OperatingCostSettings({route, navigation}: Props) {
   const {apartmentId} = route.params as any;
@@ -100,8 +107,7 @@ export default function OperatingCostSettings({route, navigation}: Props) {
               c={c}
               row={r}
               onChangeName={(t)=>setFixedAt(idx,{name:t})}
-              onChangeAmount={(t)=>setFixedAt(idx,{defaultAmount:t})}
-              onBlurAmount={()=>setFixedAt(idx,{defaultAmount: groupVN(fixedRows[idx]?.defaultAmount || '')})}
+              onChangeAmount={(t)=>setFixedAt(idx,{defaultAmount: formatTyping(t)})}
               onRemove={()=>removeFixedAt(idx)}
             />
           ))}
@@ -139,14 +145,12 @@ const FixedRowItem = memo(function FixedRowItem({
   row,
   onChangeName,
   onChangeAmount,
-  onBlurAmount,
   onRemove,
 }: {
   c: ReturnType<typeof useThemeColors>;
   row: Row;
   onChangeName: (t:string)=>void;
   onChangeAmount: (t:string)=>void;
-  onBlurAmount: ()=>void;
   onRemove: ()=>void;
 }) {
   return (
@@ -164,8 +168,7 @@ const FixedRowItem = memo(function FixedRowItem({
         placeholderTextColor={c.subtext}
         keyboardType="numeric"
         value={row.defaultAmount ?? ''}
-        onChangeText={onChangeAmount}
-        onBlur={onBlurAmount}
+        onChangeText={onChangeAmount}   // ⬅️ đã format ngay khi gõ
         blurOnSubmit={false}
         style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />

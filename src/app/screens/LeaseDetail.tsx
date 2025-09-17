@@ -4,24 +4,23 @@ import {View, Text, TextInput, ScrollView, Alert, Modal, TouchableOpacity} from 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {useFocusEffect} from '@react-navigation/native';
 import {RootStackParamList} from '../navigation/RootNavigator';
-import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import {useCurrency} from '../../utils/currency';
-import {onlyDigits, groupVN} from '../../utils/number';
+import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
 import {
   getLease,
   getTenant,
   listChargesForLease,
   updateRecurringChargePrice,
-  // addCustomRecurringCharges,   // ❌ không dùng nữa
   addOrUpdateRecurringCharges,    // ✅ upsert theo tên
   updateLeaseBaseRent,
   listCycles,
-  hasUnpaidCycles,
   endLeaseWithSettlement,
 } from '../../services/rent';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
@@ -33,7 +32,20 @@ type NewItem = {
   meterStart?: string;
 };
 
+// === format khi gõ số ===
+function formatTyping(s: string) {
+  const digits = (s || '').replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('vi-VN');
+}
+// === parse chuỗi số (có chấm, phẩy, khoảng trắng) -> number an toàn ===
+function parseAmount(s: string) {
+  const digits = (s || '').replace(/[^\d]/g, '');
+  return digits ? Number(digits) : 0;
+}
+
 export default function LeaseDetail({route, navigation}: Props) {
+  const {dateFormat, language} = useSettings();
   const {leaseId} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
@@ -65,7 +77,7 @@ export default function LeaseDetail({route, navigation}: Props) {
   const delEndExtra = (i:number) => setEndExtras(p => p.filter((_, idx) => idx!==i));
 
   const endExtrasSum = useMemo(
-    () => endExtras.reduce((s, it) => s + (Number(onlyDigits(it.amount||'')) || 0), 0),
+    () => endExtras.reduce((s, it) => s + parseAmount(it.amount || ''), 0),
     [endExtras]
   );
   const deposit = Number(lease?.deposit_amount || 0);
@@ -135,27 +147,27 @@ export default function LeaseDetail({route, navigation}: Props) {
   }, [lease, cycles]);
 
   function saveApplyNext() {
-    const newBase = Number(onlyDigits(baseRentText)) || 0;
+    const newBase = parseAmount(baseRentText);
     if (newBase !== lease?.base_rent) updateLeaseBaseRent(leaseId, newBase);
 
     for (const [ctId, text] of Object.entries(fixed)) {
-      updateRecurringChargePrice(leaseId, ctId, Number(onlyDigits(text)) || 0);
+      updateRecurringChargePrice(leaseId, ctId, parseAmount(text));
     }
     for (const [ctId, val] of Object.entries(vars)) {
-      updateRecurringChargePrice(leaseId, ctId, Number(onlyDigits(val.price)) || 0);
+      updateRecurringChargePrice(leaseId, ctId, parseAmount(val.price));
     }
 
     const toCreate = newItems
-      .filter(it => it.name.trim() && Number(onlyDigits(it.price || '')) > 0)
+      .filter(it => it.name.trim() && parseAmount(it.price || '') > 0)
       .map(it => ({
         name: it.name.trim(),
         isVariable: !!it.isVariable,
         unit: (it.unit || '').trim() || (it.isVariable ? 'đv' : 'tháng'),
-        price: Number(onlyDigits(it.price || '')) || 0,
-        meterStart: it.isVariable ? Number(onlyDigits(it.meterStart || '')) || 0 : undefined,
+        price: parseAmount(it.price || ''),
+        meterStart: it.isVariable ? parseAmount(it.meterStart || '') : undefined,
       }));
 
-    if (toCreate.length) addOrUpdateRecurringCharges(leaseId, toCreate); // ✅ upsert theo tên
+    if (toCreate.length) addOrUpdateRecurringCharges(leaseId, toCreate);
 
     setEditMode(false);
     setNewItems([]);
@@ -182,7 +194,7 @@ export default function LeaseDetail({route, navigation}: Props) {
       onPress={onPress}
       style={{
         paddingHorizontal:12, paddingVertical:8, borderRadius:10,
-        backgroundColor: active ? '#1f3348' : c.card,
+        backgroundColor: active ? c.primary : c.card,
       }}>
       <Text style={{color: c.text, fontWeight: active ? '800' : '600'}}>{title}</Text>
     </TouchableOpacity>
@@ -190,7 +202,6 @@ export default function LeaseDetail({route, navigation}: Props) {
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
-      {/* <Header title="Hợp đồng" /> */}
 
       {!editMode ? (
         <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
@@ -207,8 +218,8 @@ export default function LeaseDetail({route, navigation}: Props) {
             )}
           </Card>
           <Card>
-            <Text style={{color: c.text}}>Bắt đầu: {lease?.start_date || '—'}</Text>
-            <Text style={{color: c.text}}>Kết thúc: {lease?.end_date || '—'}</Text>
+            <Text style={{color: c.text}}>Bắt đầu: {lease?.start_date ? formatDateISO(lease?.start_date, dateFormat, language) : '—'}</Text>
+            <Text style={{color: c.text}}>Kết thúc: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}</Text>
             <Text style={{color: c.text}}>Loại: {lease?.lease_type}</Text>
             <Text style={{color: c.text}}>Chu kỳ: {lease?.billing_cycle}</Text>
             <Text style={{color: c.text}}>Giá thuê cơ bản: {format(lease?.base_rent || 0)}</Text>
@@ -218,7 +229,6 @@ export default function LeaseDetail({route, navigation}: Props) {
           <Card style={{gap: 8}}>
             <Text style={{color: c.text, fontWeight: '800'}}>Các khoản phí đang áp dụng</Text>
             {charges.map(it => (
-              // 🔑 dùng id của recurring_charges để tránh duplicate key
               <View key={it.id} style={{borderRadius: 10, padding: 10}}>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                   <Text style={{color: c.text, fontWeight: '700'}}>{it.name}</Text>
@@ -240,7 +250,7 @@ export default function LeaseDetail({route, navigation}: Props) {
           </Card>
 
           <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Button title="Kết thúc hợp đồng trước hạn" variant="ghost" onPress={attemptEndEarly}/>
+            <Button title="Kết thúc hợp đồng trước hạn"  onPress={attemptEndEarly}/>
             <Button title="Thay đổi" onPress={() => setEditMode(true)} />
           </View>
         </ScrollView>
@@ -251,8 +261,7 @@ export default function LeaseDetail({route, navigation}: Props) {
             <TextInput
               keyboardType="numeric"
               value={baseRentText}
-              onChangeText={setBaseRentText}
-              onBlur={() => setBaseRentText(groupVN(baseRentText))}
+              onChangeText={t => setBaseRentText(formatTyping(t))}
               style={{
                 borderRadius: 10,
                 padding: 10,
@@ -270,8 +279,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                 <TextInput
                   keyboardType="numeric"
                   value={fixed[it.charge_type_id] ?? ''}
-                  onChangeText={t => setFixed(s => ({...s, [it.charge_type_id]: t}))}
-                  onBlur={() => setFixed(s => ({...s, [it.charge_type_id]: groupVN(s[it.charge_type_id] || '')}))}
+                  onChangeText={t => setFixed(s => ({...s, [it.charge_type_id]: formatTyping(t)}))}
                   style={{
                     borderRadius: 10,
                     padding: 10,
@@ -292,16 +300,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                   keyboardType="numeric"
                   value={vars[it.charge_type_id]?.price ?? ''}
                   onChangeText={t =>
-                    setVars(s => ({...s, [it.charge_type_id]: {...(s[it.charge_type_id] || {meter: '0'}), price: t}}))
-                  }
-                  onBlur={() =>
-                    setVars(s => ({
-                      ...s,
-                      [it.charge_type_id]: {
-                        ...(s[it.charge_type_id] || {meter: '0'}),
-                        price: groupVN(s[it.charge_type_id]?.price || ''),
-                      },
-                    }))
+                    setVars(s => ({...s, [it.charge_type_id]: {...(s[it.charge_type_id] || {meter: '0'}), price: formatTyping(t)}}))
                   }
                   style={{
                     borderRadius: 10,
@@ -314,7 +313,7 @@ export default function LeaseDetail({route, navigation}: Props) {
             ))}
           </Card>
 
-          {/* ==== Thêm khoản phí khác (có chọn Cố định / Biến đổi) ==== */}
+          {/* ==== Thêm khoản phí khác ==== */}
           <Card style={{gap: 10}}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
               <Text style={{color: c.text, fontWeight: '800'}}>Thêm khoản phí khác</Text>
@@ -323,52 +322,39 @@ export default function LeaseDetail({route, navigation}: Props) {
 
             {newItems.map((it, idx) => (
               <View key={idx} style={{ borderRadius: 10, padding: 10, gap: 10}}>
-                {/* Tên phí */}
                 <TextInput
                   placeholder="Tên phí"
                   placeholderTextColor={c.subtext}
                   value={it.name}
                   onChangeText={t => updateItem(idx, {name: t})}
                   style={{
-                     borderRadius: 10,
+                    borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
                   }}
                 />
 
-                {/* Chọn loại phí */}
                 <View style={{flexDirection:'row', gap:8}}>
-                  <SegBtn
-                    title="Cố định"
-                    active={!it.isVariable}
-                    onPress={()=> updateItem(idx, {isVariable:false})}
-                  />
-                  <SegBtn
-                    title="Biến đổi"
-                    active={!!it.isVariable}
-                    onPress={()=> updateItem(idx, {isVariable:true})}
-                  />
+                  <SegBtn title="Cố định" active={!it.isVariable} onPress={()=> updateItem(idx, {isVariable:false})}/>
+                  <SegBtn title="Biến đổi" active={!!it.isVariable} onPress={()=> updateItem(idx, {isVariable:true})}/>
                 </View>
 
-                {/* Đơn vị (tùy chọn) */}
                 <TextInput
                   placeholder="Đơn vị (vd: tháng, kWh, m³...)"
                   placeholderTextColor={c.subtext}
                   value={it.unit}
                   onChangeText={t => updateItem(idx, {unit: t})}
                   style={{
-                     borderRadius: 10,
+                    borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
                   }}
                 />
 
-                {/* Giá và Meter start (nếu biến đổi) */}
                 <TextInput
                   placeholder={it.isVariable ? 'Giá / đơn vị' : 'Giá / kỳ'}
                   placeholderTextColor={c.subtext}
                   keyboardType="numeric"
                   value={it.price}
-                  onChangeText={t => updateItem(idx, {price: t})}
-                  onBlur={() => updateItem(idx, {price: groupVN(it.price || '')})}
+                  onChangeText={t => updateItem(idx, {price: formatTyping(t)})}
                   style={{
                     borderRadius: 10,
                     padding: 10,
@@ -383,8 +369,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                     placeholderTextColor={c.subtext}
                     keyboardType="numeric"
                     value={it.meterStart}
-                    onChangeText={t => updateItem(idx, {meterStart: t})}
-                    onBlur={() => updateItem(idx, {meterStart: groupVN(it.meterStart || '')})}
+                    onChangeText={t => updateItem(idx, {meterStart: formatTyping(t)})}
                     style={{
                       borderRadius: 10,
                       padding: 10,
@@ -430,8 +415,7 @@ export default function LeaseDetail({route, navigation}: Props) {
                       placeholderTextColor={c.subtext}
                       keyboardType="numeric"
                       value={ex.amount}
-                      onChangeText={t=>updEndExtra(idx,{amount:t})}
-                      onBlur={()=>updEndExtra(idx,{amount:groupVN(ex.amount||'')})}
+                      onChangeText={t=>updEndExtra(idx,{amount:formatTyping(t)})}
                       style={{flex:1,borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
                     />
                     <Button title="Xoá" variant="ghost" onPress={()=>delEndExtra(idx)}/>
@@ -453,7 +437,7 @@ export default function LeaseDetail({route, navigation}: Props) {
               <Button title="Kết thúc" onPress={()=>{
                 const payload = endExtras
                   .filter(it=>it.name.trim())
-                  .map(it=>({name: it.name.trim(), amount: Number(onlyDigits(it.amount||'')) || 0}));
+                  .map(it=>({name: it.name.trim(), amount: parseAmount(it.amount || '')}));
                 const res = endLeaseWithSettlement(leaseId, payload);
                 setShowEndModal(false);
                 const msg =

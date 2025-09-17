@@ -10,6 +10,7 @@ import Button from '../components/Button';
 import ApartmentCreateModal from '../components/ApartmentCreateModal';
 import {useFocusEffect} from '@react-navigation/native';
 import {deleteApartment, hasUnpaidCycles} from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 type Row = { id: string; name: string; address?: string | null };
 
@@ -121,6 +122,7 @@ function BigIcon({label, icon, onPress}:{label:string; icon:string; onPress:()=>
 // Tile căn hộ (grid 2 cột)
 function ApartmentTile({row, stats, onPress, onLongPress}:{row:Row; stats:Stats; onPress:()=>void; onLongPress:()=>void}) {
   const c = useThemeColors();
+  const {t} = useTranslation();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -133,13 +135,16 @@ function ApartmentTile({row, stats, onPress, onLongPress}:{row:Row; stats:Stats;
         </View>
       </View>
       <Text numberOfLines={1} style={{color:c.text, fontWeight:'800', fontSize:15, textAlign:'center'}}>{row.name}</Text>
-      <Text numberOfLines={1} style={{color:c.subtext, textAlign:'center'}}>{stats.total} phòng • {stats.occupied} thuê</Text>
+      <Text numberOfLines={1} style={{color:c.subtext, textAlign:'center'}}>
+        {stats.total} {t('tileRoomsShort')} • {stats.occupied} {t('tileOccupiedShort')}
+      </Text>
     </TouchableOpacity>
   );
 }
 
 export default function ApartmentsList({navigation}: NativeStackScreenProps<RootStackParamList, 'ApartmentsList'>) {
   const c = useThemeColors();
+  const {t} = useTranslation();
 
   const [rows, setRows] = React.useState<Row[]>([]);
   const [showCreate, setShowCreate] = React.useState(false);
@@ -178,7 +183,6 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
     return { total, available, occupied, endingSoon, overdue, unpaid, holdingDeposit };
   };
 
-  // wrapper căn giữa, giới hạn chiều rộng giúp gọn gàng
   const Container = ({children}:{children:React.ReactNode}) => (
     <View style={{width:'100%', maxWidth:360, alignSelf:'center'}}>{children}</View>
   );
@@ -191,15 +195,14 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
           flexDirection:'row', gap:10, backgroundColor:'#fff', borderRadius:8, padding:4,
           shadowColor:'#000', shadowOpacity:0.05, shadowRadius:6, shadowOffset:{width:0, height:2}, elevation:2,
         }}>
-          <TabBtn title="Quản lý" icon="⚙️" active={activeTab==='manage'} onPress={()=>setActiveTab('manage')}/>
-          <TabBtn title="Tổng quan" icon="📈" active={activeTab==='overview'} onPress={()=>setActiveTab('overview')}/>
+          <TabBtn title={t('manageTab')} icon="⚙️" active={activeTab==='manage'} onPress={()=>setActiveTab('manage')}/>
+          <TabBtn title={t('overviewTab')} icon="📈" active={activeTab==='overview'} onPress={()=>setActiveTab('overview')}/>
         </View>
       </View>
 
       {activeTab==='manage' ? (
         <ScrollView contentContainerStyle={{paddingHorizontal:16, paddingBottom:24}}>
           <Container>
-            {/* Logo nhà to, giữa */}
             <View style={{alignItems:'center', marginTop:8, marginBottom:12}}>
               <View style={{
                 width:120, height:120, borderRadius:60, backgroundColor:'#fff',
@@ -208,10 +211,9 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
               }}>
                 <Text style={{fontSize:64}}>🏢</Text>
               </View>
-              <Text style={{marginTop:10, color:c.text, fontWeight:'800', fontSize:16}}>Căn hộ của bạn</Text>
+              <Text style={{marginTop:10, color:c.text, fontWeight:'800', fontSize:16}}>{t('yourApartments')}</Text>
             </View>
 
-            {/* Grid 2 cột: danh sách căn hộ */}
             <FlatList
               data={rows}
               keyExtractor={i=>i.id}
@@ -226,11 +228,11 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
                     stats={s}
                     onPress={()=>navigation.navigate('RoomForm', {apartmentId:item.id})}
                     onLongPress={()=>{
-                      Alert.alert('Tuỳ chọn', `Xoá căn hộ "${item.name}"?`, [
-                        {text:'Huỷ'},
-                        {text:'Xoá', style:'destructive', onPress: async ()=>{
+                      Alert.alert(t('options'), t('deleteApartmentConfirm',{name:item.name}), [
+                        {text:t('cancel')},
+                        {text:t('delete'), style:'destructive', onPress: async ()=>{
                           try { deleteApartment(item.id); reload(); }
-                          catch(e:any){ Alert.alert('Không thể xoá', e?.message || 'Vui lòng thử lại'); }
+                          catch(e:any){ Alert.alert(t('cannotDelete'), e?.message || t('tryAgain')); }
                         }},
                       ]);
                     }}
@@ -239,20 +241,17 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
               }}
               ListEmptyComponent={
                 <Card>
-                  <Text style={{color:c.subtext}}>Chưa có căn hộ nào. Nhấn “+ Căn hộ”.</Text>
+                  <Text style={{color:c.subtext}}>{t('emptyListManage')}</Text>
                 </Card>
               }
             />
 
-            {/* Grid icon chức năng */}
             <View style={{marginTop:6}}>
               <View style={{flexDirection:'row', flexWrap:'wrap', justifyContent:'center'}}>
-                <BigIcon label="+ Căn hộ"  icon="🏢" onPress={()=>setShowCreate(true)}/>
-                <BigIcon label="Người thuê" icon="🧑‍🤝‍🧑" onPress={()=>navigation.navigate('TenantsList')}/>
-                <BigIcon label="Báo cáo"   icon="📊" onPress={()=>navigation.navigate('Reports')}/>
-                <BigIcon label="Chi phí"    icon="💸" onPress={()=>navigation.navigate('OperatingCosts', {apartmentId: rows[0]?.id || ''})}/>
-                <BigIcon label="Cài đặt"    icon="⚙️" onPress={()=>navigation.navigate('Settings')}/>
-                <BigIcon label="Hướng dẫn"  icon="❓" onPress={()=>navigation.navigate('Onboarding')}/>
+                <BigIcon label={t('addApartment')}  icon="🏢" onPress={()=>setShowCreate(true)}/>
+                <BigIcon label={t('tenants')} icon="🧑‍🤝‍🧑" onPress={()=>navigation.navigate('TenantsList')}/>
+                <BigIcon label={t('settings')} icon="⚙️" onPress={()=>navigation.navigate('Settings')}/>
+                <BigIcon label={t('help')}  icon="❓" onPress={()=>navigation.navigate('Onboarding')}/>
               </View>
             </View>
           </Container>
@@ -260,7 +259,6 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
           <ApartmentCreateModal visible={showCreate} onClose={()=>setShowCreate(false)} onCreated={reload}/>
         </ScrollView>
       ) : (
-        // ====== TAB Tổng quan (giữ nguyên) ======
         <FlatList
           data={rows}
           keyExtractor={i=>i.id}
@@ -276,30 +274,30 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
                   <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>{item.name}</Text>
                   <Text style={{color:c.subtext}}>{item.address || '—'}</Text>
                   <Text style={{color:c.text, marginTop:6}}>
-                    Tổng số phòng: <Text style={{fontWeight:'800'}}>{s.total}</Text>
+                    {t('totalRooms')} <Text style={{fontWeight:'800'}}>{s.total}</Text>
                   </Text>
 
                   <View style={{flexDirection:'row', gap:10, marginTop:10}}>
-                    <Button title="Quản lý" onPress={()=>navigation.navigate('RoomForm', {apartmentId:item.id})}/>
-                    <Button title="Chi phí" variant="ghost" onPress={()=>navigation.navigate('OperatingCosts', {apartmentId:item.id})}/>
-                    <Button title="Báo cáo" variant="ghost" onPress={()=>navigation.navigate('ApartmentReport', {apartmentId:item.id})}/>
+                    <Button title={t('manage')} onPress={()=>navigation.navigate('RoomForm', {apartmentId:item.id})}/>
+                    <Button title={t('operatingCostsBtn')} variant="ghost" onPress={()=>navigation.navigate('OperatingCosts', {apartmentId:item.id})}/>
+                    <Button title={t('reportBtn')} variant="ghost" onPress={()=>navigation.navigate('ApartmentReport', {apartmentId:item.id})}/>
                   </View>
                 </View>
 
                 <View style={{flexDirection:'row', gap:12}}>
-                  <StatBox icon="🛒" iconBg="#FDE9E7" label="Số phòng có thể cho thuê" value={s.available} percent={availPct}/>
-                  <StatBox icon="📦" iconBg="#FFE7E0" label="Số phòng đang trống" value={s.available} percent={availPct}/>
+                  <StatBox icon="🛒" iconBg="#FDE9E7" label={t('stat_canRent')} value={s.available} percent={availPct}/>
+                  <StatBox icon="📦" iconBg="#FFE7E0" label={t('stat_vacantRooms')} value={s.available} percent={availPct}/>
                 </View>
                 <View style={{flexDirection:'row', gap:12}}>
-                  <StatBox icon="🧊" iconBg="#E9F2FF" label="Số phòng đang thuê" value={s.occupied} percent={occPct}/>
-                  <StatBox icon="⚠️" iconBg="#FFF1D6" label="Sắp kết thúc (30d)" value={s.endingSoon}/>
+                  <StatBox icon="🧊" iconBg="#E9F2FF" label={t('stat_occupiedRooms')} value={s.occupied} percent={occPct}/>
+                  <StatBox icon="⚠️" iconBg="#FFF1D6" label={t('stat_endingSoon')} value={s.endingSoon}/>
                 </View>
                 <View style={{flexDirection:'row', gap:12}}>
-                  <StatBox icon="⏰" iconBg="#EDEFF3" label="Quá hạn hợp đồng" value={s.overdue}/>
-                  <StatBox icon="💳" iconBg="#EAF7EE" label="Đang nợ tiền" value={s.unpaid}/>
+                  <StatBox icon="⏰" iconBg="#EDEFF3" label={t('stat_overdue')} value={s.overdue}/>
+                  <StatBox icon="💳" iconBg="#EAF7EE" label={t('stat_unpaid')} value={s.unpaid}/>
                 </View>
                 <View style={{flexDirection:'row', gap:12}}>
-                  <StatBox icon="🔒" iconBg="#E6F2F1" label="Đang giữ cọc" value={s.holdingDeposit}/>
+                  <StatBox icon="🔒" iconBg="#E6F2F1" label={t('stat_holdingDeposit')} value={s.holdingDeposit}/>
                 </View>
               </View>
             );
@@ -307,7 +305,7 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
           ListEmptyComponent={
             <View style={{paddingHorizontal:16}}>
               <Card>
-                <Text style={{color:c.subtext}}>Chưa có căn hộ để thống kê.</Text>
+                <Text style={{color:c.subtext}}>{t('emptyOverview')}</Text>
               </Card>
             </View>
           }

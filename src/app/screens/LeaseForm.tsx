@@ -1,54 +1,64 @@
 // src/app/screens/LeaseForm.tsx
 import React, {useMemo, useState} from 'react';
-import {View, Text, TextInput, ScrollView, Alert, TouchableOpacity} from 'react-native';
+import {View, Text, TextInput, ScrollView, Alert, TouchableOpacity, Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
-import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
-import {groupVN, onlyDigits} from '../../utils/number';
 import {useCurrency} from '../../utils/currency';
 import {startLeaseAdvanced} from '../../services/rent';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
 type ChargeDraft = {
   name: string;
-  isVariable: boolean;               // true = biến đổi
+  isVariable: boolean;
   unit?: string;
-  price?: string;                    // chuỗi để nhập 3.000.000 đ
-  meterStart?: string;               // chỉ cho biến đổi
+  price?: string;
+  meterStart?: string;
 };
 
+// format số khi gõ
+function formatTyping(s: string) {
+  const digits = s.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('vi-VN');
+}
+
+// parse số (loại bỏ hết ký tự không phải số)
+function parseAmount(s: string) {
+  const digits = (s || '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+}
+
 export default function LeaseForm({route, navigation}: Props) {
+  const {dateFormat, language} = useSettings();
   const roomId = (route.params as any)?.roomId;
   const c = useThemeColors();
   const {format} = useCurrency();
 
-  // ====== Tenant ======
   const [fullName, setFullName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [phone, setPhone] = useState('');
 
-  // ====== Billing / Duration ======
-  const [mode, setMode] = useState<'monthly' | 'daily'>('monthly'); // bỏ yearly theo yêu cầu
+  const [mode, setMode] = useState<'monthly' | 'daily'>('monthly');
   const [startISO, setStartISO] = useState(new Date().toISOString().slice(0, 10));
-  const [months, setMonths] = useState('12');   // khi mode=monthly
-  const [days, setDays] = useState('');         // khi mode=daily (1 kỳ duy nhất)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [months, setMonths] = useState('12');
+  const [days, setDays] = useState('');
 
-  // ====== Base rent collect time ======
   const [collect, setCollect] = useState<'start' | 'end'>('start');
 
-  // ====== Base rent & deposit ======
   const [baseRentText, setBaseRentText] = useState('');
   const [depositText, setDepositText] = useState('');
 
-  // ====== All-inclusive (phí trọn gói) ======
   const [allInclusive, setAllInclusive] = useState(false);
   const [allInclusiveAmount, setAllInclusiveAmount] = useState('');
 
-  // ====== Charges (ẩn đi nếu bật allInclusive) ======
   const [charges, setCharges] = useState<ChargeDraft[]>([]);
   const addCharge = () =>
     setCharges(p => [...p, {name: '', isVariable: false, unit: 'tháng', price: ''}]);
@@ -56,13 +66,12 @@ export default function LeaseForm({route, navigation}: Props) {
     setCharges(p => p.map((x, idx) => (idx === i ? {...x, ...patch} : x)));
   const delCharge = (i: number) => setCharges(p => p.filter((_, idx) => idx !== i));
 
-  // ====== Helpers ======
   const durationHint = useMemo(() => {
     if (mode === 'daily') {
-      const n = Number(onlyDigits(days)) || 0;
+      const n = parseAmount(days);
       return n > 0 ? `${n} ngày` : '—';
     }
-    const m = Number(onlyDigits(months)) || 0;
+    const m = parseAmount(months);
     return m > 0 ? `${m} tháng` : '—';
   }, [mode, days, months]);
 
@@ -70,18 +79,18 @@ export default function LeaseForm({route, navigation}: Props) {
     if (!roomId) return 'Thiếu roomId';
     if (!startISO) return 'Chưa nhập ngày bắt đầu';
     if (mode === 'monthly') {
-      const m = Number(onlyDigits(months)) || 0;
+      const m = parseAmount(months);
       if (m <= 0) return 'Số tháng phải > 0';
     } else {
-      const d = Number(onlyDigits(days)) || 0;
+      const d = parseAmount(days);
       if (d <= 0) return 'Số ngày phải > 0';
     }
     if (allInclusive) {
-      const pack = Number(onlyDigits(allInclusiveAmount)) || 0;
+      const pack = parseAmount(allInclusiveAmount);
       if (pack <= 0) return 'Nhập số tiền trọn gói hợp lệ';
       return null;
     }
-    const base = Number(onlyDigits(baseRentText)) || 0;
+    const base = parseAmount(baseRentText);
     if (base <= 0) return 'Nhập giá thuê cơ bản hợp lệ';
     return null;
   }
@@ -93,41 +102,37 @@ export default function LeaseForm({route, navigation}: Props) {
       return;
     }
 
-    const baseRent = allInclusive
-      ? Number(onlyDigits(allInclusiveAmount)) || 0
-      : Number(onlyDigits(baseRentText)) || 0;
+    const baseRent = allInclusive ? parseAmount(allInclusiveAmount) : parseAmount(baseRentText);
+    const deposit = parseAmount(depositText);
 
-    const deposit = Number(onlyDigits(depositText)) || 0;
-
-    // build charges array (bỏ qua nếu allInclusive)
     const outCharges: NonNullable<
       Parameters<typeof startLeaseAdvanced>[0]
     >['charges'] = !allInclusive
       ? charges
-          .filter(ch => ch.name.trim() && (Number(onlyDigits(ch.price || '')) > 0))
+          .filter(ch => ch.name.trim() && parseAmount(ch.price || '') > 0)
           .map(ch => ({
             name: ch.name.trim(),
             type: ch.isVariable ? 'variable' : 'fixed',
             unit: ch.unit || (ch.isVariable ? 'đv' : 'tháng'),
-            unitPrice: Number(onlyDigits(ch.price || '')) || 0,
-            meterStart: ch.isVariable ? Number(onlyDigits(ch.meterStart || '')) || 0 : undefined,
+            unitPrice: parseAmount(ch.price || ''),
+            meterStart: ch.isVariable ? parseAmount(ch.meterStart || '') : undefined,
           }))
       : undefined;
 
     const payload = {
       roomId,
       leaseType: 'long_term' as const,
-      billing: mode, // 'monthly' | 'daily'
+      billing: mode,
       startDateISO: startISO,
       baseRent,
-      baseRentCollect: collect, // 'start' | 'end'
+      baseRentCollect: collect,
       deposit,
-      durationDays: mode === 'daily' ? Number(onlyDigits(days)) || 1 : undefined,
+      durationDays: mode === 'daily' ? parseAmount(days) || 1 : undefined,
       endDateISO:
         mode === 'monthly'
           ? (() => {
               const s = new Date(startISO);
-              const m = Number(onlyDigits(months)) || 0;
+              const m = parseAmount(months);
               const end = new Date(s);
               end.setMonth(end.getMonth() + m);
               end.setDate(end.getDate() - 1);
@@ -168,7 +173,7 @@ export default function LeaseForm({route, navigation}: Props) {
             placeholderTextColor={c.subtext}
             value={idNumber}
             onChangeText={setIdNumber}
-            style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
             placeholder="Số điện thoại"
@@ -176,15 +181,13 @@ export default function LeaseForm({route, navigation}: Props) {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
-            style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
         </Card>
 
         {/* Loại chu kỳ & thời hạn */}
         <Card style={{gap: 10}}>
           <Text style={{color: c.text, fontWeight: '800'}}>Loại hợp đồng</Text>
-
-          {/* Toggle Tháng / Ngày */}
           <View style={{flexDirection: 'row', gap: 8}}>
             {(['monthly', 'daily'] as const).map(k => (
               <TouchableOpacity
@@ -204,13 +207,28 @@ export default function LeaseForm({route, navigation}: Props) {
           </View>
 
           <Text style={{color: c.subtext, marginTop: 6}}>Ngày bắt đầu</Text>
-          <TextInput
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={c.subtext}
-            value={startISO}
-            onChangeText={setStartISO}
-            style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-          />
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={{
+              borderRadius: 10,
+              padding: 10,
+              backgroundColor: c.card,
+            }}>
+            <Text style={{color: c.text}}>{formatDateISO(startISO, dateFormat, language)}</Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={new Date(startISO)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  setStartISO(date.toISOString().slice(0, 10));
+                }
+              }}
+            />
+          )}
 
           {mode === 'monthly' ? (
             <>
@@ -219,7 +237,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 keyboardType="numeric"
                 value={months}
                 onChangeText={setMonths}
-                style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           ) : (
@@ -229,7 +247,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 keyboardType="numeric"
                 value={days}
                 onChangeText={setDays}
-                style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
@@ -283,15 +301,11 @@ export default function LeaseForm({route, navigation}: Props) {
               <TextInput
                 keyboardType="numeric"
                 value={allInclusiveAmount}
-                onChangeText={setAllInclusiveAmount}
-                onBlur={() => setAllInclusiveAmount(groupVN(allInclusiveAmount))}
+                onChangeText={t => setAllInclusiveAmount(formatTyping(t))}
                 placeholder="VD: 3.000.000 đ"
                 placeholderTextColor={c.subtext}
                 style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
-              <Text style={{color: c.subtext}}>
-                * Khi bật “Phí trọn gói”, hệ thống sẽ không yêu cầu nhập các khoản phí khác. Số tiền trọn gói sẽ dùng làm giá thuê cơ bản.
-              </Text>
             </>
           ) : (
             <>
@@ -299,8 +313,7 @@ export default function LeaseForm({route, navigation}: Props) {
               <TextInput
                 keyboardType="numeric"
                 value={baseRentText}
-                onChangeText={setBaseRentText}
-                onBlur={() => setBaseRentText(groupVN(baseRentText))}
+                onChangeText={t => setBaseRentText(formatTyping(t))}
                 placeholder="VD: 3.000.000 đ"
                 placeholderTextColor={c.subtext}
                 style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
@@ -312,32 +325,29 @@ export default function LeaseForm({route, navigation}: Props) {
           <TextInput
             keyboardType="numeric"
             value={depositText}
-            onChangeText={setDepositText}
-            onBlur={() => setDepositText(groupVN(depositText))}
-            placeholder={format(0)}
+            onChangeText={t => setDepositText(formatTyping(t))}
+            placeholder="0"
             placeholderTextColor={c.subtext}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
         </Card>
 
-        {/* CHARGES – ẩn nếu allInclusive */}
+        {/* CHARGES */}
         {!allInclusive && (
           <Card style={{gap: 10}}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-              <Text style={{color: c.text, fontWeight: '800'}}>Chọn các khoản phí (cố định/không cố định)</Text>
+              <Text style={{color: c.text, fontWeight: '800'}}>Chọn các khoản phí</Text>
               <Button title="+ Thêm" onPress={addCharge} />
             </View>
 
             {charges.map((ch, idx) => (
-              <View
-                key={idx}
-                style={{ borderRadius: 10, padding: 10, gap: 8}}>
+              <View key={idx} style={{borderRadius: 10, padding: 10, gap: 8}}>
                 <TextInput
-                  placeholder="Tên phí (VD: Điện, Nước, Internet...)"
+                  placeholder="Tên phí (VD: Điện, Nước...)"
                   placeholderTextColor={c.subtext}
                   value={ch.name}
                   onChangeText={t => updCharge(idx, {name: t})}
-                  style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                  style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
                 <View style={{flexDirection: 'row', gap: 8}}>
@@ -369,8 +379,7 @@ export default function LeaseForm({route, navigation}: Props) {
                 <TextInput
                   keyboardType="numeric"
                   value={ch.price}
-                  onChangeText={t => updCharge(idx, {price: t})}
-                  onBlur={() => updCharge(idx, {price: groupVN(ch.price || '')})}
+                  onChangeText={t => updCharge(idx, {price: formatTyping(t)})}
                   style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
@@ -380,8 +389,7 @@ export default function LeaseForm({route, navigation}: Props) {
                     <TextInput
                       keyboardType="numeric"
                       value={ch.meterStart}
-                      onChangeText={t => updCharge(idx, {meterStart: t})}
-                      onBlur={() => updCharge(idx, {meterStart: groupVN(ch.meterStart || '')})}
+                      onChangeText={t => updCharge(idx, {meterStart: formatTyping(t)})}
                       style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                     />
                   </>

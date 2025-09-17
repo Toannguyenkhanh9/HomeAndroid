@@ -6,10 +6,13 @@ import Header from '../components/Header';
 import Card from '../components/Card';
 import { useThemeColors } from '../theme';
 import { listLeasesByRoom } from '../../services/rent';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseHistory'>;
 
 export default function LeaseHistory({ route, navigation }: Props) {
+  const {dateFormat, language} = useSettings();
   const { roomId } = route.params;
   const c = useThemeColors();
 
@@ -33,7 +36,7 @@ export default function LeaseHistory({ route, navigation }: Props) {
             <TouchableOpacity key={l.id} onPress={() => navigation.navigate('LeaseHistoryDetail', { leaseId: l.id })}>
               <Card>
                 <Text style={{ color: c.text, fontWeight: '700' }}>
-                  {l.start_date} → {l.end_date || '—'}
+                  {formatDateISO(l.start_date, dateFormat, language)} → {formatDateISO(l.end_date, dateFormat, language) || '—'}
                 </Text>
                 <Text style={{ color: c.subtext }}>
                   Trạng thái: <Text style={{ color: c.text }}>{l.status}</Text> • Chu kỳ: {l.billing_cycle}

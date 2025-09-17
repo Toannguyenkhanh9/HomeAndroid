@@ -8,10 +8,13 @@ import Card from '../components/Card';
 import { useThemeColors } from '../theme';
 import { useCurrency } from '../../utils/currency';
 import { getLease, listCycles, getLeaseSettlement } from '../../services/rent';
+import {useSettings} from '../state/SettingsContext';
+import {formatDateISO} from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseHistoryDetail'>;
 
 export default function LeaseHistoryDetail({ route, navigation }: Props) {
+  const {dateFormat, language} = useSettings();
   const { leaseId } = route.params;
   const c = useThemeColors();
   const { format } = useCurrency();
@@ -86,9 +89,9 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
     <View style={{ flex: 1, backgroundColor:'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
         <Card>
-          <Text style={{ color: c.text }}>Bắt đầu: {lease?.start_date || '—'}</Text>
-          <Text style={{ color: c.text }}>Kết thúc: {lease?.end_date || '—'}</Text>
-          <Text style={{ color: c.text }}>Kết thúc dự kiến: {endProjected}</Text>
+          <Text style={{ color: c.text }}>Bắt đầu: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}</Text>
+          <Text style={{ color: c.text }}>Kết thúc: {formatDateISO(lease?.end_date, dateFormat, language) || '—'}</Text>
+          <Text style={{ color: c.text }}>Kết thúc dự kiến: {formatDateISO(endProjected, dateFormat, language)}</Text>
           <Text style={{ color: c.text }}>Trạng thái: {lease?.status}</Text>
           <Text style={{ color: c.text }}>Chu kỳ: {lease?.billing_cycle}</Text>
           <Text style={{ color: c.text }}>Giá thuê cơ bản: {format(lease?.base_rent || 0)}</Text>
@@ -108,7 +111,7 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
               >
                 <View style={{ borderRadius: 10, padding: 10 }}>
                   <Text style={{ color: c.text, fontWeight: '700' }}>
-                    {cy.period_start} → {cy.period_end}
+                    {formatDateISO(cy.period_start, dateFormat, language)} → {formatDateISO(cy.period_end, dateFormat, language)}
                   </Text>
                   <Text style={{ color: c.subtext }}>
                     Trạng thái: <Text style={{ color: c.text }}>{cy.status}</Text>
@@ -123,6 +126,9 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
           <Text style={{ color: c.text, fontWeight: '800' }}>Quyết toán khi kết thúc</Text>
           {settle ? (
             <>
+            <Text style={{ color: c.text }}>
+                Ngày quyết toán: {settle.settled_at ? formatDateISO(settle.settled_at, dateFormat, language) : '—'}
+              </Text>
               <Text style={{ color: c.text }}>Tiền cọc: {format(Number(settle.deposit || 0))}</Text>
 
               <View style={{ marginTop: 6, gap: 6 }}>

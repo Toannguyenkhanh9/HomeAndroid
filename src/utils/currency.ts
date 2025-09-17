@@ -18,7 +18,7 @@ export function formatAmount(amount: number, currency: Currency, lang: 'vi'|'en'
   } catch {
     // RN Android cũ thiếu ICU -> fallback
     if (currency === 'USD') return `$${(amount||0).toFixed(2)}`;
-    return `${Math.round(amount||0).toLocaleString('vi-VN')} ₫`;
+    return `${Math.round(amount||0).toLocaleString('vi-VN')} `;
   }
 }
 
