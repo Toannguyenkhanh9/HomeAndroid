@@ -39,8 +39,15 @@ export default function RoomCreateModal({
       onClose();
       onCreated();
     } catch (e: any) {
-      Alert.alert(t('roomCreate.createFail'), e?.message || t('common.tryAgain'));
-    }
+  const msg = String(e?.message || '');
+  if (msg.includes('DUPLICATE_ROOM_CODE') || msg.includes('UNIQUE')) {
+    Alert.alert(t('roomCreate.createFail'), t('roomCreate.duplicateCode'));
+  } else if (msg.includes('EMPTY_CODE')) {
+    Alert.alert(t('roomCreate.createFail'), t('roomCreate.enterRoomCode'));
+  } else {
+    Alert.alert(t('roomCreate.createFail'), t('common.tryAgain'));
+  }
+}
   };
 
   return (

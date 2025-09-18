@@ -67,9 +67,25 @@ export function deleteApartment(apartmentId: string) {
 }
 
 export function createRoom(apartmentId: string, code: string, floor?: number, area?: number) {
+  const norm = (code || '').trim();
+  if (!norm) throw new Error('EMPTY_CODE');
+
+  // Kiểm tra trùng mã trong cùng apartment (không phân biệt hoa/thường)
+  const exist = query<{ c: number }>(
+    `SELECT COUNT(*) c FROM rooms WHERE apartment_id = ? AND lower(code) = lower(?)`,
+    [apartmentId, norm]
+  )[0]?.c ?? 0;
+
+  if (exist > 0) {
+    // ném lỗi có mã để UI map message đẹp
+    throw new Error('DUPLICATE_ROOM_CODE');
+  }
+
   const id = uuidv4();
-  exec(`INSERT INTO rooms (id, apartment_id, code, floor, area, status) VALUES (?,?,?,?,?,?)`,
-    [id, apartmentId, code, floor ?? null, area ?? null, 'available']);
+  exec(
+    `INSERT INTO rooms (id, apartment_id, code, floor, area, status) VALUES (?,?,?,?,?,?)`,
+    [id, apartmentId, norm, floor ?? null, area ?? null, 'available']
+  );
   return id;
 }
 export function deleteRoom(roomId: string) {

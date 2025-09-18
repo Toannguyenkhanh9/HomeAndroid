@@ -11,6 +11,7 @@ import { getLease, listCycles, getLeaseSettlement } from '../../services/rent';
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseHistoryDetail'>;
 
@@ -25,13 +26,25 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
   const [cycles, setCycles] = useState<any[]>([]);
   const [settle, setSettle] = useState<any | null>(null);
 
-  useEffect(() => {
+  const reload = React.useCallback(() => {
     try {
       setLease(getLease(leaseId));
       setCycles(listCycles(leaseId) || []);
       setSettle(getLeaseSettlement(leaseId) || null);
     } catch {}
   }, [leaseId]);
+
+  useEffect(() => { reload(); }, [reload]);
+  useFocusEffect(React.useCallback(() => { reload(); }, [reload]));
+
+  // chỉ lấy các chu kỳ đã settled và sắp xếp mới nhất lên đầu
+  const settledCycles = useMemo(
+    () =>
+      (cycles || [])
+        .filter(cy => String(cy.status) === 'settled')
+        .sort((a, b) => (a.period_start < b.period_start ? 1 : -1)),
+    [cycles]
+  );
 
   const adjustments: Array<{ name: string; amount: number }> = useMemo(() => {
     if (!settle) return [];
@@ -88,21 +101,31 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
         <Card>
-          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.start')}: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}</Text>
-          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.end')}: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}</Text>
-          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.endProjected')}: {formatDateISO(endProjected, dateFormat, language)}</Text>
-          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.status')}: {lease?.status === 'active' ? t('common.active') : t('common.ended')}</Text>
-          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.billing')}: {lease?.billing_cycle === 'daily' ? t('common.daily') : t('common.monthly')}</Text>
+          <Text style={{ color: c.text }}>
+            {t('leaseHistoryDetail.start')}: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}
+          </Text>
+          <Text style={{ color: c.text }}>
+            {t('leaseHistoryDetail.end')}: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}
+          </Text>
+          <Text style={{ color: c.text }}>
+            {t('leaseHistoryDetail.endProjected')}: {formatDateISO(endProjected, dateFormat, language)}
+          </Text>
+          <Text style={{ color: c.text }}>
+            {t('leaseHistoryDetail.status')}: {lease?.status === 'active' ? t('common.active') : t('common.ended')}
+          </Text>
+          <Text style={{ color: c.text }}>
+            {t('leaseHistoryDetail.billing')}: {lease?.billing_cycle === 'daily' ? t('common.daily') : t('common.monthly')}
+          </Text>
           <Text style={{ color: c.text }}>{t('leaseHistoryDetail.baseRent')}: {format(lease?.base_rent || 0)}</Text>
           <Text style={{ color: c.text }}>{t('leaseHistoryDetail.deposit')}: {format(lease?.deposit_amount || 0)}</Text>
         </Card>
 
         <Card style={{ gap: 8 }}>
           <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseHistoryDetail.cycles')}</Text>
-          {cycles.length === 0 ? (
+          {settledCycles.length === 0 ? (
             <Text style={{ color: c.subtext }}>—</Text>
           ) : (
-            cycles.map(cy => (
+            settledCycles.map(cy => (
               <TouchableOpacity
                 key={cy.id}
                 onPress={() => navigation.navigate('CycleDetail', { cycleId: cy.id })}
@@ -112,7 +135,7 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
                     {formatDateISO(cy.period_start, dateFormat, language)} → {formatDateISO(cy.period_end, dateFormat, language)}
                   </Text>
                   <Text style={{ color: c.subtext }}>
-                    {t('leaseHistoryDetail.status')}: <Text style={{ color: c.text }}>{cy.status === 'settled' ? t('settledYes') : t('settledNo')}</Text>
+                    {t('leaseHistoryDetail.status')}: <Text style={{ color: c.text }}>{t('settledYes')}</Text>
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -127,7 +150,9 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
               <Text style={{ color: c.text }}>
                 {t('leaseHistoryDetail.settledAt')}: {settle.settled_at ? formatDateISO(settle.settled_at, dateFormat, language) : '—'}
               </Text>
-              <Text style={{ color: c.text }}>{t('leaseHistoryDetail.deposit')}: {format(Number(settle.deposit || 0))}</Text>
+              <Text style={{ color: c.text }}>
+                {t('leaseHistoryDetail.deposit')}: {format(Number(settle.deposit || 0))}
+              </Text>
 
               <View style={{ marginTop: 6, gap: 6 }}>
                 <Text style={{ color: c.text, fontWeight: '700' }}>{t('leaseHistoryDetail.adjustments')}</Text>

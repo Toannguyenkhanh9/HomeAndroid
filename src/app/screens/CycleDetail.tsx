@@ -30,7 +30,7 @@ import {
   extendLeaseAndAddCycles,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
-import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
+import { formatNumber as groupVN } from '../../utils/number';
 
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import ViewShot, { captureRef } from 'react-native-view-shot';
@@ -108,8 +108,7 @@ export default function CycleDetail({ route, navigation }: Props) {
   const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
   const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delEndExtra = (i: number) =>
-    setEndExtras(p => p.filter((_, idx) => idx !== i));
+  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
     () => endExtras.reduce((s, it) => s + parseAmount(it.amount), 0),
     [endExtras],
@@ -255,7 +254,7 @@ export default function CycleDetail({ route, navigation }: Props) {
     if (scope === 'lease') {
       for (const r of rows) {
         if (r.is_variable === 0) {
-          const newPrice = Number(onlyDigits(r.value)) || 0;
+          const newPrice = parseAmount(r.value);
           if (newPrice !== r.unit_price) {
             updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
           }
@@ -277,7 +276,7 @@ export default function CycleDetail({ route, navigation }: Props) {
 
     for (const r of rows) {
       if (r.is_variable === 1) {
-        const current = Number(onlyDigits(r.value)) || 0;
+        const current = parseAmount(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
         variableInputs.push({
           charge_type_id: r.charge_type_id,
@@ -285,7 +284,7 @@ export default function CycleDetail({ route, navigation }: Props) {
           meter_end: current,
         });
       } else {
-        const newPrice = Number(onlyDigits(r.value)) || 0;
+        const newPrice = parseAmount(r.value);
         const delta = newPrice - (r.unit_price || 0);
         if (delta !== 0)
           adjustments.push({
@@ -295,7 +294,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       }
     }
     for (const ex of extras) {
-      const amt = Number(onlyDigits(ex.amount)) || 0;
+      const amt = parseAmount(ex.amount);
       if (ex.name.trim() && amt > 0)
         adjustments.push({ name: ex.name.trim(), amount: amt });
     }
@@ -531,10 +530,10 @@ export default function CycleDetail({ route, navigation }: Props) {
                           }}
                         >
                           <Text style={{ color: c.text, fontWeight: '700' }}>
-                            {it.description}
+                            {it.description === 'rent.roomprice' ? t('leaseForm.baseRent') : it.description}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            {it.unit ? `(${it.unit})` : t('cycleDetail.fixed')}
+                            {it.unit ? `(${it.unit === 'rent.month' ? t('rent.month') : it.unit ==='tháng' ? t('rent.month') : t('rent.unit')})` : t('cycleDetail.fixed')}
                           </Text>
                         </View>
 
@@ -939,9 +938,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     placeholder={t('cycleDetail.itemName')}
                     placeholderTextColor={c.subtext}
                     value={ex.name}
-                    onChangeText={t2 =>
-                      updEndExtra(idx, { amount: formatTyping(t2) })
-                    }
+                    onChangeText={t2 => updEndExtra(idx, { name: t2 })}
                     style={{
                       borderRadius: 10,
                       padding: 10,
@@ -1019,7 +1016,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     .filter(it => it.name.trim())
                     .map(it => ({
                       name: it.name.trim(),
-                      amount: Number(onlyDigits(it.amount || '')) || 0,
+                      amount: parseAmount(it.amount || ''),
                     }));
                   const res = endLeaseWithSettlement(leaseId, payload);
                   setShowEndModal(false);

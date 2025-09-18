@@ -567,6 +567,7 @@ const resources = {
         floorPlaceholder: 'Tầng',
         areaPlaceholder: 'Diện tích (m²)',
         save: 'Lưu phòng',
+        duplicateCode: "Mã phòng đã tồn tại trong căn hộ này."
       },
       variableFees: {
         title: 'Nhập các phí không cố định',
@@ -1144,6 +1145,7 @@ const resources = {
         floorPlaceholder: 'Floor',
         areaPlaceholder: 'Area (m²)',
         save: 'Save room',
+        duplicateCode: "The room code already exists in this apartment."
       },
       variableFees: {
         title: 'Enter variable fees',

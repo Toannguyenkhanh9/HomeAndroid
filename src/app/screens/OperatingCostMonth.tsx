@@ -150,8 +150,6 @@ export default function OperatingCostMonth({route, navigation}: Props) {
                 placeholder={t('operatingCostMonth.expenseAmount')}
                 placeholderTextColor={c.subtext}
                 style={{
-                  borderWidth: 1,
-                  borderColor: '#2A2F3A',
                   borderRadius: 10,
                   padding: 10,
                   color: c.text,
