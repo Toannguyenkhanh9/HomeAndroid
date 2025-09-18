@@ -39,6 +39,7 @@ import OperatingCostSettings from '../screens/OperatingCostSettings';
 import OperatingCostMonth from '../screens/OperatingCostMonth';
 import Onboarding from '../screens/Onboarding';
 import HelpScreen from '../screens/HelpScreen';
+import HoldingDepositList from '../screens/HoldingDepositList';
 import {useTranslation} from 'react-i18next';
 
 export type RootStackParamList = {
@@ -64,7 +65,8 @@ export type RootStackParamList = {
   ApartmentReport: { apartmentId: string };
   OperatingCostMonth: { apartmentId: string; ym: string };
   OperatingCostSettings: { apartmentId: string };
-  HelpScreen  : undefined
+  HelpScreen  : undefined;
+  HoldingDepositList: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -247,6 +249,11 @@ function AppInner() {
         <Stack.Screen
           name="HelpScreen"
           component={HelpScreen}
+          options={{ title: t('nav.help') }}
+        />
+        <Stack.Screen
+          name="HoldingDepositList"
+          component={HoldingDepositList}
           options={{ title: t('nav.help') }}
         />
       </Stack.Navigator>
