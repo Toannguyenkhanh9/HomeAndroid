@@ -8,13 +8,15 @@ import Card from '../components/Card';
 import { useThemeColors } from '../theme';
 import { useCurrency } from '../../utils/currency';
 import { getLease, listCycles, getLeaseSettlement } from '../../services/rent';
-import {useSettings} from '../state/SettingsContext';
-import {formatDateISO} from '../../utils/date';
+import { useSettings } from '../state/SettingsContext';
+import { formatDateISO } from '../../utils/date';
+import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseHistoryDetail'>;
 
 export default function LeaseHistoryDetail({ route, navigation }: Props) {
-  const {dateFormat, language} = useSettings();
+  const { dateFormat, language } = useSettings();
+  const { t } = useTranslation();
   const { leaseId } = route.params;
   const c = useThemeColors();
   const { format } = useCurrency();
@@ -31,10 +33,8 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
     } catch {}
   }, [leaseId]);
 
-  // Parse danh sách phụ phí lưu trong details_json (nếu có)
   const adjustments: Array<{ name: string; amount: number }> = useMemo(() => {
     if (!settle) return [];
-    // hỗ trợ cả settle.adjustments (nếu đã được map sẵn ở nơi khác)
     if (Array.isArray((settle as any).adjustments)) {
       return (settle as any).adjustments.map((x: any) => ({
         name: String(x?.name || ''),
@@ -54,7 +54,6 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
   }, [settle]);
 
   const adjustmentsTotal = useMemo(() => {
-    // ưu tiên trường DB, fallback tính từ mảng
     const dbTotal = Number(settle?.adjustments_total ?? NaN);
     if (!Number.isNaN(dbTotal)) return dbTotal;
     return adjustments.reduce((s, it) => s + (Number(it.amount) || 0), 0);
@@ -86,20 +85,20 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
   }, [lease]);
 
   return (
-    <View style={{ flex: 1, backgroundColor:'transparent' }}>
-      <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+      <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
         <Card>
-          <Text style={{ color: c.text }}>Bắt đầu: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}</Text>
-          <Text style={{ color: c.text }}>Kết thúc: {formatDateISO(lease?.end_date, dateFormat, language) || '—'}</Text>
-          <Text style={{ color: c.text }}>Kết thúc dự kiến: {formatDateISO(endProjected, dateFormat, language)}</Text>
-          <Text style={{ color: c.text }}>Trạng thái: {lease?.status}</Text>
-          <Text style={{ color: c.text }}>Chu kỳ: {lease?.billing_cycle}</Text>
-          <Text style={{ color: c.text }}>Giá thuê cơ bản: {format(lease?.base_rent || 0)}</Text>
-          <Text style={{ color: c.text }}>Tiền cọc: {format(lease?.deposit_amount || 0)}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.start')}: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.end')}: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.endProjected')}: {formatDateISO(endProjected, dateFormat, language)}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.status')}: {lease?.status === 'active' ? t('common.active') : t('common.ended')}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.billing')}: {lease?.billing_cycle === 'daily' ? t('common.daily') : t('common.monthly')}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.baseRent')}: {format(lease?.base_rent || 0)}</Text>
+          <Text style={{ color: c.text }}>{t('leaseHistoryDetail.deposit')}: {format(lease?.deposit_amount || 0)}</Text>
         </Card>
 
         <Card style={{ gap: 8 }}>
-          <Text style={{ color: c.text, fontWeight: '800' }}>Các chu kỳ</Text>
+          <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseHistoryDetail.cycles')}</Text>
           {cycles.length === 0 ? (
             <Text style={{ color: c.subtext }}>—</Text>
           ) : (
@@ -107,14 +106,13 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
               <TouchableOpacity
                 key={cy.id}
                 onPress={() => navigation.navigate('CycleDetail', { cycleId: cy.id })}
-                activeOpacity={0.7}
               >
                 <View style={{ borderRadius: 10, padding: 10 }}>
                   <Text style={{ color: c.text, fontWeight: '700' }}>
                     {formatDateISO(cy.period_start, dateFormat, language)} → {formatDateISO(cy.period_end, dateFormat, language)}
                   </Text>
                   <Text style={{ color: c.subtext }}>
-                    Trạng thái: <Text style={{ color: c.text }}>{cy.status}</Text>
+                    {t('leaseHistoryDetail.status')}: <Text style={{ color: c.text }}>{cy.status === 'settled' ? t('settledYes') : t('settledNo')}</Text>
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -123,56 +121,52 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
         </Card>
 
         <Card style={{ gap: 8 }}>
-          <Text style={{ color: c.text, fontWeight: '800' }}>Quyết toán khi kết thúc</Text>
+          <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseHistoryDetail.settlement')}</Text>
           {settle ? (
             <>
-            <Text style={{ color: c.text }}>
-                Ngày quyết toán: {settle.settled_at ? formatDateISO(settle.settled_at, dateFormat, language) : '—'}
+              <Text style={{ color: c.text }}>
+                {t('leaseHistoryDetail.settledAt')}: {settle.settled_at ? formatDateISO(settle.settled_at, dateFormat, language) : '—'}
               </Text>
-              <Text style={{ color: c.text }}>Tiền cọc: {format(Number(settle.deposit || 0))}</Text>
+              <Text style={{ color: c.text }}>{t('leaseHistoryDetail.deposit')}: {format(Number(settle.deposit || 0))}</Text>
 
               <View style={{ marginTop: 6, gap: 6 }}>
-                <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phụ phí</Text>
+                <Text style={{ color: c.text, fontWeight: '700' }}>{t('leaseHistoryDetail.adjustments')}</Text>
                 {adjustments.length > 0 ? (
                   adjustments.map((it, idx) => (
-                    <View
-                      key={`${it.name}-${idx}`}
-                      style={{  borderRadius: 10, padding: 8 }}
-                    >
+                    <View key={`${it.name}-${idx}`} style={{ borderRadius: 10, padding: 8 }}>
                       <Text style={{ color: c.text, fontWeight: '600' }}>
-                        {it.name || 'Khoản phí'}
+                        {it.name || t('leaseHistoryDetail.fee')}
                       </Text>
                       <Text style={{ color: c.subtext }}>
-                        Số tiền:{' '}
-                        <Text style={{ color: c.text }}>{format(Number(it.amount) || 0)}</Text>
+                        {t('leaseHistoryDetail.amount')}: <Text style={{ color: c.text }}>{format(Number(it.amount) || 0)}</Text>
                       </Text>
                     </View>
                   ))
                 ) : (
-                  <Text style={{ color: c.subtext }}>Không có phụ phí.</Text>
+                  <Text style={{ color: c.subtext }}>{t('leaseHistoryDetail.noAdjustments')}</Text>
                 )}
               </View>
 
               <Text style={{ color: c.text, marginTop: 6 }}>
-                Tổng phụ phí: {format(adjustmentsTotal)}
+                {t('leaseHistoryDetail.totalAdjustments')}: {format(adjustmentsTotal)}
               </Text>
 
               {Number(settle.final_balance) > 0 && (
                 <Text style={{ color: c.text }}>
-                  Số tiền trả lại khách: {format(Number(settle.final_balance))}
+                  {t('leaseHistoryDetail.refund')}: {format(Number(settle.final_balance))}
                 </Text>
               )}
               {Number(settle.final_balance) < 0 && (
                 <Text style={{ color: c.text }}>
-                  Cần thu thêm của khách: {format(Math.abs(Number(settle.final_balance)))}
+                  {t('leaseHistoryDetail.collectMore')}: {format(Math.abs(Number(settle.final_balance)))}
                 </Text>
               )}
               {Number(settle.final_balance) === 0 && (
-                <Text style={{ color: c.text }}>Không phát sinh thêm.</Text>
+                <Text style={{ color: c.text }}>{t('leaseHistoryDetail.noBalance')}</Text>
               )}
             </>
           ) : (
-            <Text style={{ color: c.subtext }}>— Chưa có dữ liệu quyết toán.</Text>
+            <Text style={{ color: c.subtext }}>— {t('leaseHistoryDetail.noSettlement')}</Text>
           )}
         </Card>
       </ScrollView>

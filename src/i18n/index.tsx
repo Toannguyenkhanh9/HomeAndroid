@@ -1,4 +1,10 @@
-import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Lang = 'vi' | 'en';
@@ -52,7 +58,8 @@ const dict = {
     currency: 'Tiền tệ',
     date: 'Ngày',
     notif: 'Thông báo',
-    notifHint: 'Android cần quyền POST_NOTIFICATIONS. Nhắc trước hạn 1 ngày lúc 09:00.',
+    notifHint:
+      'Android cần quyền POST_NOTIFICATIONS. Nhắc trước hạn 1 ngày lúc 09:00.',
     toggleNotifOn: 'Bật nhắc nhở',
     toggleNotifOff: 'Tắt nhắc nhở',
     backup: 'Sao lưu / Phục hồi',
@@ -63,41 +70,41 @@ const dict = {
     createDemo: 'Tạo demo data',
     importedOk: 'Đã import xong',
     leaseForm: 'Tạo hợp đồng',
-leaseType: 'Loại hợp đồng',
-shortTerm: 'Ngắn hạn',
-longTerm: 'Dài hạn',
-billingCycle: 'Chu kỳ',
-daily: 'Theo ngày',
-monthly: 'Theo tháng',
-yearly: 'Theo năm',
-days: 'Số ngày',
-baseRent: 'Giá thuê cơ bản',
-deposit: 'Tiền cọc',
-save: 'Lưu',
-leaseDetail: 'Chi tiết hợp đồng',
-charges: 'Các khoản phí',
-variable: 'Không cố định',
-fixed: 'Cố định',
-addCharge: 'Thêm phí',
-cycleDetail: 'Chi tiết chu kỳ',
-period: 'Kỳ',
-status: 'Trạng thái',
-payNow: 'Thanh toán',
-invoice: 'Hóa đơn',
-items: 'Mục phí',
-amount: 'Số tiền',
-quantity: 'Số lượng',
-unitPrice: 'Đơn giá',
-total: 'Tổng',
-reportsTitle: 'Báo cáo',
-year: 'Năm',
-month: 'Tháng',
-compute: 'Tính',
-revenue: 'Doanh thu',
-selectFeesToAdd: 'Chọn phí để thêm',
-enterVariableFees: 'Nhập các phí không cố định',
-addExtraCost: 'Thêm chi phí phát sinh',
-close: 'Đóng',
+    leaseType: 'Loại hợp đồng',
+    shortTerm: 'Ngắn hạn',
+    longTerm: 'Dài hạn',
+    billingCycle: 'Chu kỳ',
+    daily: 'Theo ngày',
+    monthly: 'Theo tháng',
+    yearly: 'Theo năm',
+    days: 'Số ngày',
+    baseRent: 'Giá thuê cơ bản',
+    deposit: 'Tiền cọc',
+    save: 'Lưu',
+    leaseDetail: 'Chi tiết hợp đồng',
+    charges: 'Các khoản phí',
+    variable: 'Không cố định',
+    fixed: 'Cố định',
+    addCharge: 'Thêm phí',
+    cycleDetail: 'Chi tiết chu kỳ',
+    period: 'Kỳ',
+    status: 'Trạng thái',
+    payNow: 'Thanh toán',
+    invoice: 'Hóa đơn',
+    items: 'Mục phí',
+    amount: 'Số tiền',
+    quantity: 'Số lượng',
+    unitPrice: 'Đơn giá',
+    total: 'Tổng',
+    reportsTitle: 'Báo cáo',
+    year: 'Năm',
+    month: 'Tháng',
+    compute: 'Tính',
+    revenue: 'Doanh thu',
+    selectFeesToAdd: 'Chọn phí để thêm',
+    enterVariableFees: 'Nhập các phí không cố định',
+    addExtraCost: 'Thêm chi phí phát sinh',
+    close: 'Đóng',
   },
   en: {
     add: 'Add',
@@ -140,7 +147,8 @@ close: 'Đóng',
     currency: 'Currency',
     date: 'Date',
     notif: 'Notifications',
-    notifHint: 'Android needs POST_NOTIFICATIONS permission. Reminder 1 day before at 09:00.',
+    notifHint:
+      'Android needs POST_NOTIFICATIONS permission. Reminder 1 day before at 09:00.',
     toggleNotifOn: 'Enable reminders',
     toggleNotifOff: 'Disable reminders',
     backup: 'Backup / Restore',
@@ -151,54 +159,59 @@ close: 'Đóng',
     createDemo: 'Create demo data',
     importedOk: 'Import done',
     leaseForm: 'Create lease',
-leaseType: 'Lease type',
-shortTerm: 'Short-term',
-longTerm: 'Long-term',
-billingCycle: 'Billing cycle',
-daily: 'Daily',
-monthly: 'Monthly',
-yearly: 'Yearly',
-days: 'Days',
-baseRent: 'Base rent',
-deposit: 'Deposit',
-save: 'Save',
-leaseDetail: 'Lease detail',
-charges: 'Charges',
-variable: 'Variable',
-fixed: 'Fixed',
-addCharge: 'Add charge',
-cycleDetail: 'Cycle detail',
-period: 'Period',
-status: 'Status',
-payNow: 'Pay now',
-invoice: 'Invoice',
-items: 'Items',
-amount: 'Amount',
-quantity: 'Qty',
-unitPrice: 'Unit price',
-total: 'Total',
-reportsTitle: 'Reports',
-year: 'Year',
-month: 'Month',
-compute: 'Compute',
-revenue: 'Revenue',
-selectFeesToAdd: 'Select fees to add',
-enterVariableFees: 'Enter variable fees',
-addExtraCost: 'Add extra cost',
-close: 'Close',
+    leaseType: 'Lease type',
+    shortTerm: 'Short-term',
+    longTerm: 'Long-term',
+    billingCycle: 'Billing cycle',
+    daily: 'Daily',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    days: 'Days',
+    baseRent: 'Base rent',
+    deposit: 'Deposit',
+    save: 'Save',
+    leaseDetail: 'Lease detail',
+    charges: 'Charges',
+    variable: 'Variable',
+    fixed: 'Fixed',
+    addCharge: 'Add charge',
+    cycleDetail: 'Cycle detail',
+    period: 'Period',
+    status: 'Status',
+    payNow: 'Pay now',
+    invoice: 'Invoice',
+    items: 'Items',
+    amount: 'Amount',
+    quantity: 'Qty',
+    unitPrice: 'Unit price',
+    total: 'Total',
+    reportsTitle: 'Reports',
+    year: 'Year',
+    month: 'Month',
+    compute: 'Compute',
+    revenue: 'Revenue',
+    selectFeesToAdd: 'Select fees to add',
+    enterVariableFees: 'Enter variable fees',
+    addExtraCost: 'Add extra cost',
+    close: 'Close',
   },
 } as const;
 
 type I18nCtx = {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (k: keyof typeof dict['vi']) => string;
+  t: (k: keyof (typeof dict)['vi']) => string;
   ready: boolean;
 };
 
-const Ctx = createContext<I18nCtx>({lang: 'vi', setLang: () => {}, t: k => String(k), ready: false});
+const Ctx = createContext<I18nCtx>({
+  lang: 'vi',
+  setLang: () => {},
+  t: k => String(k),
+  ready: false,
+});
 
-export function I18nProvider({children}: {children: React.ReactNode}) {
+export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('vi');
   const [ready, setReady] = useState(false);
 
@@ -217,10 +230,12 @@ export function I18nProvider({children}: {children: React.ReactNode}) {
 
   const value = useMemo<I18nCtx>(() => {
     const table = dict[lang];
-    return {lang, setLang, t: (k) => (table as any)[k] ?? String(k), ready};
+    return { lang, setLang, t: k => (table as any)[k] ?? String(k), ready };
   }, [lang, ready]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-export function useI18n() { return useContext(Ctx); }
+export function useI18n() {
+  return useContext(Ctx);
+}

@@ -11,6 +11,7 @@ import {startLeaseAdvanced} from '../../services/rent';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -37,6 +38,7 @@ function parseAmount(s: string) {
 
 export default function LeaseForm({route, navigation}: Props) {
   const {dateFormat, language} = useSettings();
+  const {t} = useTranslation();
   const roomId = (route.params as any)?.roomId;
   const c = useThemeColors();
   const {format} = useCurrency();
@@ -69,36 +71,36 @@ export default function LeaseForm({route, navigation}: Props) {
   const durationHint = useMemo(() => {
     if (mode === 'daily') {
       const n = parseAmount(days);
-      return n > 0 ? `${n} ngày` : '—';
+      return n > 0 ? `${n} ${t('leaseForm.days')}` : '—';
     }
     const m = parseAmount(months);
-    return m > 0 ? `${m} tháng` : '—';
-  }, [mode, days, months]);
+    return m > 0 ? `${m} ${t('leaseForm.months')}` : '—';
+  }, [mode, days, months, t]);
 
   function validate(): string | null {
-    if (!roomId) return 'Thiếu roomId';
-    if (!startISO) return 'Chưa nhập ngày bắt đầu';
+    if (!roomId) return t('leaseForm.errorMissingRoomId');
+    if (!startISO) return t('leaseForm.errorMissingStart');
     if (mode === 'monthly') {
       const m = parseAmount(months);
-      if (m <= 0) return 'Số tháng phải > 0';
+      if (m <= 0) return t('leaseForm.errorMonths');
     } else {
       const d = parseAmount(days);
-      if (d <= 0) return 'Số ngày phải > 0';
+      if (d <= 0) return t('leaseForm.errorDays');
     }
     if (allInclusive) {
       const pack = parseAmount(allInclusiveAmount);
-      if (pack <= 0) return 'Nhập số tiền trọn gói hợp lệ';
+      if (pack <= 0) return t('leaseForm.errorAllInclusive');
       return null;
     }
     const base = parseAmount(baseRentText);
-    if (base <= 0) return 'Nhập giá thuê cơ bản hợp lệ';
+    if (base <= 0) return t('leaseForm.errorBaseRent');
     return null;
   }
 
   function submit() {
     const err = validate();
     if (err) {
-      Alert.alert('Thiếu thông tin', err);
+      Alert.alert(t('common.missingInfo'), err);
       return;
     }
 
@@ -148,11 +150,11 @@ export default function LeaseForm({route, navigation}: Props) {
 
     try {
       const leaseId = startLeaseAdvanced(payload as any);
-      Alert.alert('Thành công', 'Đã tạo hợp đồng', [
+      Alert.alert(t('common.success'), t('leaseForm.created'), [
         {text: 'OK', onPress: () => navigation.replace('LeaseDetail', {leaseId})},
       ]);
     } catch (e: any) {
-      Alert.alert('Lỗi', String(e?.message || e));
+      Alert.alert(t('common.error'), String(e?.message || e));
     }
   }
 
@@ -162,21 +164,21 @@ export default function LeaseForm({route, navigation}: Props) {
         {/* Khách thuê */}
         <Card style={{gap: 8}}>
           <TextInput
-            placeholder="Tên người thuê"
+            placeholder={t('leaseForm.tenantName')}
             placeholderTextColor={c.subtext}
             value={fullName}
             onChangeText={setFullName}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
-            placeholder="Số CCCD/CMND"
+            placeholder={t('leaseForm.idNumber')}
             placeholderTextColor={c.subtext}
             value={idNumber}
             onChangeText={setIdNumber}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
-            placeholder="Số điện thoại"
+            placeholder={t('leaseForm.phone')}
             placeholderTextColor={c.subtext}
             value={phone}
             onChangeText={setPhone}
@@ -187,7 +189,7 @@ export default function LeaseForm({route, navigation}: Props) {
 
         {/* Loại chu kỳ & thời hạn */}
         <Card style={{gap: 10}}>
-          <Text style={{color: c.text, fontWeight: '800'}}>Loại hợp đồng</Text>
+          <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseForm.contractType')}</Text>
           <View style={{flexDirection: 'row', gap: 8}}>
             {(['monthly', 'daily'] as const).map(k => (
               <TouchableOpacity
@@ -200,13 +202,13 @@ export default function LeaseForm({route, navigation}: Props) {
                   backgroundColor: mode === k ? '#1f6feb' : c.card,
                 }}>
                 <Text style={{color: mode === k ? 'white' : c.text}}>
-                  {k === 'monthly' ? 'Tháng' : 'Ngày'}
+                  {k === 'monthly' ? t('leaseForm.monthly') : t('leaseForm.daily')}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={{color: c.subtext, marginTop: 6}}>Ngày bắt đầu</Text>
+          <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.startDate')}</Text>
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
             style={{
@@ -232,7 +234,7 @@ export default function LeaseForm({route, navigation}: Props) {
 
           {mode === 'monthly' ? (
             <>
-              <Text style={{color: c.subtext, marginTop: 6}}>Số tháng</Text>
+              <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.monthCount')}</Text>
               <TextInput
                 keyboardType="numeric"
                 value={months}
@@ -242,7 +244,7 @@ export default function LeaseForm({route, navigation}: Props) {
             </>
           ) : (
             <>
-              <Text style={{color: c.subtext, marginTop: 6}}>Số ngày</Text>
+              <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.dayCount')}</Text>
               <TextInput
                 keyboardType="numeric"
                 value={days}
@@ -252,12 +254,14 @@ export default function LeaseForm({route, navigation}: Props) {
             </>
           )}
 
-          <Text style={{color: c.subtext}}>Thời hạn: {durationHint}</Text>
+          <Text style={{color: c.subtext}}>
+            {t('leaseForm.duration')}: {durationHint}
+          </Text>
         </Card>
 
         {/* Thu tiền nhà */}
         <Card>
-          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Thu tiền nhà</Text>
+          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>{t('leaseForm.collectRent')}</Text>
           <View style={{flexDirection: 'row', gap: 8}}>
             {(['start', 'end'] as const).map(k => (
               <TouchableOpacity
@@ -270,7 +274,7 @@ export default function LeaseForm({route, navigation}: Props) {
                   backgroundColor: collect === k ? '#10b981' : c.card,
                 }}>
                 <Text style={{color: collect === k ? 'white' : c.text}}>
-                  {k === 'start' ? 'Đầu kỳ' : 'Cuối kỳ'}
+                  {k === 'start' ? t('leaseForm.collectStart') : t('leaseForm.collectEnd')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -280,7 +284,7 @@ export default function LeaseForm({route, navigation}: Props) {
         {/* PHÍ TRỌN GÓI */}
         <Card style={{gap: 8}}>
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>Phí trọn gói</Text>
+            <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseForm.allInclusive')}</Text>
             <TouchableOpacity
               onPress={() => setAllInclusive(v => !v)}
               style={{
@@ -290,42 +294,42 @@ export default function LeaseForm({route, navigation}: Props) {
                 backgroundColor: allInclusive ? '#0ea5e9' : c.card,
               }}>
               <Text style={{color: allInclusive ? 'white' : c.text}}>
-                {allInclusive ? 'Bật' : 'Tắt'}
+                {allInclusive ? t('leaseForm.on') : t('leaseForm.off')}
               </Text>
             </TouchableOpacity>
           </View>
 
           {allInclusive ? (
             <>
-              <Text style={{color: c.subtext}}>Số tiền trọn gói (thay cho tiền nhà)</Text>
+              <Text style={{color: c.subtext}}>{t('leaseForm.allInclusiveAmountHint')}</Text>
               <TextInput
                 keyboardType="numeric"
                 value={allInclusiveAmount}
-                onChangeText={t => setAllInclusiveAmount(formatTyping(t))}
-                placeholder="VD: 3.000.000 đ"
+                onChangeText={ttext => setAllInclusiveAmount(formatTyping(ttext))}
+                placeholder={t('leaseForm.amountPlaceholder')}
                 placeholderTextColor={c.subtext}
                 style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           ) : (
             <>
-              <Text style={{color: c.subtext}}>Giá thuê cơ bản (tiền nhà)</Text>
+              <Text style={{color: c.subtext}}>{t('leaseForm.baseRent')}</Text>
               <TextInput
                 keyboardType="numeric"
                 value={baseRentText}
-                onChangeText={t => setBaseRentText(formatTyping(t))}
-                placeholder="VD: 3.000.000 đ"
+                onChangeText={ttext => setBaseRentText(formatTyping(ttext))}
+                placeholder={t('leaseForm.amountPlaceholder')}
                 placeholderTextColor={c.subtext}
                 style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
             </>
           )}
 
-          <Text style={{color: c.subtext, marginTop: 6}}>Tiền cọc</Text>
+          <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.deposit')}</Text>
           <TextInput
             keyboardType="numeric"
             value={depositText}
-            onChangeText={t => setDepositText(formatTyping(t))}
+            onChangeText={ttext => setDepositText(formatTyping(ttext))}
             placeholder="0"
             placeholderTextColor={c.subtext}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
@@ -336,17 +340,17 @@ export default function LeaseForm({route, navigation}: Props) {
         {!allInclusive && (
           <Card style={{gap: 10}}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-              <Text style={{color: c.text, fontWeight: '800'}}>Chọn các khoản phí</Text>
-              <Button title="+ Thêm" onPress={addCharge} />
+              <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseForm.chooseCharges')}</Text>
+              <Button title={t('common.add')} onPress={addCharge} />
             </View>
 
             {charges.map((ch, idx) => (
               <View key={idx} style={{borderRadius: 10, padding: 10, gap: 8}}>
                 <TextInput
-                  placeholder="Tên phí (VD: Điện, Nước...)"
+                  placeholder={t('leaseForm.chargeNamePlaceholder')}
                   placeholderTextColor={c.subtext}
                   value={ch.name}
-                  onChangeText={t => updCharge(idx, {name: t})}
+                  onChangeText={ttext => updCharge(idx, {name: ttext})}
                   style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
@@ -359,7 +363,7 @@ export default function LeaseForm({route, navigation}: Props) {
                       borderRadius: 10,
                       backgroundColor: ch.isVariable ? c.card : '#10b981',
                     }}>
-                    <Text style={{color: ch.isVariable ? c.text : 'white'}}>Cố định</Text>
+                    <Text style={{color: ch.isVariable ? c.text : 'white'}}>{t('leaseForm.fixed')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => updCharge(idx, {isVariable: true, unit: 'đv'})}
@@ -369,33 +373,33 @@ export default function LeaseForm({route, navigation}: Props) {
                       borderRadius: 10,
                       backgroundColor: ch.isVariable ? '#10b981' : c.card,
                     }}>
-                    <Text style={{color: ch.isVariable ? 'white' : c.text}}>Biến đổi</Text>
+                    <Text style={{color: ch.isVariable ? 'white' : c.text}}>{t('leaseForm.variable')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <Text style={{color: c.subtext}}>
-                  {ch.isVariable ? 'Đơn giá / đơn vị' : 'Đơn giá / kỳ'}
+                  {ch.isVariable ? t('leaseForm.unitPricePerUnit') : t('leaseForm.unitPricePerPeriod')}
                 </Text>
                 <TextInput
                   keyboardType="numeric"
                   value={ch.price}
-                  onChangeText={t => updCharge(idx, {price: formatTyping(t)})}
+                  onChangeText={ttext => updCharge(idx, {price: formatTyping(ttext)})}
                   style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
                 {ch.isVariable && (
                   <>
-                    <Text style={{color: c.subtext}}>Chỉ số đầu</Text>
+                    <Text style={{color: c.subtext}}>{t('leaseForm.initialMeter')}</Text>
                     <TextInput
                       keyboardType="numeric"
                       value={ch.meterStart}
-                      onChangeText={t => updCharge(idx, {meterStart: formatTyping(t)})}
+                      onChangeText={ttext => updCharge(idx, {meterStart: formatTyping(ttext)})}
                       style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                     />
                   </>
                 )}
 
-                <Button title="Xoá" variant="ghost" onPress={() => delCharge(idx)} />
+                <Button title={t('common.delete')} variant="ghost" onPress={() => delCharge(idx)} />
               </View>
             ))}
           </Card>
@@ -403,8 +407,8 @@ export default function LeaseForm({route, navigation}: Props) {
 
         {/* ACTIONS */}
         <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 12}}>
-          <Button title="Huỷ" variant="ghost" onPress={() => navigation.goBack()} />
-          <Button title="Tạo hợp đồng" onPress={submit} />
+          <Button title={t('common.cancel')} variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title={t('leaseForm.createLease')} onPress={submit} />
         </View>
       </ScrollView>
     </View>

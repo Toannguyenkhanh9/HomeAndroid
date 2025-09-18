@@ -17,20 +17,21 @@ import {
   addFixedExpenseTemplate,
   removeFixedExpenseTemplate,
 } from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostDetail'>;
 
 export default function OperatingCostDetail({route}: Props) {
-  const {apartmentId, ym} = route.params as any; // ym = "YYYY-MM"
+  const {apartmentId, ym} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
+  const {t} = useTranslation();
 
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [kind, setKind] = useState<'fixed' | 'variable'>('variable');
 
-  // templates phí cố định
   const [templates, setTemplates] = useState<any[]>([]);
   const [tplName, setTplName] = useState('');
   const [tplAmount, setTplAmount] = useState('');
@@ -49,7 +50,6 @@ export default function OperatingCostDetail({route}: Props) {
     [items],
   );
 
-  // helper: format khi gõ
   const formatTyping = (t: string) => {
     const d = onlyDigits(t);
     if (!d) return '';
@@ -59,47 +59,47 @@ export default function OperatingCostDetail({route}: Props) {
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
-      <Header title={`Chi phí ${ym}`} />
+      <Header title={t('operatingCostDetail.title', {ym})} />
       <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
         <Card>
-          <Text style={{color: c.text, fontWeight: '700'}}>Khoản chi của tháng</Text>
+          <Text style={{color: c.text, fontWeight: '700'}}>{t('operatingCostDetail.monthlyExpenses')}</Text>
           {items.length === 0 ? (
-            <Text style={{color: c.subtext}}>— Chưa có chi phí.</Text>
+            <Text style={{color: c.subtext}}>— {t('operatingCostDetail.noExpenses')}</Text>
           ) : (
             items.map(it => (
               <View key={it.id} style={{borderRadius: 10, padding: 10, marginTop: 8}}>
                 <Text style={{color: c.text, fontWeight: '700'}}>{it.name}</Text>
                 <Text style={{color: c.subtext}}>
-                  {it.type === 'fixed' ? 'Cố định' : 'Không cố định'}
+                  {it.type === 'fixed' ? t('operatingCostDetail.fixed') : t('operatingCostDetail.variable')}
                 </Text>
-                <Text style={{color: c.text}}>Số tiền: {format(it.amount || 0)}</Text>
-                {!!it.note && <Text style={{color: c.subtext}}>Ghi chú: {it.note}</Text>}
+                <Text style={{color: c.text}}>{t('operatingCostDetail.amount')}: {format(it.amount || 0)}</Text>
+                {!!it.note && <Text style={{color: c.subtext}}>{t('operatingCostDetail.note')}: {it.note}</Text>}
               </View>
             ))
           )}
           <Text style={{color: c.text, marginTop: 8, fontWeight: '700'}}>
-            Tổng: {format(total)}
+            {t('operatingCostDetail.total')}: {format(total)}
           </Text>
         </Card>
 
         <Card style={{gap: 8}}>
-          <Text style={{color: c.text, fontWeight: '700'}}>Thêm khoản chi</Text>
+          <Text style={{color: c.text, fontWeight: '700'}}>{t('operatingCostDetail.addExpense')}</Text>
           <View style={{flexDirection: 'row', gap: 8}}>
             <Button
-              title={kind === 'variable' ? 'Không cố định' : 'Cố định'}
+              title={kind === 'variable' ? t('operatingCostDetail.variable') : t('operatingCostDetail.fixed')}
               variant="ghost"
               onPress={() => setKind(kind === 'variable' ? 'fixed' : 'variable')}
             />
           </View>
           <TextInput
-            placeholder="Tên chi phí"
+            placeholder={t('operatingCostDetail.expenseName')}
             placeholderTextColor={c.subtext}
             value={name}
             onChangeText={setName}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
-            placeholder="Số tiền"
+            placeholder={t('operatingCostDetail.expenseAmount')}
             placeholderTextColor={c.subtext}
             keyboardType="numeric"
             value={amount}
@@ -107,11 +107,11 @@ export default function OperatingCostDetail({route}: Props) {
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <Button
-            title="Lưu"
+            title={t('common.save')}
             onPress={() => {
               const amt = Number(onlyDigits(amount)) || 0;
               if (!name.trim() || amt <= 0) {
-                Alert.alert('Thiếu', 'Nhập tên & số tiền > 0');
+                Alert.alert(t('common.missing'), t('operatingCostDetail.missingNameOrAmount'));
                 return;
               }
               addOperatingExpense(apartmentId, ym, {name: name.trim(), amount: amt, type: kind});
@@ -123,22 +123,20 @@ export default function OperatingCostDetail({route}: Props) {
         </Card>
 
         <Card style={{gap: 8}}>
-          <Text style={{color: c.text, fontWeight: '700'}}>
-            Mẫu chi phí cố định (tự sinh mỗi tháng)
-          </Text>
+          <Text style={{color: c.text, fontWeight: '700'}}>{t('operatingCostDetail.fixedTemplates')}</Text>
           {templates.length === 0 ? (
-            <Text style={{color: c.subtext}}>— Chưa có mẫu.</Text>
+            <Text style={{color: c.subtext}}>— {t('operatingCostDetail.noTemplates')}</Text>
           ) : (
-            templates.map(t => (
-              <View key={t.id} style={{borderRadius: 10, padding: 10}}>
-                <Text style={{color: c.text, fontWeight: '700'}}>{t.name}</Text>
-                <Text style={{color: c.text}}>Mặc định: {format(t.amount || 0)}</Text>
+            templates.map(tpl => (
+              <View key={tpl.id} style={{borderRadius: 10, padding: 10}}>
+                <Text style={{color: c.text, fontWeight: '700'}}>{tpl.name}</Text>
+                <Text style={{color: c.text}}>{t('operatingCostDetail.default')}: {format(tpl.amount || 0)}</Text>
                 <View style={{alignItems: 'flex-end'}}>
                   <Button
-                    title="Xoá"
+                    title={t('common.delete')}
                     variant="ghost"
                     onPress={() => {
-                      removeFixedExpenseTemplate(t.id);
+                      removeFixedExpenseTemplate(tpl.id);
                       reload();
                     }}
                   />
@@ -146,16 +144,16 @@ export default function OperatingCostDetail({route}: Props) {
               </View>
             ))
           )}
-          <Text style={{color: c.subtext}}>Thêm mẫu mới</Text>
+          <Text style={{color: c.subtext}}>{t('operatingCostDetail.addTemplate')}</Text>
           <TextInput
-            placeholder="Tên mẫu (VD: Tiền nhà, Internet, Rác, Lương BV...)"
+            placeholder={t('operatingCostDetail.templateName')}
             placeholderTextColor={c.subtext}
             value={tplName}
             onChangeText={setTplName}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <TextInput
-            placeholder="Số tiền mặc định"
+            placeholder={t('operatingCostDetail.templateAmount')}
             placeholderTextColor={c.subtext}
             keyboardType="numeric"
             value={tplAmount}
@@ -163,11 +161,11 @@ export default function OperatingCostDetail({route}: Props) {
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
           />
           <Button
-            title="Thêm mẫu"
+            title={t('operatingCostDetail.addTemplateButton')}
             onPress={() => {
               const v = Number(onlyDigits(tplAmount)) || 0;
               if (!tplName.trim() || v <= 0) {
-                Alert.alert('Thiếu', 'Nhập tên & số tiền > 0');
+                Alert.alert(t('common.missing'), t('operatingCostDetail.missingTemplate'));
                 return;
               }
               addFixedExpenseTemplate(apartmentId, {name: tplName.trim(), amount: v});

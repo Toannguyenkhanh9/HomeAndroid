@@ -1,11 +1,20 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {View, Text, TextInput, Alert, ScrollView, Modal, Share} from 'react-native';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/RootNavigator';
+// src/app/screens/CycleDetail.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  ScrollView,
+  Modal,
+  Share,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import {useThemeColors} from '../theme';
+import { useThemeColors } from '../theme';
 import {
   getCycle,
   getLease,
@@ -20,14 +29,14 @@ import {
   endLeaseWithSettlement,
   extendLeaseAndAddCycles,
 } from '../../services/rent';
-import {useCurrency} from '../../utils/currency';
+import { useCurrency } from '../../utils/currency';
 import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
 
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import ViewShot, {captureRef} from 'react-native-view-shot';
-import {useSettings} from '../state/SettingsContext';
-import {formatDateISO} from '../../utils/date';
-
+import ViewShot, { captureRef } from 'react-native-view-shot';
+import { useSettings } from '../state/SettingsContext';
+import { formatDateISO } from '../../utils/date';
+import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
@@ -50,18 +59,18 @@ function parseAmount(s: string) {
   const digits = (s || '').replace(/[^\d]/g, '');
   return digits ? Number(digits) : 0;
 }
-
 function formatTyping(s: string) {
   const digits = s.replace(/\D/g, '');
   if (!digits) return '';
   return Number(digits).toLocaleString('vi-VN');
 }
 
-export default function CycleDetail({route, navigation}: Props) {
-  const {dateFormat, language} = useSettings();
-  const {cycleId, onSettled} = route.params as any;
+export default function CycleDetail({ route, navigation }: Props) {
+  const { t } = useTranslation();
+  const { dateFormat, language } = useSettings();
+  const { cycleId, onSettled } = route.params as any;
   const c = useThemeColors();
-  const {format} = useCurrency();
+  const { format } = useCurrency();
   const viewShotRef = useRef<ViewShot>(null);
 
   const [leaseId, setLeaseId] = useState<string>('');
@@ -70,32 +79,40 @@ export default function CycleDetail({route, navigation}: Props) {
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
-  const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
+  const [period, setPeriod] = useState<{ s: string; e: string }>({
+    s: '',
+    e: '',
+  });
 
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
   const [settledItems, setSettledItems] = useState<any[]>([]);
-  const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
+  const [currentReadings, setCurrentReadings] = useState<
+    Record<string, number>
+  >({});
 
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
   const updateExtra = (i: number, patch: Partial<ExtraItem>) =>
-    setExtras(prev => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+    setExtras(prev =>
+      prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)),
+    );
   const removeExtra = (i: number) =>
     setExtras(prev => prev.filter((_, idx) => idx !== i));
 
   const [showEndModal, setShowEndModal] = useState(false);
   const [endExtras, setEndExtras] = useState<ExtraItem[]>([]);
-  const addEndExtra = () => setEndExtras(p => [...p, {name: '', amount: ''}]);
+  const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
   const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
-    setEndExtras(p => p.map((x, idx) => (idx === i ? {...x, ...patch} : x)));
-  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
+    setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  const delEndExtra = (i: number) =>
+    setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
     () => endExtras.reduce((s, it) => s + parseAmount(it.amount), 0),
-    [endExtras]
+    [endExtras],
   );
   const [depositPreview, setDepositPreview] = useState<number>(0);
 
@@ -118,9 +135,9 @@ export default function CycleDetail({route, navigation}: Props) {
       setRoomCode(r?.code || '');
     } catch {}
     try {
-      const t = lease?.tenant_id ? getTenant(lease.tenant_id) : null;
-      setTenantName(t?.full_name || '');
-      setTenantPhone(t?.phone || '');
+      const tnt = lease?.tenant_id ? getTenant(lease.tenant_id) : null;
+      setTenantName(tnt?.full_name || '');
+      setTenantPhone(tnt?.phone || '');
     } catch {}
 
     if (cyc.invoice_id) {
@@ -136,7 +153,8 @@ export default function CycleDetail({route, navigation}: Props) {
         if (it.charge_type_id && it.meta_json) {
           try {
             const m = JSON.parse(it.meta_json);
-            if (typeof m?.meter_end === 'number') map[it.charge_type_id] = m.meter_end;
+            if (typeof m?.meter_end === 'number')
+              map[it.charge_type_id] = m.meter_end;
           } catch {}
         }
       }
@@ -178,38 +196,48 @@ export default function CycleDetail({route, navigation}: Props) {
     return sum;
   }, [rows, extras]);
 
-  const {elecTotal, waterTotal, previewElecTotal, previewWaterTotal} = useMemo(() => {
-    const isWater = (u?: string|null) => (u||'').toLowerCase().includes('m3') || (u||'').includes('m³');
-    const isElec  = (u?: string|null) => (u||'').toLowerCase().includes('kwh');
-    let _elec = 0, _water = 0, _pElec = 0, _pWater = 0;
+  const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
+    useMemo(() => {
+      const isWater = (u?: string | null) =>
+        (u || '').toLowerCase().includes('m3') || (u || '').includes('m³');
+      const isElec = (u?: string | null) =>
+        (u || '').toLowerCase().includes('kwh');
+      let _elec = 0,
+        _water = 0,
+        _pElec = 0,
+        _pWater = 0;
 
-    if (status === 'settled' && invId) {
-      const items = getInvoiceItems(invId) as any[];
-      for (const it of items) {
-        const unit = (it.unit || '').toLowerCase();
-        if (unit.includes('kwh')) _elec += Number(it.amount)||0;
-        if (unit.includes('m3') || unit.includes('m³')) _water += Number(it.amount)||0;
+      if (status === 'settled' && invId) {
+        const items = getInvoiceItems(invId) as any[];
+        for (const it of items) {
+          const unit = (it.unit || '').toLowerCase();
+          if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
+          if (unit.includes('m3') || unit.includes('m³'))
+            _water += Number(it.amount) || 0;
+        }
+      } else {
+        for (const r of rows) {
+          if (r.is_variable !== 1) continue;
+          const current = parseAmount(r.value);
+          const consumed = Math.max(0, current - (r.meter_start || 0));
+          const money = consumed * (r.unit_price || 0);
+          if (isElec(r.unit)) _pElec += money;
+          if (isWater(r.unit)) _pWater += money;
+        }
       }
-    } else {
-      for (const r of rows) {
-        if (r.is_variable !== 1) continue;
-        const current = parseAmount(r.value);
-        const consumed = Math.max(0, current - (r.meter_start || 0));
-        const money = consumed * (r.unit_price || 0);
-        if (isElec(r.unit)) _pElec += money;
-        if (isWater(r.unit)) _pWater += money;
-      }
-    }
-    return {elecTotal:_elec, waterTotal:_water, previewElecTotal:_pElec, previewWaterTotal:_pWater};
-  }, [rows, status, invId]);
+      return {
+        elecTotal: _elec,
+        waterTotal: _water,
+        previewElecTotal: _pElec,
+        previewWaterTotal: _pWater,
+      };
+    }, [rows, status, invId]);
 
   const onChangeValue = (id: string, text: string) => {
     setRows(prev =>
       prev.map(r =>
-        r.charge_type_id === id
-          ? { ...r, value: formatTyping(text) }
-          : r
-      )
+        r.charge_type_id === id ? { ...r, value: formatTyping(text) } : r,
+      ),
     );
   };
 
@@ -221,13 +249,6 @@ export default function CycleDetail({route, navigation}: Props) {
       }),
     );
   };
-  // format khi gõ số
-function formatTyping(s: string) {
-  const digits = s.replace(/\D/g, '');
-  if (!digits) return '';
-  return Number(digits).toLocaleString('vi-VN');
-}
-
 
   // ====== Lưu kỳ & xử lý cuối kỳ ======
   function saveEdits(scope: 'cycle' | 'lease') {
@@ -240,30 +261,43 @@ function formatTyping(s: string) {
           }
         }
       }
-      Alert.alert('Đã lưu', 'Giá cố định đã cập nhật cho các kỳ sau.');
+      Alert.alert(t('cycleDetail.saved'), t('cycleDetail.fixedPriceUpdated'));
       setEditMode(false);
       reload();
       return;
     }
 
     // settle kỳ
-    const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
+    const variableInputs: Array<{
+      charge_type_id: string;
+      quantity: number;
+      meter_end?: number;
+    }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
     for (const r of rows) {
       if (r.is_variable === 1) {
         const current = Number(onlyDigits(r.value)) || 0;
         const consumed = Math.max(0, current - (r.meter_start || 0));
-        variableInputs.push({ charge_type_id: r.charge_type_id, quantity: consumed, meter_end: current });
+        variableInputs.push({
+          charge_type_id: r.charge_type_id,
+          quantity: consumed,
+          meter_end: current,
+        });
       } else {
         const newPrice = Number(onlyDigits(r.value)) || 0;
         const delta = newPrice - (r.unit_price || 0);
-        if (delta !== 0) adjustments.push({ name: `Điều chỉnh ${r.name}`, amount: delta });
+        if (delta !== 0)
+          adjustments.push({
+            name: `${t('cycleDetail.adjust')} ${r.name}`,
+            amount: delta,
+          });
       }
     }
     for (const ex of extras) {
       const amt = Number(onlyDigits(ex.amount)) || 0;
-      if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
+      if (ex.name.trim() && amt > 0)
+        adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
     const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
@@ -277,20 +311,19 @@ function formatTyping(s: string) {
 
     // Nếu là chu kỳ cuối => hỏi tiếp
     if (isLastCycle(cycleId)) {
-      Alert.alert(
-        'Chu kỳ cuối',
-        'Bạn muốn kết thúc hợp đồng hay tiếp tục duy trì?',
-        [
-          {text: 'Kết thúc hợp đồng', onPress: () => setShowEndModal(true)},
-          {
-            text: 'Tiếp tục duy trì',
-            onPress: () => setShowExtendModal(true), // mở modal nhập thời gian gia hạn
-          },
-          {text: 'Đóng', style: 'cancel'},
-        ]
-      );
+      Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
+        {
+          text: t('cycleDetail.endLease'),
+          onPress: () => setShowEndModal(true),
+        },
+        {
+          text: t('cycleDetail.keepLease'),
+          onPress: () => setShowExtendModal(true),
+        },
+        { text: t('common.close'), style: 'cancel' },
+      ]);
     } else {
-      Alert.alert('Hoàn tất', 'Đã tất toán chu kỳ.');
+      Alert.alert(t('common.done'), t('cycleDetail.settledOk'));
     }
   }
 
@@ -298,141 +331,252 @@ function formatTyping(s: string) {
     if (!invId) return;
     const inv = getInvoice(invId);
     const items = getInvoiceItems(invId);
-    const rowsHtml = items.map((i:any) => {
-      let extraInfo = '';
-      if (i.meta_json) {
-        try {
-          const m = JSON.parse(i.meta_json);
-          if (m && typeof m.meter_start === 'number' && typeof m.meter_end === 'number') {
-            extraInfo = `<div style="font-size:12px;color:#555">Chỉ số trước: ${groupVN(String(m.meter_start))} • Chỉ số này: ${groupVN(String(m.meter_end))}</div>`;
-          }
-          if (m?.for_period_start && m?.for_period_end) {
-            extraInfo += `<div style="font-size:12px;color:#555">Thu cho kỳ: ${m.for_period_start} → ${m.for_period_end}</div>`;
-          }
-        } catch {}
-      }
-      return `
+    const rowsHtml = items
+      .map((i: any) => {
+        let extraInfo = '';
+        if (i.meta_json) {
+          try {
+            const m = JSON.parse(i.meta_json);
+            if (
+              m &&
+              typeof m.meter_start === 'number' &&
+              typeof m.meter_end === 'number'
+            ) {
+              extraInfo = `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.prevIndex',
+              )}: ${groupVN(String(m.meter_start))} • ${t(
+                'cycleDetail.currIndex',
+              )}: ${groupVN(String(m.meter_end))}</div>`;
+            }
+            if (m?.for_period_start && m?.for_period_end) {
+              extraInfo += `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.forPeriod',
+              )}: ${m.for_period_start} → ${m.for_period_end}</div>`;
+            }
+          } catch {}
+        }
+        return `
         <tr>
           <td style="padding:8px;border:1px solid #ddd;">
             ${i.description}
             ${extraInfo}
           </td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${i.quantity ?? 1} ${i.unit ?? ''}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.unit_price)}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.amount)}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${
+            i.quantity ?? 1
+          } ${i.unit ?? ''}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            i.unit_price,
+          )}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            i.amount,
+          )}</td>
         </tr>`;
-    }).join('');
+      })
+      .join('');
     const html = `
     <html><meta charSet="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
-    <h2>Hóa đơn kỳ ${inv.period_start} → ${inv.period_end}</h2>
+    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${
+      inv.period_end
+    }</h2>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
-          <th style="text-align:left;border:1px solid #ddd;padding:8px;">Khoản</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">SL</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">Đơn giá</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">Thành tiền</th>
+          <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.item',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.qty',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.unitPrice',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.amount',
+          )}</th>
         </tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>Tổng</b></td>
-          <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(inv.total)}</b></td>
+          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t(
+            'cycleDetail.total',
+          )}</b></td>
+          <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(
+            inv.total,
+          )}</b></td>
         </tr>
       </tfoot>
     </table>
     </body></html>`;
-    const res = await RNHTMLtoPDF.convert({html, fileName:`invoice_${inv.id}`, base64:false});
-    Alert.alert('Đã xuất PDF', res.filePath || '—');
+    const res = await RNHTMLtoPDF.convert({
+      html,
+      fileName: `invoice_${inv.id}`,
+      base64: false,
+    });
+    Alert.alert(t('cycleDetail.pdfExported'), res.filePath || '—');
   }
+
   async function shareImage() {
     try {
       if (!viewShotRef.current) return;
-      const uri = await captureRef(viewShotRef, {format: 'png', quality: 1});
+      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
       await Share.share({
-        url: uri, // iOS và Android đều nhận url file://
-        message: 'Thông tin chu kỳ thuê', // dùng khi app nhận message
-        title: 'Chia sẻ chu kỳ',
+        url: uri,
+        message: t('cycleDetail.shareMessage'),
+        title: t('cycleDetail.shareTitle'),
       });
     } catch (e: any) {
-      Alert.alert('Không thể chia sẻ', e?.message || 'Vui lòng thử lại.');
+      Alert.alert(
+        t('cycleDetail.shareFail'),
+        e?.message || t('common.tryAgain'),
+      );
     }
   }
 
   async function exportImage() {
     if (!viewShotRef.current) return;
-    const uri = await captureRef(viewShotRef, {format:'png', quality:1});
-    Alert.alert('Đã xuất ảnh', uri);
+    const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+    Alert.alert(t('cycleDetail.imageExported'), uri);
   }
 
-  // ====== UI ======
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-      <ViewShot ref={viewShotRef} options={{format:'png', quality:1}}>
+      <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
         {!editMode ? (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+          <ScrollView
+            contentContainerStyle={{ padding: 12, gap: 12 }}
+            showsVerticalScrollIndicator
+          >
             <Card>
-              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>Thông tin phòng</Text>
-              <Text style={{ color: roomCode ? c.text : c.subtext }}>Phòng: {roomCode || '—'}</Text>
+              <Text
+                style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+              >
+                {t('cycleDetail.roomInfo')}
+              </Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>
+                {t('common.room')}: {roomCode || '—'}
+              </Text>
 
-              <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>Người thuê</Text>
-              {(tenantName || tenantPhone) ? (
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: '700',
+                  marginTop: 10,
+                  marginBottom: 6,
+                }}
+              >
+                {t('cycleDetail.tenant')}
+              </Text>
+              {tenantName || tenantPhone ? (
                 <Text style={{ color: c.text }}>
-                  {tenantName || '—'}{tenantPhone ? ` — ${tenantPhone}` : ''}
+                  {tenantName || '—'}
+                  {tenantPhone ? ` — ${tenantPhone}` : ''}
                 </Text>
               ) : (
-                <Text style={{ color: c.subtext }}>Chưa có người thuê</Text>
+                <Text style={{ color: c.subtext }}>
+                  {t('cycleDetail.noTenant')}
+                </Text>
               )}
             </Card>
-                        <Card>
-              <Text style={{ color: c.text }}>Kỳ: {formatDateISO(period.s, dateFormat, language)}  →  {formatDateISO(period.e, dateFormat, language)}</Text>
-              <Text style={{ color: c.text }}>Trạng thái: {status}</Text>
-              {invId ? <Text style={{ color: c.text }}>Tổng hoá đơn: {format(invTotal)}</Text> : null}
+
+            <Card>
+              <Text style={{ color: c.text }}>
+                {t('cycleDetail.period')}:{' '}
+                {formatDateISO(period.s, dateFormat, language)} →{' '}
+                {formatDateISO(period.e, dateFormat, language)}
+              </Text>
+              <Text style={{ color: c.text }}>
+                {t('cycleDetail.status')}:{' '}
+                {status === 'open' ? t('common.open') : t('common.close')}{' '}
+              </Text>
+              {invId ? (
+                <Text style={{ color: c.text }}>
+                  {t('cycleDetail.invoiceTotal')}: {format(invTotal)}
+                </Text>
+              ) : null}
             </Card>
 
             <Card style={{ gap: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phí</Text>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.fees')}
+              </Text>
 
               {status === 'settled' && settledItems.length > 0 ? (
                 <>
                   {settledItems.map(it => {
-                    let meterInfo: {start?: number; end?: number} = {};
+                    let meterInfo: { start?: number; end?: number } = {};
                     let forStart: string | undefined;
                     let forEnd: string | undefined;
                     if (it.meta_json) {
                       try {
                         const m = JSON.parse(it.meta_json);
-                        if (typeof m?.meter_start === 'number') meterInfo.start = m.meter_start;
-                        if (typeof m?.meter_end === 'number') meterInfo.end = m.meter_end;
+                        if (typeof m?.meter_start === 'number')
+                          meterInfo.start = m.meter_start;
+                        if (typeof m?.meter_end === 'number')
+                          meterInfo.end = m.meter_end;
                         if (m?.for_period_start) forStart = m.for_period_start;
-                        if (m?.for_period_end)   forEnd   = m.for_period_end;
+                        if (m?.for_period_end) forEnd = m.for_period_end;
                       } catch {}
                     }
                     return (
-                      <View key={it.id} style={{ borderRadius:10, padding:10 }}>
-                        <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:6}}>
-                          <Text style={{color:c.text, fontWeight:'700'}}>{it.description}</Text>
-                          <Text style={{color:c.subtext}}>{it.unit ? `(${it.unit})` : 'Cố định'}</Text>
+                      <View
+                        key={it.id}
+                        style={{ borderRadius: 10, padding: 10 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            marginBottom: 6,
+                          }}
+                        >
+                          <Text style={{ color: c.text, fontWeight: '700' }}>
+                            {it.description}
+                          </Text>
+                          <Text style={{ color: c.subtext }}>
+                            {it.unit ? `(${it.unit})` : t('cycleDetail.fixed')}
+                          </Text>
                         </View>
 
                         {forStart && forEnd ? (
-                          <Text style={{color:c.subtext, marginBottom:4}}>
-                            Thu cho kỳ: <Text style={{color:c.text}}>{formatDateISO(forStart, dateFormat, language)} → {formatDateISO(forEnd, dateFormat, language)}</Text>
+                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                            {t('cycleDetail.forPeriod')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {formatDateISO(forStart, dateFormat, language)} →{' '}
+                              {formatDateISO(forEnd, dateFormat, language)}
+                            </Text>
                           </Text>
                         ) : null}
 
-                        {!!(meterInfo.start != null || meterInfo.end != null) && (
-                          <Text style={{color:c.subtext, marginBottom:4}}>
-                            Chỉ số trước: <Text style={{color:c.text}}>{groupVN(String(meterInfo.start ?? 0))}</Text>{'  '}•{'  '}
-                            Chỉ số này: <Text style={{color:c.text}}>{groupVN(String(meterInfo.end ?? 0))}</Text>
+                        {!!(
+                          meterInfo.start != null || meterInfo.end != null
+                        ) && (
+                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                            {t('cycleDetail.prevIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(meterInfo.start ?? 0))}
+                            </Text>
+                            {'  '}•{'  '}
+                            {t('cycleDetail.currIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(meterInfo.end ?? 0))}
+                            </Text>
                           </Text>
                         )}
 
-                        <Text style={{color:c.subtext}}>
-                          SL: <Text style={{color:c.text}}>{it.quantity ?? 1}</Text> •{' '}
-                          Đơn giá: <Text style={{color:c.text}}>{format(it.unit_price)}</Text> •{' '}
-                          Thành tiền: <Text style={{color:c.text}}>{format(it.amount)}</Text>
+                        <Text style={{ color: c.subtext }}>
+                          {t('cycleDetail.qtyShort')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {it.quantity ?? 1}
+                          </Text>{' '}
+                          • {t('cycleDetail.unitPrice')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.unit_price)}
+                          </Text>{' '}
+                          • {t('cycleDetail.amount')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.amount)}
+                          </Text>
                         </Text>
                       </View>
                     );
@@ -441,93 +585,161 @@ function formatTyping(s: string) {
               ) : (
                 <>
                   {rows.map(r => (
-                    <View key={r.charge_type_id}
-                      style={{  borderRadius: 10, padding: 10 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
+                    <View
+                      key={r.charge_type_id}
+                      style={{ borderRadius: 10, padding: 10 }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text style={{ color: c.text, fontWeight: '700' }}>
+                          {r.name}
+                        </Text>
                         <Text style={{ color: c.subtext }}>
-                          {r.is_variable ? `Biến đổi (${r.unit || ''})` : 'Cố định'}
+                          {r.is_variable
+                            ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                            : t('cycleDetail.fixed')}
                         </Text>
                       </View>
 
                       {r.is_variable === 1 ? (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            Đơn giá: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text> / {r.unit || 'đv'}
+                            {t('cycleDetail.unitPrice')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(r.unit_price)}
+                            </Text>{' '}
+                            / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            Chỉ số đầu: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
+                            {t('cycleDetail.startIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(r.meter_start || 0))}
+                            </Text>
                           </Text>
                           <Text style={{ color: c.subtext, marginTop: 4 }}>
-                            Chỉ số hiện tại:{' '}
+                            {t('cycleDetail.currentIndex')}:{' '}
                             <Text style={{ color: c.text }}>
                               {currentReadings[r.charge_type_id] != null
-                                ? groupVN(String(currentReadings[r.charge_type_id]))
-                                : '— (chưa nhập)'}
+                                ? groupVN(
+                                    String(currentReadings[r.charge_type_id]),
+                                  )
+                                : t('cycleDetail.notEntered')}
                             </Text>
                           </Text>
                         </>
                       ) : (
                         <Text style={{ color: c.subtext }}>
-                          Giá gốc hợp đồng: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
+                          {t('cycleDetail.contractBase')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(r.unit_price)}
+                          </Text>
                         </Text>
                       )}
                     </View>
                   ))}
-                  {/* <View style={{marginTop:6}}>
-                    <Text style={{color:c.text}}>Điện (tạm tính): {format(previewElecTotal)}</Text>
-                    <Text style={{color:c.text}}>Nước (tạm tính): {format(previewWaterTotal)}</Text>
-                  </View> */}
                 </>
               )}
             </Card>
 
-            {status==='settled' ? (
-              <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-                <Button title="Chia Sẻ" onPress={shareImage}/>
+            {status === 'settled' ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 10,
+                }}
+              >
+                <Button title={t('cycleDetail.share')} onPress={shareImage} />
               </View>
             ) : (
               <View style={{ alignItems: 'flex-end' }}>
-                <Button title="Tất Toán" onPress={() => setEditMode(true)} />
+                <Button
+                  title={t('cycleDetail.settleNow')}
+                  onPress={() => setEditMode(true)}
+                />
               </View>
             )}
           </ScrollView>
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+          <ScrollView
+            contentContainerStyle={{ padding: 12, gap: 12 }}
+            showsVerticalScrollIndicator
+          >
             <Card style={{ gap: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>Các khoản phí</Text>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.fees')}
+              </Text>
 
               {rows.map(r => {
                 const isVar = r.is_variable === 1;
-                const current = Number(onlyDigits(r.value)) || 0;
-                const consumed = isVar ? Math.max(0, current - (r.meter_start || 0)) : 0;
-                const partial = isVar ? consumed * (r.unit_price || 0) : Number(onlyDigits(r.value)) || 0;
+                const current = parseAmount(r.value); // bóc sạch mọi ký tự không phải số
+                const consumed = isVar
+                  ? Math.max(0, current - (r.meter_start || 0))
+                  : 0;
+                const partial = isVar
+                  ? consumed * (r.unit_price || 0)
+                  : parseAmount(r.value);
 
                 return (
-                  <View key={r.charge_type_id}
-                    style={{ borderRadius: 10, padding: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
+                  <View
+                    key={r.charge_type_id}
+                    style={{ borderRadius: 10, padding: 10 }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: c.text, fontWeight: '700' }}>
+                        {r.name}
+                      </Text>
                       <Text style={{ color: c.subtext }}>
-                        {isVar ? `Biến đổi (${r.unit || ''})` : 'Cố định'}
+                        {isVar
+                          ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                          : t('cycleDetail.fixed')}
                       </Text>
                     </View>
 
                     {isVar ? (
                       <>
                         <Text style={{ color: c.subtext }}>
-                          Đơn giá: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text> / {r.unit || 'đv'}
+                          {t('cycleDetail.unitPrice')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(r.unit_price)}
+                          </Text>{' '}
+                          / {r.unit || t('cycleDetail.unitShort')}
                         </Text>
                         <Text style={{ color: c.subtext }}>
-                          Chỉ số trước: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
+                          {t('cycleDetail.prevIndex')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {groupVN(String(r.meter_start || 0))}
+                          </Text>
                         </Text>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <Text style={{ color: c.subtext, width: 120 }}>Chỉ số hiện tại</Text>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginTop: 6,
+                          }}
+                        >
+                          <Text style={{ color: c.subtext, width: 120 }}>
+                            {t('cycleDetail.currentIndex')}
+                          </Text>
                           <TextInput
                             keyboardType="numeric"
                             value={r.value}
-                            onChangeText={t => onChangeValue(r.charge_type_id, t)}
+                            onChangeText={t2 =>
+                              onChangeValue(r.charge_type_id, t2)
+                            }
                             style={{
                               flex: 1,
                               backgroundColor: c.card,
@@ -539,21 +751,42 @@ function formatTyping(s: string) {
                         </View>
 
                         <Text style={{ color: c.subtext, marginTop: 6 }}>
-                          Tiêu thụ: <Text style={{ color: c.text }}>{groupVN(String(consumed))}</Text> {r.unit || 'đv'} — Thành tiền:{' '}
-                          <Text style={{ color: c.text }}>{format(partial)}</Text>
+                          {t('cycleDetail.consumed')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {groupVN(String(consumed))}
+                          </Text>{' '}
+                          {r.unit || t('cycleDetail.unitShort')} —{' '}
+                          {t('cycleDetail.amount')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(partial)}
+                          </Text>
                         </Text>
                       </>
                     ) : (
                       <>
                         <Text style={{ color: c.subtext }}>
-                          Giá gốc hợp đồng: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
+                          {t('cycleDetail.contractBase')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(r.unit_price)}
+                          </Text>
                         </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <Text style={{ color: c.subtext, width: 120 }}>Giá kỳ này</Text>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginTop: 6,
+                          }}
+                        >
+                          <Text style={{ color: c.subtext, width: 120 }}>
+                            {t('cycleDetail.priceThisCycle')}
+                          </Text>
                           <TextInput
                             keyboardType="numeric"
                             value={r.value}
-                            onChangeText={t => onChangeValue(r.charge_type_id, t)}
+                            onChangeText={t2 =>
+                              onChangeValue(r.charge_type_id, t2)
+                            }
                             style={{
                               flex: 1,
                               backgroundColor: c.card,
@@ -564,7 +797,10 @@ function formatTyping(s: string) {
                           />
                         </View>
                         <Text style={{ color: c.subtext, marginTop: 6 }}>
-                          Thành tiền: <Text style={{ color: c.text }}>{format(partial)}</Text>
+                          {t('cycleDetail.amount')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(partial)}
+                          </Text>
                         </Text>
                       </>
                     )}
@@ -574,124 +810,231 @@ function formatTyping(s: string) {
 
               {/* Phụ phí phát sinh của kỳ */}
               <View style={{ marginTop: 4 }}>
-                <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>Phụ phí phát sinh</Text>
+                <Text
+                  style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+                >
+                  {t('cycleDetail.extraFees')}
+                </Text>
                 {extras.map((ex, idx) => (
                   <View key={idx} style={{ gap: 6, marginBottom: 8 }}>
                     <TextInput
-                      placeholder="Tên khoản phí"
+                      placeholder={t('cycleDetail.feeName')}
                       placeholderTextColor={c.subtext}
                       value={ex.name}
-                      onChangeText={t => updateExtra(idx, { name: t })}
+                      onChangeText={t2 => updateExtra(idx, { name: t2 })}
                       style={{
-                         borderRadius: 10,
-                        padding: 10, color: c.text, backgroundColor: c.card,
+                        borderRadius: 10,
+                        padding: 10,
+                        color: c.text,
+                        backgroundColor: c.card,
                       }}
                     />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <TextInput
-                        placeholder="Số tiền"
+                        placeholder={t('cycleDetail.amountPlaceholder')}
                         placeholderTextColor={c.subtext}
                         keyboardType="numeric"
                         value={ex.amount}
-                        onChangeText={t => updateExtra(idx, { amount: formatTyping(t) })}
+                        onChangeText={t2 =>
+                          updateExtra(idx, { amount: formatTyping(t2) })
+                        }
                         style={{
-                          flex: 1, borderRadius: 10,
-                          padding: 10, color: c.text, backgroundColor: c.card,
+                          flex: 1,
+                          borderRadius: 10,
+                          padding: 10,
+                          color: c.text,
+                          backgroundColor: c.card,
                         }}
                       />
-                      <Button title="Xoá" variant="ghost" onPress={() => removeExtra(idx)} />
+                      <Button
+                        title={t('common.delete')}
+                        variant="ghost"
+                        onPress={() => removeExtra(idx)}
+                      />
                     </View>
                   </View>
                 ))}
-                <Button title="+ Thêm phụ phí" variant="ghost" onPress={addExtra} />
+                <Button
+                  title={t('cycleDetail.addExtra')}
+                  variant="ghost"
+                  onPress={addExtra}
+                />
               </View>
 
               <View style={{ marginTop: 10 }}>
                 <Text style={{ color: c.text, fontWeight: '700' }}>
-                  Tạm tính theo nhập: {format(previewTotal)}
+                  {t('cycleDetail.previewTotal')}: {format(previewTotal)}
                 </Text>
                 {invId ? (
                   <Text style={{ color: c.subtext }}>
-                    (Hóa đơn hiện tại: {format(invTotal)})
+                    ({t('cycleDetail.currentInvoice')}: {format(invTotal)})
                   </Text>
                 ) : null}
               </View>
             </Card>
 
-            <View style={{  alignItems: 'flex-end',  justifyContent: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <Button title="Tất Toán" onPress={() => saveEdits('cycle')} />
-              <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
+            <View
+              style={{
+                alignItems: 'flex-end',
+                justifyContent: 'flex-end',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 10,
+              }}
+            >
+              <Button
+                title={t('cycleDetail.settleNow')}
+                onPress={() => saveEdits('cycle')}
+              />
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => {
+                  setEditMode(false);
+                  setExtras([]);
+                }}
+              />
             </View>
           </ScrollView>
         )}
       </ViewShot>
 
       {/* ===== Modal kết thúc hợp đồng / quyết toán cọc ===== */}
-      <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={() => setShowEndModal(false)}>
-        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'flex-end'}}>
-          <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16, gap:10}}>
-            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Kết thúc hợp đồng</Text>
-            <Text style={{color:c.text}}>Tiền cọc: {format(depositPreview)}</Text>
+      <Modal
+        visible={showEndModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEndModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              padding: 16,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('cycleDetail.endLeaseTitle')}
+            </Text>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.deposit')}: {format(depositPreview)}
+            </Text>
 
-            <Card style={{gap:8}}>
-              <Text style={{color:c.text, fontWeight:'700'}}>Phụ phí phát sinh</Text>
+            <Card style={{ gap: 8 }}>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.extraFees')}
+              </Text>
               {endExtras.map((ex, idx) => (
                 <View key={idx} style={{ gap: 6 }}>
                   <TextInput
-                    placeholder="Tên khoản"
+                    placeholder={t('cycleDetail.itemName')}
                     placeholderTextColor={c.subtext}
                     value={ex.name}
-                    onChangeText={t => updEndExtra(idx, { amount: formatTyping(t) })}
-                    style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                    onChangeText={t2 =>
+                      updEndExtra(idx, { amount: formatTyping(t2) })
+                    }
+                    style={{
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
                   />
-                  <View style={{flexDirection:'row', gap:8}}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TextInput
-                      placeholder="Số tiền (+ là trừ cọc, - là hoàn thêm)"
+                      placeholder={t('cycleDetail.amountWithHint')}
                       placeholderTextColor={c.subtext}
                       keyboardType="numeric"
                       value={ex.amount}
-                      onChangeText={t => updEndExtra(idx,{ amount: formatTyping(t) })}
-                      style={{flex:1, borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                      onChangeText={t2 =>
+                        updEndExtra(idx, { amount: formatTyping(t2) })
+                      }
+                      style={{
+                        flex: 1,
+                        borderRadius: 10,
+                        padding: 10,
+                        color: c.text,
+                        backgroundColor: c.card,
+                      }}
                     />
-                    <Button title="Xoá" variant="ghost" onPress={() => delEndExtra(idx)} />
+                    <Button
+                      title={t('common.delete')}
+                      variant="ghost"
+                      onPress={() => delEndExtra(idx)}
+                    />
                   </View>
                 </View>
               ))}
-              <Button title="+ Thêm khoản" variant="ghost" onPress={addEndExtra} />
+              <Button
+                title={t('cycleDetail.addItem')}
+                variant="ghost"
+                onPress={addEndExtra}
+              />
             </Card>
 
-            <Text style={{color:c.text}}>
-              Tổng phát sinh: {format(endExtrasTotal)}
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
             </Text>
-            <Text style={{color:c.text, fontWeight:'700'}}>
-              Số dư sau quyết toán: {format(depositPreview - endExtrasTotal)}
+            <Text style={{ color: c.text, fontWeight: '700' }}>
+              {t('cycleDetail.balanceAfter')}:{' '}
+              {format(depositPreview - endExtrasTotal)}
             </Text>
-            <Text style={{color:c.subtext}}>
+            <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
-                ? `→ Trả lại khách: ${format(depositPreview - endExtrasTotal)}`
+                ? `→ ${t('cycleDetail.refundToTenant')}: ${format(
+                    depositPreview - endExtrasTotal,
+                  )}`
                 : depositPreview - endExtrasTotal < 0
-                  ? `→ Cần thu thêm của khách: ${format(Math.abs(depositPreview - endExtrasTotal))}`
-                  : '→ Không phát sinh thêm'}
+                ? `→ ${t('cycleDetail.collectFromTenant')}: ${format(
+                    Math.abs(depositPreview - endExtrasTotal),
+                  )}`
+                : `→ ${t('cycleDetail.noFurther')}`}
             </Text>
 
-            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-              <Button title="Hủy" variant="ghost" onPress={() => setShowEndModal(false)} />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 10,
+              }}
+            >
               <Button
-                title="Kết thúc"
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => setShowEndModal(false)}
+              />
+              <Button
+                title={t('cycleDetail.finish')}
                 onPress={() => {
                   const payload = endExtras
                     .filter(it => it.name.trim())
-                    .map(it => ({name: it.name.trim(), amount: Number(onlyDigits(it.amount || '')) || 0}));
+                    .map(it => ({
+                      name: it.name.trim(),
+                      amount: Number(onlyDigits(it.amount || '')) || 0,
+                    }));
                   const res = endLeaseWithSettlement(leaseId, payload);
                   setShowEndModal(false);
                   Alert.alert(
-                    'Đã kết thúc hợp đồng',
+                    t('cycleDetail.ended'),
                     res.finalBalance > 0
-                      ? `Trả lại khách ${format(res.finalBalance)}`
+                      ? `${t('cycleDetail.refundToTenant')} ${format(
+                          res.finalBalance,
+                        )}`
                       : res.finalBalance < 0
-                        ? `Cần thu thêm của khách ${format(Math.abs(res.finalBalance))}`
-                        : 'Không phát sinh thêm',
-                    [{text:'OK', onPress: () => navigation.goBack()}]
+                      ? `${t('cycleDetail.collectFromTenant')} ${format(
+                          Math.abs(res.finalBalance),
+                        )}`
+                      : t('cycleDetail.noFurther'),
+                    [{ text: 'OK', onPress: () => navigation.goBack() }],
                   );
                 }}
               />
@@ -701,39 +1044,99 @@ function formatTyping(s: string) {
       </Modal>
 
       {/* ===== Modal gia hạn hợp đồng (nhập số tháng/ngày) ===== */}
-      <Modal visible={showExtendModal} transparent animationType="fade" onRequestClose={() => setShowExtendModal(false)}>
-        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'center', padding:16}}>
-          <View style={{backgroundColor:c.bg, borderRadius:12, padding:16, gap:10}}>
-            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Gia hạn hợp đồng</Text>
-            <Text style={{color:c.subtext}}>
-              Nhập số {leaseInfo?.billing_cycle === 'daily' ? 'ngày' : 'tháng'} muốn gia hạn thêm.
+      <Modal
+        visible={showExtendModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowExtendModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('cycleDetail.extendLease')}
+            </Text>
+            <Text style={{ color: c.subtext }}>
+              {t('cycleDetail.extendHint', {
+                unit:
+                  leaseInfo?.billing_cycle === 'daily'
+                    ? t('common.days')
+                    : t('common.months'),
+              })}
             </Text>
             <TextInput
               keyboardType="numeric"
               value={extendCount}
               onChangeText={setExtendCount}
-              placeholder={leaseInfo?.billing_cycle === 'daily' ? 'VD: 7 (ngày)' : 'VD: 3 (tháng)'}
+              placeholder={
+                leaseInfo?.billing_cycle === 'daily'
+                  ? t('cycleDetail.daysExample')
+                  : t('cycleDetail.monthsExample')
+              }
               placeholderTextColor={c.subtext}
               style={{
-                 borderRadius:10,
-                padding:10, color:c.text, backgroundColor:c.card
+                borderRadius: 10,
+                padding: 10,
+                color: c.text,
+                backgroundColor: c.card,
               }}
             />
-            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-              <Button title="Huỷ" variant="ghost" onPress={()=>{ setShowExtendModal(false); setExtendCount(''); }} />
-              <Button title="Xác nhận" onPress={()=>{
-                const n = Number(extendCount);
-                if (!n || n<=0) { Alert.alert('Lỗi', 'Vui lòng nhập số hợp lệ.'); return; }
-                try {
-                  extendLeaseAndAddCycles(leaseId, n);
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 10,
+              }}
+            >
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => {
                   setShowExtendModal(false);
                   setExtendCount('');
-                  reload();
-                  Alert.alert('Thành công', 'Đã gia hạn và tạo chu kỳ mới.');
-                } catch(e:any) {
-                  Alert.alert('Lỗi', e?.message || 'Không thể gia hạn');
-                }
-              }}/>
+                }}
+              />
+              <Button
+                title={t('common.confirm')}
+                onPress={() => {
+                  const n = Number(extendCount);
+                  if (!n || n <= 0) {
+                    Alert.alert(
+                      t('common.error'),
+                      t('cycleDetail.enterValidNumber'),
+                    );
+                    return;
+                  }
+                  try {
+                    extendLeaseAndAddCycles(leaseId, n);
+                    setShowExtendModal(false);
+                    setExtendCount('');
+                    reload();
+                    Alert.alert(
+                      t('common.success'),
+                      t('cycleDetail.extendedOk'),
+                    );
+                  } catch (e: any) {
+                    Alert.alert(
+                      t('common.error'),
+                      e?.message || t('cycleDetail.extendFail'),
+                    );
+                  }
+                }}
+              />
             </View>
           </View>
         </View>

@@ -1,74 +1,152 @@
+// src/app/screens/ApartmentActivityDetail.tsx
 import React, {useEffect, useMemo, useState} from 'react';
 import {View, Text, FlatList, TextInput, Alert} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
-import {listOperatingExpenses, sumOperatingExpenses, sumIncomeByApartmentMonth, addOperatingExpense} from '../../services/activities';
+import {
+  listOperatingExpenses,
+  sumOperatingExpenses,
+  sumIncomeByApartmentMonth,
+  addOperatingExpense,
+} from '../../services/activities';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import {useUIStore} from '../store/ui';
 import {formatMoney} from '../../utils/currency';
+import {useTranslation} from 'react-i18next';
 
-export default function ApartmentActivityDetail({route}: NativeStackScreenProps<RootStackParamList, 'ApartmentActivityDetail'>) {
+export default function ApartmentActivityDetail({
+  route,
+}: NativeStackScreenProps<RootStackParamList, 'ApartmentActivityDetail'>) {
   const {apartmentId, year, month} = route.params;
   const c = useThemeColors();
-  const currency = useUIStore(s=>s.currency);
+  const currency = useUIStore(s => s.currency);
+  const {t} = useTranslation();
+
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expenseName, setExpenseName] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [income, setIncome] = useState(0);
   const [expenseSum, setExpenseSum] = useState(0);
 
-  function reload(){
+  function reload() {
     setExpenses(listOperatingExpenses(apartmentId, year, month));
     setIncome(sumIncomeByApartmentMonth(apartmentId, year, month));
     setExpenseSum(sumOperatingExpenses(apartmentId, year, month));
   }
   useEffect(reload, [apartmentId, year, month]);
 
-  const profit = useMemo(()=> income - expenseSum, [income, expenseSum]);
+  const profit = useMemo(() => income - expenseSum, [income, expenseSum]);
 
   const now = new Date();
-  const isCurrentMonth = (now.getFullYear() === year && (now.getMonth()+1) === month);
+  const isCurrentMonth =
+    now.getFullYear() === year && now.getMonth() + 1 === month;
 
   return (
-    <View style={{flex:1, padding:16, backgroundColor: 'transparent'}}>
-      <Header title={`Hoạt động ${year}-${String(month).padStart(2,'0')}`} />
+    <View style={{flex: 1, padding: 16, backgroundColor: 'transparent'}}>
+      <Header title={`${t('apartmentActivity.title')} ${year}-${String(month).padStart(2, '0')}`} />
       <Card>
-        <Text style={{color:c.text}}>Tổng thu (các phòng): <Text style={{fontWeight:'700'}}>{formatMoney(income, currency)}</Text></Text>
-        <Text style={{color:c.text}}>Tổng chi hoạt động: <Text style={{fontWeight:'700'}}>{formatMoney(expenseSum, currency)}</Text></Text>
-        <Text style={{color: profit>=0 ? '#10B981' : '#EF4444', marginTop:6}}>Lợi nhuận: <Text style={{fontWeight:'700'}}>{formatMoney(profit, currency)}</Text></Text>
+        <Text style={{color: c.text}}>
+          {t('apartmentActivity.totalIncome')}:{' '}
+          <Text style={{fontWeight: '700'}}>
+            {formatMoney(income, currency)}
+          </Text>
+        </Text>
+        <Text style={{color: c.text}}>
+          {t('apartmentActivity.totalExpense')}:{' '}
+          <Text style={{fontWeight: '700'}}>
+            {formatMoney(expenseSum, currency)}
+          </Text>
+        </Text>
+        <Text
+          style={{
+            color: profit >= 0 ? '#10B981' : '#EF4444',
+            marginTop: 6,
+          }}>
+          {t('apartmentActivity.profit')}:{' '}
+          <Text style={{fontWeight: '700'}}>
+            {formatMoney(profit, currency)}
+          </Text>
+        </Text>
       </Card>
 
       <Card>
-        <Text style={{color:c.text, fontWeight:'700', marginBottom:8}}>Chi phí hoạt động</Text>
+        <Text style={{color: c.text, fontWeight: '700', marginBottom: 8}}>
+          {t('apartmentActivity.operatingExpenses')}
+        </Text>
         <FlatList
           data={expenses}
-          keyExtractor={(i)=>i.id}
-          renderItem={({item})=>(
-            <View style={{flexDirection:'row', justifyContent:'space-between', marginVertical:4}}>
-              <Text style={{color:c.text}}>{item.name}</Text>
-              <Text style={{color:c.text}}>{formatMoney(item.amount, currency)}</Text>
+          keyExtractor={i => i.id}
+          renderItem={({item}) => (
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginVertical: 4,
+              }}>
+              <Text style={{color: c.text}}>{item.name}</Text>
+              <Text style={{color: c.text}}>
+                {formatMoney(item.amount, currency)}
+              </Text>
             </View>
           )}
-          ListEmptyComponent={<Text style={{color:c.text, opacity:0.7}}>Chưa có chi phí</Text>}
+          ListEmptyComponent={
+            <Text style={{color: c.text, opacity: 0.7}}>
+              {t('apartmentActivity.noExpense')}
+            </Text>
+          }
         />
       </Card>
 
       {isCurrentMonth && (
         <Card>
-          <Text style={{color:c.text, fontWeight:'700', marginBottom:8}}>Thêm chi phí hoạt động (tháng hiện tại)</Text>
-          <View style={{flexDirection:'row', gap:8}}>
-            <TextInput placeholder="Tên khoản phí (VD: thuê, điện, nước, internet, rác, sửa chữa, bảo trì, ...)" value={expenseName} onChangeText={setExpenseName} style={{flex:1, color:c.text, padding:8, borderRadius:8}}/>
-            <TextInput placeholder="Số tiền" value={expenseAmount} onChangeText={setExpenseAmount} keyboardType="numeric" style={{width:140,  color:c.text, padding:8, borderRadius:8}}/>
+          <Text style={{color: c.text, fontWeight: '700', marginBottom: 8}}>
+            {t('apartmentActivity.addExpenseTitle')}
+          </Text>
+          <View style={{flexDirection: 'row', gap: 8}}>
+            <TextInput
+              placeholder={t('apartmentActivity.expenseNamePlaceholder')}
+              value={expenseName}
+              onChangeText={setExpenseName}
+              style={{
+                flex: 1,
+                color: c.text,
+                padding: 8,
+                borderRadius: 8,
+              }}
+              placeholderTextColor={c.subtext}
+            />
+            <TextInput
+              placeholder={t('apartmentActivity.expenseAmountPlaceholder')}
+              value={expenseAmount}
+              onChangeText={setExpenseAmount}
+              keyboardType="numeric"
+              style={{
+                width: 140,
+                color: c.text,
+                padding: 8,
+                borderRadius: 8,
+              }}
+              placeholderTextColor={c.subtext}
+            />
           </View>
-          <Button title="Thêm chi phí" onPress={()=>{
-            if (!expenseName.trim() || !expenseAmount.trim()) return Alert.alert('Vui lòng nhập tên & số tiền');
-            addOperatingExpense(apartmentId, expenseName.trim(), Number(expenseAmount));
-            setExpenseName(''); setExpenseAmount('');
-            reload();
-          }} />
+          <Button
+            title={t('apartmentActivity.addExpense')}
+            onPress={() => {
+              if (!expenseName.trim() || !expenseAmount.trim())
+                return Alert.alert(t('apartmentActivity.emptyError'));
+              addOperatingExpense(
+                apartmentId,
+                expenseName.trim(),
+                Number(expenseAmount),
+              );
+              setExpenseName('');
+              setExpenseAmount('');
+              reload();
+            }}
+          />
         </Card>
       )}
     </View>

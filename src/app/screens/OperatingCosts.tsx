@@ -14,12 +14,14 @@ import {
   ensureOperatingCostMonth,
   monthLabel,
 } from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCosts'>;
 
 export default function OperatingCosts({route, navigation}: Props) {
   const {apartmentId} = route.params as any;
   const c = useThemeColors();
+  const {t} = useTranslation();
 
   const [ready, setReady] = useState(false);
   const [months, setMonths] = useState<any[]>([]);
@@ -34,7 +36,6 @@ export default function OperatingCosts({route, navigation}: Props) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // <<< Quan trọng: reload mỗi lần màn hình được focus trở lại
   useFocusEffect(
     useCallback(() => {
       reload();
@@ -53,10 +54,10 @@ export default function OperatingCosts({route, navigation}: Props) {
         <ScrollView contentContainerStyle={{padding:12, gap:12}}>
           <Card style={{gap:8}}>
             <Text style={{color:c.text}}>
-              Bạn chưa cài đặt danh mục chi phí cho căn hộ này.
+              {t('operatingCosts.noSetup')}
             </Text>
             <Button
-              title="Cài đặt chi phí"
+              title={t('operatingCosts.setupCosts')}
               onPress={() => navigation.navigate('OperatingCostSettings', {apartmentId})}
             />
           </Card>
@@ -64,9 +65,13 @@ export default function OperatingCosts({route, navigation}: Props) {
       ) : (
         <ScrollView contentContainerStyle={{padding:12, gap:12}}>
           <Card style={{gap:8}}>
-            <Text style={{color:c.text, fontWeight:'800'}}>Danh sách tháng (YYYY-MM)</Text>
+            <Text style={{color:c.text, fontWeight:'800'}}>
+              {t('operatingCosts.monthList')}
+            </Text>
             {months.length === 0 && (
-              <Text style={{color:c.subtext}}>Chưa có dữ liệu. Nhấn “+ Tháng hiện tại”.</Text>
+              <Text style={{color:c.subtext}}>
+                {t('operatingCosts.noData')}
+              </Text>
             )}
             {months.map(m => (
               <TouchableOpacity
@@ -76,14 +81,16 @@ export default function OperatingCosts({route, navigation}: Props) {
               >
                 <View style={{ borderRadius:10, padding:10, marginTop:8}}>
                   <Text style={{color:c.text, fontWeight:'700'}}>{m.ym}</Text>
-                  <Text style={{color:c.subtext}}>Nhấn để xem/nhập chi phí</Text>
+                  <Text style={{color:c.subtext}}>
+                    {t('operatingCosts.tapToView')}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))}
             <View style={{flexDirection:'row', gap:10, marginTop:8}}>
-              <Button title="+ Tháng hiện tại" onPress={addCurrentMonth}/>
+              <Button title={t('operatingCosts.addCurrentMonth')} onPress={addCurrentMonth}/>
               <Button
-                title="Cài đặt chi phí"
+                title={t('operatingCosts.setupCosts')}
                 variant="ghost"
                 onPress={() => navigation.navigate('OperatingCostSettings', {apartmentId})}
               />

@@ -141,7 +141,7 @@ export default function Settings() {
           }}
         />
       </Card>
-       <Card>
+       {/* <Card>
           <Text style={{ color: c.text, fontWeight: '700' }}>Hướng dẫn sử dụng</Text>
           <View style={{ height: 8 }} />
           <Button
@@ -152,7 +152,7 @@ export default function Settings() {
               navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
             }}
           />
-        </Card>
+        </Card> */}
 
       {/* Sample data */}
       <Card>

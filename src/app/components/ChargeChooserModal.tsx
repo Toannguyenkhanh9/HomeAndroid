@@ -13,6 +13,7 @@ import {useThemeColors} from '../theme';
 import Button from './Button';
 import {groupVN, onlyDigits} from '../../utils/number';
 import {listChargeTypes} from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 type ChargeRow = {
   id: string;
@@ -55,6 +56,7 @@ export default function ChargeChooserModal({
   initialSelected,
 }: Props) {
   const c = useThemeColors();
+  const {t} = useTranslation();
 
   const [rows, setRows] = useState<ChargeRow[]>([]);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -87,7 +89,7 @@ export default function ChargeChooserModal({
     );
   }, [visible]);
 
-  // Prefill khi mở modal (bỏ qua mọi item Tiền phòng/Gói bao phí nếu có trong initialSelected)
+  // Prefill khi mở modal
   useEffect(() => {
     if (!visible) return;
     const mapChecked: Record<string, boolean> = {};
@@ -163,7 +165,7 @@ export default function ChargeChooserModal({
 
   function addCustom() {
     const name = customName.trim();
-    if (!name || isTienPhong(name) || isGoiBaoPhi(name)) return; // không cho tự thêm tên cấm
+    if (!name || isTienPhong(name) || isGoiBaoPhi(name)) return;
     const id = 'custom:' + rid();
     const price = Number(onlyDigits(customPrice || '0')) || 0;
     const meterStart = Number(onlyDigits(customMeter || '0')) || 0;
@@ -193,27 +195,24 @@ export default function ChargeChooserModal({
     setCustomIsVar(false);
   }
 
-function confirm() {
-  const out: SelectedEntry[] = [];
-  for (const r of parsed) {
-    if (!checked[r.id]) continue;
-    const v = values[r.id];
-    const isVar = r.is_variable || r.pricing_model === 'per_unit';
-
-    // 🛠 output with meter_start in the meta/config layer that the caller will translate
-    out.push({
-      id: r.id,
-      name: r.name,
-      isVariable: !!isVar,
-      unit: r.unit || undefined,
-      price: Number(onlyDigits(v?.price || '0')) || 0,
-      // keep meterStart for backward-compat with your types, but it's fine now
-      meterStart: isVar ? Number(onlyDigits(v?.meterStart || '0')) || 0 : undefined,
-    });
+  function confirm() {
+    const out: SelectedEntry[] = [];
+    for (const r of parsed) {
+      if (!checked[r.id]) continue;
+      const v = values[r.id];
+      const isVar = r.is_variable || r.pricing_model === 'per_unit';
+      out.push({
+        id: r.id,
+        name: r.name,
+        isVariable: !!isVar,
+        unit: r.unit || undefined,
+        price: Number(onlyDigits(v?.price || '0')) || 0,
+        meterStart: isVar ? Number(onlyDigits(v?.meterStart || '0')) || 0 : undefined,
+      });
+    }
+    onConfirm(out);
+    onClose();
   }
-  onConfirm(out);
-  onClose();
-}
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -227,20 +226,19 @@ function confirm() {
             paddingBottom:12,
           }}>
           <View style={{paddingHorizontal:16, paddingTop:12, paddingBottom:8}}>
-            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Chọn các khoản phí</Text>
+            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>
+              {t('chargeChooser.title')}
+            </Text>
           </View>
 
           <ScrollView contentContainerStyle={{paddingHorizontal:16, paddingBottom:16, gap:10}}>
             {parsed.map((r) => {
               const isChecked = !!checked[r.id];
               const primaryBg = isChecked ? c.primary : 'transparent';
-              const border = isChecked ? 'transparent' : '#2A2F3A';
               return (
                 <View
                   key={r.id}
                   style={{
-                    // borderWidth:1,
-                    // borderColor: border,
                     borderRadius:12,
                     overflow:'hidden',
                     backgroundColor: isChecked ? primaryBg + '22' : c.card,
@@ -258,7 +256,6 @@ function confirm() {
                       <View
                         style={{
                           width:20, height:20, borderRadius:6,
-                          //borderWidth:2, borderColor: isChecked ? c.primary : '#6B7280',
                           backgroundColor: isChecked ? c.primary : 'transparent',
                         }}
                       />
@@ -267,14 +264,14 @@ function confirm() {
                       </Text>
                     </View>
                     <Text style={{color:c.subtext}}>
-                      {r.is_variable ? 'KHÔNG cố định' : 'Cố định'}
+                      {r.is_variable ? t('chargeChooser.variable') : t('chargeChooser.fixed')}
                     </Text>
                   </TouchableOpacity>
 
                   {isChecked && (
                     <View style={{padding:12, gap:8}}>
                       <Text style={{color:c.subtext}}>
-                        {r.is_variable ? 'Giá / đơn vị' : 'Giá / kỳ'}
+                        {r.is_variable ? t('chargeChooser.pricePerUnit') : t('chargeChooser.pricePerPeriod')}
                       </Text>
                       <TextInput
                         keyboardType="numeric"
@@ -289,7 +286,7 @@ function confirm() {
 
                       {r.is_variable && (
                         <>
-                          <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
+                          <Text style={{color:c.subtext}}>{t('chargeChooser.meterStart')}</Text>
                           <TextInput
                             keyboardType="numeric"
                             value={values[r.id]?.meterStart ?? '0'}
@@ -310,20 +307,22 @@ function confirm() {
 
             {/* Chi phí khác */}
             <View style={{ borderRadius:12, backgroundColor:c.card, padding:12, gap:8}}>
-              <Text style={{color:c.text, fontWeight:'800'}}>Chi phí khác</Text>
-              <Text style={{color:c.subtext}}>Tên phí</Text>
+              <Text style={{color:c.text, fontWeight:'800'}}>{t('chargeChooser.otherCosts')}</Text>
+              <Text style={{color:c.subtext}}>{t('chargeChooser.feeName')}</Text>
               <TextInput
                 value={customName}
                 onChangeText={setCustomName}
-                placeholder="Tên phí..."
+                placeholder={t('chargeChooser.feeNamePlaceholder')}
                 placeholderTextColor={c.subtext}
                 style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
               />
               <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between'}}>
-                <Text style={{color:c.text, fontWeight:'700'}}>Biến đổi</Text>
+                <Text style={{color:c.text, fontWeight:'700'}}>{t('chargeChooser.isVariable')}</Text>
                 <Switch value={customIsVar} onValueChange={setCustomIsVar}/>
               </View>
-              <Text style={{color:c.subtext}}>{customIsVar ? 'Giá / đơn vị' : 'Giá / kỳ'}</Text>
+              <Text style={{color:c.subtext}}>
+                {customIsVar ? t('chargeChooser.pricePerUnit') : t('chargeChooser.pricePerPeriod')}
+              </Text>
               <TextInput
                 keyboardType="numeric"
                 value={customPrice}
@@ -335,7 +334,7 @@ function confirm() {
               />
               {customIsVar && (
                 <>
-                  <Text style={{color:c.subtext}}>Chỉ số đầu</Text>
+                  <Text style={{color:c.subtext}}>{t('chargeChooser.meterStart')}</Text>
                   <TextInput
                     keyboardType="numeric"
                     value={customMeter}
@@ -348,14 +347,14 @@ function confirm() {
                 </>
               )}
               <View style={{alignItems:'flex-end'}}>
-                <Button title="Thêm" onPress={addCustom}/>
+                <Button title={t('add')} onPress={addCustom}/>
               </View>
             </View>
           </ScrollView>
 
           <View style={{paddingHorizontal:16, flexDirection:'row', justifyContent:'space-between', gap:12}}>
-            <Button title="Đóng" variant="ghost" onPress={onClose} />
-            <Button title="Xác nhận" onPress={confirm} />
+            <Button title={t('close')} variant="ghost" onPress={onClose} />
+            <Button title={t('confirm')} onPress={confirm} />
           </View>
         </View>
       </View>

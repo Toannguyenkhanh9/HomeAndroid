@@ -21,6 +21,7 @@ import {
 } from '../../services/rent';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
@@ -49,6 +50,7 @@ export default function LeaseDetail({route, navigation}: Props) {
   const {leaseId} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
+  const {t} = useTranslation();
 
   const [lease, setLease] = useState<any>();
   const [tenant, setTenant] = useState<any | null>(null);
@@ -162,7 +164,7 @@ export default function LeaseDetail({route, navigation}: Props) {
       .map(it => ({
         name: it.name.trim(),
         isVariable: !!it.isVariable,
-        unit: (it.unit || '').trim() || (it.isVariable ? 'đv' : 'tháng'),
+        unit: (it.unit || '').trim() || (it.isVariable ? t('units.unitShort') : t('units.month')),
         price: parseAmount(it.price || ''),
         meterStart: it.isVariable ? parseAmount(it.meterStart || '') : undefined,
       }));
@@ -172,7 +174,7 @@ export default function LeaseDetail({route, navigation}: Props) {
     setEditMode(false);
     setNewItems([]);
     reload();
-    Alert.alert('Đã lưu', 'Các thay đổi sẽ áp dụng cho các kỳ sau.');
+    Alert.alert(t('leaseDetail.saved'), t('leaseDetail.appliedNextCycles'));
   }
 
   const attemptEndEarly = () => {
@@ -180,12 +182,12 @@ export default function LeaseDetail({route, navigation}: Props) {
     const openCycles = (cycles || []).filter((c:any) => String(c.status) !== 'settled');
     const blocking = openCycles.find((c:any) => today >= c.period_start && today <= c.period_end);
     if (blocking) {
-      Alert.alert('Không thể kết thúc', 'Còn chu kỳ hiện tại chưa tất toán. Vui lòng tất toán trước.');
+      Alert.alert(t('leaseDetail.cannotEnd'), t('leaseDetail.mustSettleCurrent'));
       return;
     }
-    Alert.alert('Xác nhận', 'Bạn muốn kết thúc hợp đồng và tiến hành quyết toán cọc?', [
-      {text: 'Huỷ', style: 'cancel'},
-      {text: 'Đồng ý', onPress: () => setShowEndModal(true)},
+    Alert.alert(t('leaseDetail.confirm'), t('leaseDetail.endNowConfirm'), [
+      {text: t('common.cancel'), style: 'cancel'},
+      {text: t('common.ok'), onPress: () => setShowEndModal(true)},
     ]);
   };
 
@@ -206,43 +208,46 @@ export default function LeaseDetail({route, navigation}: Props) {
       {!editMode ? (
         <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
           <Card>
-            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Người thuê</Text>
+            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>{t('leaseDetail.tenant')}</Text>
             {tenant ? (
               <>
-                <Text style={{color: c.text}}>Tên: {tenant.full_name}</Text>
-                <Text style={{color: c.text}}>CCCD/CMND: {tenant.id_number || '—'}</Text>
-                <Text style={{color: c.text}}>Điện thoại: {tenant.phone || '—'}</Text>
+                <Text style={{color: c.text}}>{t('leaseDetail.name')}: {tenant.full_name}</Text>
+                <Text style={{color: c.text}}>{t('leaseDetail.idNumber')}: {tenant.id_number || '—'}</Text>
+                <Text style={{color: c.text}}>{t('leaseDetail.phone')}: {tenant.phone || '—'}</Text>
               </>
             ) : (
               <Text style={{color: c.subtext}}>—</Text>
             )}
           </Card>
           <Card>
-            <Text style={{color: c.text}}>Bắt đầu: {lease?.start_date ? formatDateISO(lease?.start_date, dateFormat, language) : '—'}</Text>
-            <Text style={{color: c.text}}>Kết thúc: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}</Text>
-            <Text style={{color: c.text}}>Loại: {lease?.lease_type}</Text>
-            <Text style={{color: c.text}}>Chu kỳ: {lease?.billing_cycle}</Text>
-            <Text style={{color: c.text}}>Giá thuê cơ bản: {format(lease?.base_rent || 0)}</Text>
-            <Text style={{color: c.text}}>Tiền cọc: {format(lease?.deposit_amount || 0)}</Text>
-            <Text style={{color: c.text}}>Trạng thái: {lease?.status}</Text>
+            <Text style={{color: c.text}}>
+              {t('leaseDetail.start')}: {lease?.start_date ? formatDateISO(lease?.start_date, dateFormat, language) : '—'}
+            </Text>
+            <Text style={{color: c.text}}>
+              {t('leaseDetail.end')}: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}
+            </Text>
+            <Text style={{color: c.text}}>{t('leaseDetail.cycle')}: {lease?.billing_cycle === 'monthly' ? t('common.monthly'): t('leaseDetail.daily')}</Text>
+            <Text style={{color: c.text}}>{t('leaseDetail.baseRent')}: {format(lease?.base_rent || 0)}</Text>
+            <Text style={{color: c.text}}>{t('leaseDetail.deposit')}: {format(lease?.deposit_amount || 0)}</Text>
+            <Text style={{color: c.text}}>{t('leaseDetail.status')}: {lease?.status === 'active' ? t('common.active'): t('leaseDetail.ended')} </Text>
           </Card>
           <Card style={{gap: 8}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>Các khoản phí đang áp dụng</Text>
+            <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseDetail.activeCharges')}</Text>
             {charges.map(it => (
               <View key={it.id} style={{borderRadius: 10, padding: 10}}>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                   <Text style={{color: c.text, fontWeight: '700'}}>{it.name}</Text>
                   <Text style={{color: c.subtext}}>
-                    {Number(it.is_variable) === 1 ? `Biến đổi (${it.unit || ''})` : 'Cố định'}
+                    {Number(it.is_variable) === 1 ? `${t('leaseDetail.variable')} (${it.unit || ''})` : t('leaseDetail.fixed')}
                   </Text>
                 </View>
                 <Text style={{color: c.subtext}}>
-                  Đơn giá: <Text style={{color: c.text}}>{format(it.unit_price || 0)}</Text>
-                  {Number(it.is_variable) === 1 && ` / ${it.unit || 'đv'}`}
+                  {t('leaseDetail.unitPrice')}: <Text style={{color: c.text}}>{format(it.unit_price || 0)}</Text>
+                  {Number(it.is_variable) === 1 && ` / ${it.unit || t('units.unitShort')}`}
                 </Text>
                 {Number(it.is_variable) === 1 && (
                   <Text style={{color: c.subtext}}>
-                    Chỉ số đầu: <Text style={{color: c.text}}>{groupVN(String(it.meter_start || 0))}</Text>
+                    {t('leaseDetail.meterStart')}: <Text style={{color: c.text}}>{groupVN(String(it.meter_start || 0))}</Text>
                   </Text>
                 )}
               </View>
@@ -250,18 +255,20 @@ export default function LeaseDetail({route, navigation}: Props) {
           </Card>
 
           <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Button title="Kết thúc hợp đồng trước hạn"  onPress={attemptEndEarly}/>
-            <Button title="Thay đổi" onPress={() => setEditMode(true)} />
+            <Button title={t('leaseDetail.endEarly')}  onPress={attemptEndEarly}/>
+            <Button title={t('common.edit')} onPress={() => setEditMode(true)} />
           </View>
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
           <Card>
-            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>Giá thuê cơ bản (áp dụng kỳ sau)</Text>
+            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+              {t('leaseDetail.baseRentNext')}
+            </Text>
             <TextInput
               keyboardType="numeric"
               value={baseRentText}
-              onChangeText={t => setBaseRentText(formatTyping(t))}
+              onChangeText={t_ => setBaseRentText(formatTyping(t_))}
               style={{
                 borderRadius: 10,
                 padding: 10,
@@ -272,14 +279,16 @@ export default function LeaseDetail({route, navigation}: Props) {
           </Card>
 
           <Card style={{gap: 8}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>Phí cố định</Text>
+            <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseDetail.fixedCharges')}</Text>
             {charges.filter(i => Number(i.is_variable) !== 1).map(it => (
               <View key={it.id}>
-                <Text style={{color: c.subtext}}>{it.name} ({it.unit || 'kỳ'})</Text>
+                <Text style={{color: c.subtext}}>
+                  {it.name} ({it.unit || t('leaseDetail.perCycle')})
+                </Text>
                 <TextInput
                   keyboardType="numeric"
                   value={fixed[it.charge_type_id] ?? ''}
-                  onChangeText={t => setFixed(s => ({...s, [it.charge_type_id]: formatTyping(t)}))}
+                  onChangeText={t_ => setFixed(s => ({...s, [it.charge_type_id]: formatTyping(t_)}))}
                   style={{
                     borderRadius: 10,
                     padding: 10,
@@ -292,15 +301,17 @@ export default function LeaseDetail({route, navigation}: Props) {
           </Card>
 
           <Card style={{gap: 8}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>Phí biến đổi</Text>
+            <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseDetail.variableCharges')}</Text>
             {charges.filter(i => Number(i.is_variable) === 1).map(it => (
               <View key={it.id} style={{gap: 6}}>
-                <Text style={{color: c.subtext}}>{it.name} ({it.unit || 'đv'})</Text>
+                <Text style={{color: c.subtext}}>
+                  {it.name} ({it.unit || t('units.unitShort')})
+                </Text>
                 <TextInput
                   keyboardType="numeric"
                   value={vars[it.charge_type_id]?.price ?? ''}
-                  onChangeText={t =>
-                    setVars(s => ({...s, [it.charge_type_id]: {...(s[it.charge_type_id] || {meter: '0'}), price: formatTyping(t)}}))
+                  onChangeText={t_ =>
+                    setVars(s => ({...s, [it.charge_type_id]: {...(s[it.charge_type_id] || {meter: '0'}), price: formatTyping(t_)}}))
                   }
                   style={{
                     borderRadius: 10,
@@ -316,17 +327,17 @@ export default function LeaseDetail({route, navigation}: Props) {
           {/* ==== Thêm khoản phí khác ==== */}
           <Card style={{gap: 10}}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-              <Text style={{color: c.text, fontWeight: '800'}}>Thêm khoản phí khác</Text>
-              <Button title="+ Thêm" onPress={addEmptyItem} />
+              <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseDetail.addOtherCharge')}</Text>
+              <Button title={t('common.add')} onPress={addEmptyItem} />
             </View>
 
             {newItems.map((it, idx) => (
               <View key={idx} style={{ borderRadius: 10, padding: 10, gap: 10}}>
                 <TextInput
-                  placeholder="Tên phí"
+                  placeholder={t('leaseDetail.chargeNamePh')}
                   placeholderTextColor={c.subtext}
                   value={it.name}
-                  onChangeText={t => updateItem(idx, {name: t})}
+                  onChangeText={t_ => updateItem(idx, {name: t_})}
                   style={{
                     borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
@@ -334,15 +345,15 @@ export default function LeaseDetail({route, navigation}: Props) {
                 />
 
                 <View style={{flexDirection:'row', gap:8}}>
-                  <SegBtn title="Cố định" active={!it.isVariable} onPress={()=> updateItem(idx, {isVariable:false})}/>
-                  <SegBtn title="Biến đổi" active={!!it.isVariable} onPress={()=> updateItem(idx, {isVariable:true})}/>
+                  <SegBtn title={t('leaseDetail.fixed')} active={!it.isVariable} onPress={()=> updateItem(idx, {isVariable:false})}/>
+                  <SegBtn title={t('leaseDetail.variable')} active={!!it.isVariable} onPress={()=> updateItem(idx, {isVariable:true})}/>
                 </View>
 
                 <TextInput
-                  placeholder="Đơn vị (vd: tháng, kWh, m³...)"
+                  placeholder={t('leaseDetail.unitPh')}
                   placeholderTextColor={c.subtext}
                   value={it.unit}
-                  onChangeText={t => updateItem(idx, {unit: t})}
+                  onChangeText={t_ => updateItem(idx, {unit: t_})}
                   style={{
                     borderRadius: 10,
                     padding: 10, color: c.text, backgroundColor: c.card,
@@ -350,11 +361,11 @@ export default function LeaseDetail({route, navigation}: Props) {
                 />
 
                 <TextInput
-                  placeholder={it.isVariable ? 'Giá / đơn vị' : 'Giá / kỳ'}
+                  placeholder={it.isVariable ? t('leaseDetail.pricePerUnitPh') : t('leaseDetail.pricePerCyclePh')}
                   placeholderTextColor={c.subtext}
                   keyboardType="numeric"
                   value={it.price}
-                  onChangeText={t => updateItem(idx, {price: formatTyping(t)})}
+                  onChangeText={t_ => updateItem(idx, {price: formatTyping(t_)})}
                   style={{
                     borderRadius: 10,
                     padding: 10,
@@ -365,11 +376,11 @@ export default function LeaseDetail({route, navigation}: Props) {
 
                 {it.isVariable && (
                   <TextInput
-                    placeholder="Chỉ số đầu (meter start)"
+                    placeholder={t('leaseDetail.meterStartPh')}
                     placeholderTextColor={c.subtext}
                     keyboardType="numeric"
                     value={it.meterStart}
-                    onChangeText={t => updateItem(idx, {meterStart: formatTyping(t)})}
+                    onChangeText={t_ => updateItem(idx, {meterStart: formatTyping(t_)})}
                     style={{
                       borderRadius: 10,
                       padding: 10,
@@ -379,14 +390,14 @@ export default function LeaseDetail({route, navigation}: Props) {
                   />
                 )}
 
-                <Button title="Xoá" variant="ghost" onPress={() => removeItem(idx)} />
+                <Button title={t('common.remove')} variant="ghost" onPress={() => removeItem(idx)} />
               </View>
             ))}
           </Card>
 
           <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 10}}>
-            <Button title="Huỷ" variant="ghost" onPress={() => { setEditMode(false); setNewItems([]); }} />
-            <Button title="Lưu" onPress={saveApplyNext} />
+            <Button title={t('common.cancel')} variant="ghost" onPress={() => { setEditMode(false); setNewItems([]); }} />
+            <Button title={t('common.save')} onPress={saveApplyNext} />
           </View>
         </ScrollView>
       )}
@@ -395,56 +406,56 @@ export default function LeaseDetail({route, navigation}: Props) {
       <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={()=>setShowEndModal(false)}>
         <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'flex-end'}}>
           <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16, gap:10, maxHeight:'90%'}}>
-            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>Kết thúc hợp đồng trước hạn</Text>
-            <Text style={{color:c.text}}>Tiền cọc hiện tại: {format(deposit)}</Text>
+            <Text style={{color:c.text, fontWeight:'800', fontSize:16}}>{t('leaseDetail.endEarly')}</Text>
+            <Text style={{color:c.text}}>{t('leaseDetail.depositNow')}: {format(deposit)}</Text>
 
             <Card style={{gap:8}}>
-              <Text style={{color:c.text, fontWeight:'700'}}>Phụ phí phát sinh</Text>
+              <Text style={{color:c.text, fontWeight:'700'}}>{t('leaseDetail.arisingCharges')}</Text>
               {endExtras.map((ex, idx)=>(
                 <View key={idx} style={{gap:6}}>
                   <TextInput
-                    placeholder="Tên khoản"
+                    placeholder={t('leaseDetail.itemNamePh')}
                     placeholderTextColor={c.subtext}
                     value={ex.name}
-                    onChangeText={t=>updEndExtra(idx,{name:t})}
+                    onChangeText={t_=>updEndExtra(idx,{name:t_})}
                     style={{borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
                   />
                   <View style={{flexDirection:'row',gap:8}}>
                     <TextInput
-                      placeholder="Số tiền (+ trừ cọc)"
+                      placeholder={t('leaseDetail.amountPlusPh')}
                       placeholderTextColor={c.subtext}
                       keyboardType="numeric"
                       value={ex.amount}
-                      onChangeText={t=>updEndExtra(idx,{amount:formatTyping(t)})}
+                      onChangeText={t_=>updEndExtra(idx,{amount:formatTyping(t_)})}
                       style={{flex:1,borderRadius:10,padding:10,color:c.text,backgroundColor:c.card}}
                     />
-                    <Button title="Xoá" variant="ghost" onPress={()=>delEndExtra(idx)}/>
+                    <Button title={t('common.remove')} variant="ghost" onPress={()=>delEndExtra(idx)}/>
                   </View>
                 </View>
               ))}
-              <Button title="+ Thêm khoản" variant="ghost" onPress={addEndExtra}/>
+              <Button title={t('common.addItem')} variant="ghost" onPress={addEndExtra}/>
             </Card>
 
             <Card>
-              <Text style={{color:c.text}}>Tổng phụ phí: {format(endExtrasSum)}</Text>
-              {finalBalance > 0 && (<Text style={{color:c.text}}>Số tiền trả lại khách: {format(finalBalance)}</Text>)}
-              {finalBalance < 0 && (<Text style={{color:c.text}}>Cần thu thêm của khách: {format(Math.abs(finalBalance))}</Text>)}
-              {finalBalance === 0 && (<Text style={{color:c.text}}>Không phát sinh thêm.</Text>)}
+              <Text style={{color:c.text}}>{t('leaseDetail.totalArising')}: {format(endExtrasSum)}</Text>
+              {finalBalance > 0 && (<Text style={{color:c.text}}>{t('leaseDetail.refundToTenant')}: {format(finalBalance)}</Text>)}
+              {finalBalance < 0 && (<Text style={{color:c.text}}>{t('leaseDetail.collectMore')}: {format(Math.abs(finalBalance))}</Text>)}
+              {finalBalance === 0 && (<Text style={{color:c.text}}>{t('leaseDetail.noFurther')}</Text>)}
             </Card>
 
             <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-              <Button title="Huỷ" variant="ghost" onPress={()=>setShowEndModal(false)}/>
-              <Button title="Kết thúc" onPress={()=>{
+              <Button title={t('common.cancel')} variant="ghost" onPress={()=>setShowEndModal(false)}/>
+              <Button title={t('leaseDetail.finish')} onPress={()=>{
                 const payload = endExtras
                   .filter(it=>it.name.trim())
                   .map(it=>({name: it.name.trim(), amount: parseAmount(it.amount || '')}));
                 const res = endLeaseWithSettlement(leaseId, payload);
                 setShowEndModal(false);
                 const msg =
-                  res.finalBalance > 0 ? `Trả lại khách ${format(res.finalBalance)}`
-                  : res.finalBalance < 0 ? `Cần thu thêm của khách ${format(Math.abs(res.finalBalance))}`
-                  : 'Không phát sinh thêm';
-                Alert.alert('Đã kết thúc hợp đồng', msg, [{text:'OK', onPress:()=>{ navigation.goBack(); }}]);
+                  res.finalBalance > 0 ? `${t('leaseDetail.refundToTenant')} ${format(res.finalBalance)}`
+                  : res.finalBalance < 0 ? `${t('leaseDetail.collectMore')} ${format(Math.abs(res.finalBalance))}`
+                  : t('leaseDetail.noFurther');
+                Alert.alert(t('leaseDetail.ended'), msg, [{text: t('common.ok'), onPress:()=>{ navigation.goBack(); }}]);
               }}/>
             </View>
           </View>

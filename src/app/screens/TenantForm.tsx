@@ -1,3 +1,4 @@
+// src/app/screens/TenantForm.tsx
 import React, {useState} from 'react';
 import {View} from 'react-native';
 import Header from '../components/Header';
@@ -8,25 +9,40 @@ import {useThemeColors} from '../theme';
 import {createTenant} from '../../services/rent';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
+import {useTranslation} from 'react-i18next';
 
 export default function TenantForm({navigation}: NativeStackScreenProps<RootStackParamList, 'TenantForm'>) {
+  const {t} = useTranslation();
   const c = useThemeColors();
   const [name,setName] = useState('');
   const [phone,setPhone] = useState('');
   const [idnum,setIdnum] = useState('');
   const [note,setNote] = useState('');
+
   return (
     <View style={{flex:1, padding:16, backgroundColor:'transparent'}}>
-      <Header title="Thêm người thuê" />
+      <Header title={t('tenantForm.addTenant')} />
       <Card>
-        <Input placeholder="Họ tên" value={name} onChangeText={setName} />
+        <Input placeholder={t('tenantForm.fullName')} value={name} onChangeText={setName} />
         <View style={{height:8}}/>
-        <Input placeholder="Điện thoại" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <Input placeholder={t('tenantForm.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <View style={{height:8}}/>
-        <Input placeholder="Số CMND/CCCD" value={idnum} onChangeText={setIdnum} />
+        <Input placeholder={t('tenantForm.idNumber')} value={idnum} onChangeText={setIdnum} />
         <View style={{height:8}}/>
-        <Input placeholder="Ghi chú" value={note} onChangeText={setNote} />
-        <Button title="Lưu" onPress={()=>{ if(!name.trim()) return; createTenant(name.trim(), phone.trim()||undefined, idnum.trim()||undefined, note.trim()||undefined); navigation.goBack(); }} />
+        <Input placeholder={t('tenantForm.note')} value={note} onChangeText={setNote} />
+        <Button
+          title={t('tenantForm.save')}
+          onPress={()=>{
+            if(!name.trim()) return;
+            createTenant(
+              name.trim(),
+              phone.trim()||undefined,
+              idnum.trim()||undefined,
+              note.trim()||undefined
+            );
+            navigation.goBack();
+          }}
+        />
       </Card>
     </View>
   );

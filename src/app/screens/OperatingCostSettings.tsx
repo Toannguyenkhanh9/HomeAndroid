@@ -9,6 +9,7 @@ import Button from '../components/Button';
 import {useThemeColors} from '../theme';
 import { formatNumber as groupVN, onlyDigits } from '../../utils/number';
 import {listOperatingCostTemplates, replaceOperatingCostTemplates} from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostSettings'>;
 type Row = {name:string; isVariable:boolean; defaultAmount?:string};
@@ -23,6 +24,7 @@ function formatTyping(s: string) {
 export default function OperatingCostSettings({route, navigation}: Props) {
   const {apartmentId} = route.params as any;
   const c = useThemeColors();
+  const {t} = useTranslation();
 
   const [fixedRows, setFixedRows] = useState<Row[]>([]);
   const [varRows, setVarRows] = useState<Row[]>([]);
@@ -87,7 +89,7 @@ export default function OperatingCostSettings({route, navigation}: Props) {
       })),
     ];
     replaceOperatingCostTemplates(apartmentId, payload);
-    Alert.alert('Đã lưu', 'Cấu hình chi phí đã được cập nhật.', [
+    Alert.alert(t('operatingCostSettings.saved'), t('operatingCostSettings.savedMsg'), [
       {text:'OK', onPress: () => navigation.goBack()},
     ]);
   };
@@ -100,7 +102,7 @@ export default function OperatingCostSettings({route, navigation}: Props) {
         showsVerticalScrollIndicator
       >
         <Card style={{gap:10}}>
-          <Text style={{color:c.text, fontWeight:'800'}}>Chi phí CỐ ĐỊNH</Text>
+          <Text style={{color:c.text, fontWeight:'800'}}>{t('operatingCostSettings.fixedCosts')}</Text>
           {fixedRows.map((r, idx)=>(
             <FixedRowItem
               key={`f-${idx}`}
@@ -111,12 +113,12 @@ export default function OperatingCostSettings({route, navigation}: Props) {
               onRemove={()=>removeFixedAt(idx)}
             />
           ))}
-          <Button title="+ Thêm khoản cố định" variant="ghost"
+          <Button title={t('operatingCostSettings.addFixed')} variant="ghost"
             onPress={()=>setFixedRows(arr=>[...arr, {name:'', isVariable:false, defaultAmount:''}])}/>
         </Card>
 
         <Card style={{gap:10}}>
-          <Text style={{color:c.text, fontWeight:'800'}}>Chi phí KHÔNG cố định</Text>
+          <Text style={{color:c.text, fontWeight:'800'}}>{t('operatingCostSettings.variableCosts')}</Text>
           {varRows.map((r, idx)=>(
             <VarRowItem
               key={`v-${idx}`}
@@ -126,12 +128,12 @@ export default function OperatingCostSettings({route, navigation}: Props) {
               onRemove={()=>removeVarAt(idx)}
             />
           ))}
-          <Button title="+ Thêm khoản không cố định" variant="ghost"
+          <Button title={t('operatingCostSettings.addVariable')} variant="ghost"
             onPress={()=>setVarRows(arr=>[...arr, {name:'', isVariable:true, defaultAmount:''}])}/>
         </Card>
 
         <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
-          <Button title="Lưu" onPress={save}/>
+          <Button title={t('operatingCostSettings.save')} onPress={save}/>
         </View>
       </ScrollView>
     </View>
@@ -153,10 +155,11 @@ const FixedRowItem = memo(function FixedRowItem({
   onChangeAmount: (t:string)=>void;
   onRemove: ()=>void;
 }) {
+  const {t} = useTranslation();
   return (
     <View style={{ borderRadius:10, padding:10, gap:8}}>
       <TextInput
-        placeholder="Tên khoản chi"
+        placeholder={t('operatingCostSettings.namePlaceholder')}
         placeholderTextColor={c.subtext}
         value={row.name ?? ''}
         onChangeText={onChangeName}
@@ -164,7 +167,7 @@ const FixedRowItem = memo(function FixedRowItem({
         style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
       <TextInput
-        placeholder="Số tiền mặc định"
+        placeholder={t('operatingCostSettings.defaultAmount')}
         placeholderTextColor={c.subtext}
         keyboardType="numeric"
         value={row.defaultAmount ?? ''}
@@ -172,7 +175,7 @@ const FixedRowItem = memo(function FixedRowItem({
         blurOnSubmit={false}
         style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
-      <Button title="Xoá" variant="ghost" onPress={onRemove}/>
+      <Button title={t('operatingCostSettings.delete')} variant="ghost" onPress={onRemove}/>
     </View>
   );
 });
@@ -188,17 +191,18 @@ const VarRowItem = memo(function VarRowItem({
   onChangeName: (t:string)=>void;
   onRemove: ()=>void;
 }) {
+  const {t} = useTranslation();
   return (
     <View style={{borderRadius:10, padding:10, gap:8}}>
       <TextInput
-        placeholder="Tên khoản chi (không cố định)"
+        placeholder={t('operatingCostSettings.variableNamePlaceholder')}
         placeholderTextColor={c.subtext}
         value={row.name ?? ''}
         onChangeText={onChangeName}
         blurOnSubmit={false}
         style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
       />
-      <Button title="Xoá" variant="ghost" onPress={onRemove}/>
+      <Button title={t('operatingCostSettings.delete')} variant="ghost" onPress={onRemove}/>
     </View>
   );
 });

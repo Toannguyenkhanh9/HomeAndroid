@@ -1,7 +1,19 @@
 // src/services/rent.ts
 import {exec, query} from '../db';
 import {v4 as uuidv4} from 'uuid';
-
+let __i18nMod: any;
+try {
+  // kỳ vọng có export t() từ src/i18n
+  // ví dụ: export const t = (k:string, params?:any)=> i18next.t(k, params)
+  // hoặc module tương đương.
+  __i18nMod = require('../i18n');
+} catch {}
+const t = (key: string, params?: any) => {
+  try {
+    if (__i18nMod && typeof __i18nMod.t === 'function') return __i18nMod.t(key, params);
+  } catch {}
+  return key; // fallback không làm app crash
+};
 type LeaseType = 'short_term' | 'long_term';
 type Billing = 'daily' | 'monthly' | 'yearly';
 type CollectWhen = 'start' | 'end';
@@ -50,7 +62,7 @@ export function createApartment(name: string, address?: string) {
 }
 export function deleteApartment(apartmentId: string) {
   const rooms = query<{c:number}>(`SELECT COUNT(*) c FROM rooms WHERE apartment_id = ?`, [apartmentId])[0]?.c ?? 0;
-  if (rooms > 0) throw new Error('Căn hộ còn phòng, không thể xoá.');
+  if (rooms > 0) throw new Error(t('rent.apartmentexistroom'));
   exec(`DELETE FROM apartments WHERE id = ?`, [apartmentId]);
 }
 
@@ -367,12 +379,12 @@ export function settleCycleWithInputs(
 
   if (base > 0) {
     if (collectWhen === 'end') {
-      addInvoiceItem(inv.id, 'Giá thuê cơ bản (Tiền nhà)', 1, 'tháng', base, base, undefined, {
+      addInvoiceItem(inv.id, t('rent.roomprice'), 1,  t('rent.month'), base, base, undefined, {
         base:true, cycle_of:'current', for_period_start:c.period_start, for_period_end:c.period_end,
       });
     } else {
       if (!isLastCycle) {
-        addInvoiceItem(inv.id, 'Giá thuê cơ bản (Tiền nhà)', 1, 'tháng', base, base, undefined, {
+        addInvoiceItem(inv.id,  t('rent.roomprice'), 1,  t('rent.month'), base, base, undefined, {
           base:true, cycle_of:'next', for_period_start:toYMD(nextStart), for_period_end:toYMD(nextEnd),
         });
       }
@@ -382,9 +394,9 @@ export function settleCycleWithInputs(
   const charges = listChargesForLease(inv.lease_id);
   for (const ch of charges) {
     if (Number(ch.is_variable) === 1) continue;
-    if (String(ch.name).toLowerCase() === 'tiền phòng') continue;
+    if (String(ch.name).toLowerCase() === t('rent.roomprice1')) continue;
     const price = Number(ch.unit_price) || 0;
-    addInvoiceItem(inv.id, ch.name, 1, ch.unit || 'tháng', price, price, ch.charge_type_id, {
+    addInvoiceItem(inv.id, ch.name, 1, ch.unit || t('rent.month'), price, price, ch.charge_type_id, {
       cycle_of:'current', for_period_start:c.period_start, for_period_end:c.period_end,
     });
   }
@@ -459,13 +471,13 @@ export function seedChargeCatalogOnce() {
   const c = query<{c:number}>(`SELECT COUNT(*) c FROM charge_types`)[0]?.c ?? 0;
   if (c > 0) return;
   const defs = [
-    {name:'Gửi xe', unit:'tháng', pricing_model:'flat', unit_price:0},
-    {name:'Internet', unit:'tháng', pricing_model:'flat', unit_price:0},
-    {name:'Rác', unit:'tháng', pricing_model:'flat', unit_price:0},
-    {name:'Bảo trì', unit:'tháng', pricing_model:'flat', unit_price:0},
-    {name:'An Ninh', unit:'tháng', pricing_model:'flat', unit_price:0},
-    {name:'Điện', unit:'kWh', pricing_model:'per_unit', unit_price:0, meta:{is_variable:true}},
-    {name:'Nước', unit:'m3',  pricing_model:'per_unit', unit_price:0, meta:{is_variable:true}},
+    {name:t('rent.carprice'), unit: t('rent.month'), pricing_model:'flat', unit_price:0},
+    {name:t('rent.internet'), unit:t('rent.month'), pricing_model:'flat', unit_price:0},
+    {name:t('rent.garbage'), unit:t('rent.month'), pricing_model:'flat', unit_price:0},
+    {name:t('rent.maintenance'), unit:t('rent.month'), pricing_model:'flat', unit_price:0},
+    {name:t('rent.security'), unit:t('rent.month'), pricing_model:'flat', unit_price:0},
+    {name:t('rent.electricity'), unit:'kWh', pricing_model:'per_unit', unit_price:0, meta:{is_variable:true}},
+    {name:t('rent.water'), unit:'m3',  pricing_model:'per_unit', unit_price:0, meta:{is_variable:true}},
   ] as any[];
   for (const d of defs) {
     exec(`INSERT INTO charge_types (id,name,unit,pricing_model,unit_price,meta_json) VALUES (?,?,?,?,?,?)`,
@@ -630,7 +642,7 @@ export function getLeaseTemplateForRenew(leaseId: string) {
       return {
         name: r.name,
         type: isVar ? 'variable' : 'fixed',
-        unit: r.unit || (isVar ? 'đv' : 'tháng'),
+        unit: r.unit || (isVar ? t('rent.unit') : t('rent.month')),
         unitPrice: Number(r.unit_price) || 0,
         meterStart: isVar ? Number(r.meter_start || 0) : undefined,
       };

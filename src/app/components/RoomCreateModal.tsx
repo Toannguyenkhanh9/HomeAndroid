@@ -1,8 +1,10 @@
+// src/app/components/RoomCreateModal.tsx
 import React, {useState} from 'react';
 import {Modal, View, Text, TextInput, KeyboardAvoidingView, Platform, Alert} from 'react-native';
 import Button from './Button';
 import {useThemeColors} from '../theme';
 import {createRoom} from '../../services/rent';
+import {useTranslation} from 'react-i18next';
 
 export default function RoomCreateModal({
   visible,
@@ -13,8 +15,9 @@ export default function RoomCreateModal({
   visible: boolean;
   onClose: () => void;
   apartmentId: string;
-  onCreated: () => void; // gọi reload sau khi tạo
+  onCreated: () => void;
 }) {
+  const {t} = useTranslation();
   const c = useThemeColors();
   const [code, setCode] = useState('');
   const [floor, setFloor] = useState('');
@@ -24,14 +27,19 @@ export default function RoomCreateModal({
 
   const onSave = () => {
     try {
-      if (!apartmentId) return Alert.alert('Thiếu apartmentId');
-      if (!code.trim()) return Alert.alert('Vui lòng nhập mã phòng');
-      createRoom(apartmentId, code.trim(), floor ? Number(floor) : undefined, area ? Number(area) : undefined);
+      if (!apartmentId) return Alert.alert(t('roomCreate.missingApartmentId'));
+      if (!code.trim()) return Alert.alert(t('roomCreate.enterRoomCode'));
+      createRoom(
+        apartmentId,
+        code.trim(),
+        floor ? Number(floor) : undefined,
+        area ? Number(area) : undefined
+      );
       reset();
       onClose();
-      onCreated(); // reload list
+      onCreated();
     } catch (e: any) {
-      Alert.alert('Không thể tạo phòng', e?.message || 'Vui lòng thử lại');
+      Alert.alert(t('roomCreate.createFail'), e?.message || t('common.tryAgain'));
     }
   };
 
@@ -40,17 +48,19 @@ export default function RoomCreateModal({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{flex: 1}}>
         <View style={{flex:1, backgroundColor:'#0006', justifyContent:'flex-end'}}>
           <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16}}>
-            <Text style={{color:c.text, fontWeight:'700', fontSize:16, marginBottom:8}}>Thêm phòng</Text>
+            <Text style={{color:c.text, fontWeight:'700', fontSize:16, marginBottom:8}}>
+              {t('roomCreate.title')}
+            </Text>
 
             <TextInput
-              placeholder="Mã phòng (VD: P201)"
+              placeholder={t('roomCreate.codePlaceholder')}
               placeholderTextColor={c.subtext}
               value={code}
               onChangeText={setCode}
               style={{backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
             />
             <TextInput
-              placeholder="Tầng"
+              placeholder={t('roomCreate.floorPlaceholder')}
               placeholderTextColor={c.subtext}
               keyboardType="numeric"
               value={floor}
@@ -58,7 +68,7 @@ export default function RoomCreateModal({
               style={{ backgroundColor:c.card, color:c.text, padding:10, borderRadius:10, marginBottom:10}}
             />
             <TextInput
-              placeholder="Diện tích (m2)"
+              placeholder={t('roomCreate.areaPlaceholder')}
               placeholderTextColor={c.subtext}
               keyboardType="numeric"
               value={area}
@@ -67,8 +77,8 @@ export default function RoomCreateModal({
             />
 
             <View style={{flexDirection:'row', justifyContent:'flex-end', gap:8}}>
-              <Button title="Huỷ" variant="ghost" onPress={()=>{ reset(); onClose(); }} />
-              <Button title="Lưu phòng" onPress={onSave} />
+              <Button title={t('common.cancel')} variant="ghost" onPress={()=>{ reset(); onClose(); }} />
+              <Button title={t('roomCreate.save')} onPress={onSave} />
             </View>
           </View>
         </View>

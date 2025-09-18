@@ -38,6 +38,8 @@ import ApartmentReport from '../screens/ApartmentReport';
 import OperatingCostSettings from '../screens/OperatingCostSettings';
 import OperatingCostMonth from '../screens/OperatingCostMonth';
 import Onboarding from '../screens/Onboarding';
+import HelpScreen from '../screens/HelpScreen';
+import {useTranslation} from 'react-i18next';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -62,6 +64,7 @@ export type RootStackParamList = {
   ApartmentReport: { apartmentId: string };
   OperatingCostMonth: { apartmentId: string; ym: string };
   OperatingCostSettings: { apartmentId: string };
+  HelpScreen  : undefined
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -88,6 +91,7 @@ function AppInner() {
   const navTheme = isDark ? DarkNavTheme : LightNavTheme;
 
   const {ready} = useI18n();
+  const {t} = useTranslation();
 
   const [dbReady, setDbReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
@@ -119,14 +123,14 @@ function AppInner() {
       <Stack.Navigator
         initialRouteName={showOnboarding ? 'Onboarding' : 'ApartmentsList'}
         screenOptions={{
-          contentStyle: { backgroundColor: 'transparent' }, // 👈 cho scene trong suốt
-          headerStyle: { backgroundColor: 'transparent' },  // 👈 header trong suốt
+          contentStyle: { backgroundColor: 'transparent' },
+          headerStyle: { backgroundColor: 'transparent' },
         }}
       >
         <Stack.Screen
           name="Onboarding"
           component={Onboarding as any}
-          options={{headerShown: false}}
+          options={{ headerShown: false }}
           initialParams={{
             onDone: async (navigation: any) => {
               await AsyncStorage.setItem(ONBOARD_KEY, '1');
@@ -138,28 +142,113 @@ function AppInner() {
         <Stack.Screen
           name="ApartmentsList"
           component={ApartmentsList}
-          options={{title: 'Căn hộ'}}
+          options={{ title: t('nav.apartments') }}
         />
-        <Stack.Screen name="ApartmentForm" component={ApartmentForm} options={{title: 'Thêm căn hộ'}} />
-        <Stack.Screen name="RoomForm" component={RoomForm} options={{title: 'Phòng'}} />
-        <Stack.Screen name="RoomDetail" component={RoomDetail} options={{title: 'Chi tiết phòng'}} />
-        <Stack.Screen name="LeaseForm" component={LeaseForm} options={{title: 'Tạo hợp đồng'}} />
-        <Stack.Screen name="LeaseDetail" component={LeaseDetail} options={{title: 'Hợp đồng'}} />
-        <Stack.Screen name="CycleDetail" component={CycleDetail} options={{title: 'Chu kỳ'}} />
-        <Stack.Screen name="InvoiceDetail" component={InvoiceDetail} options={{title: 'Hóa đơn'}} />
-        <Stack.Screen name="Reports" component={Reports} options={{title: 'Báo cáo'}} />
-        <Stack.Screen name="Settings" component={Settings} options={{title: 'Cài đặt'}} />
-        <Stack.Screen name="TenantsList" component={TenantsList} options={{title: 'Người thuê'}} />
-        <Stack.Screen name="TenantForm" component={TenantForm} options={{title: 'Thêm người thuê'}} />
-        <Stack.Screen name="ApartmentActivityMonths" component={ApartmentActivityMonths} options={{title: 'Lịch sử hoạt động'}} />
-        <Stack.Screen name="ApartmentActivityDetail" component={ApartmentActivityDetail} options={{title: 'Hoạt động theo tháng'}} />
-        <Stack.Screen name="LeaseHistory" component={LeaseHistory} options={{title: 'Lịch sử hợp đồng'}} />
-        <Stack.Screen name="LeaseHistoryDetail" component={LeaseHistoryDetail} options={{title: 'Chi tiết hợp đồng'}} />
-        <Stack.Screen name="OperatingCosts" component={OperatingCosts} />
-        <Stack.Screen name="OperatingCostDetail" component={OperatingCostDetail} />
-        <Stack.Screen name="ApartmentReport" component={ApartmentReport} />
-        <Stack.Screen name="OperatingCostSettings" component={OperatingCostSettings} />
-        <Stack.Screen name="OperatingCostMonth" component={OperatingCostMonth} />
+        <Stack.Screen
+          name="ApartmentForm"
+          component={ApartmentForm}
+          options={{ title: t('nav.apartmentForm') }}
+        />
+        <Stack.Screen
+          name="RoomForm"
+          component={RoomForm}
+          options={{ title: t('nav.roomForm') }}
+        />
+        <Stack.Screen
+          name="RoomDetail"
+          component={RoomDetail}
+          options={{ title: t('nav.roomDetail') }}
+        />
+        <Stack.Screen
+          name="LeaseForm"
+          component={LeaseForm}
+          options={{ title: t('nav.leaseForm') }}
+        />
+        <Stack.Screen
+          name="LeaseDetail"
+          component={LeaseDetail}
+          options={{ title: t('nav.leaseDetail') }}
+        />
+        <Stack.Screen
+          name="CycleDetail"
+          component={CycleDetail}
+          options={{ title: t('nav.cycleDetail') }}
+        />
+        <Stack.Screen
+          name="InvoiceDetail"
+          component={InvoiceDetail}
+          options={{ title: t('nav.invoiceDetail') }}
+        />
+        <Stack.Screen
+          name="Reports"
+          component={Reports}
+          options={{ title: t('nav.reports') }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={Settings}
+          options={{ title: t('nav.settings') }}
+        />
+        <Stack.Screen
+          name="TenantsList"
+          component={TenantsList}
+          options={{ title: t('nav.tenantsList') }}
+        />
+        <Stack.Screen
+          name="TenantForm"
+          component={TenantForm}
+          options={{ title: t('nav.tenantForm') }}
+        />
+        <Stack.Screen
+          name="ApartmentActivityMonths"
+          component={ApartmentActivityMonths}
+          options={{ title: t('nav.apartmentActivityMonths') }}
+        />
+        <Stack.Screen
+          name="ApartmentActivityDetail"
+          component={ApartmentActivityDetail}
+          options={{ title: t('nav.apartmentActivityDetail') }}
+        />
+        <Stack.Screen
+          name="LeaseHistory"
+          component={LeaseHistory}
+          options={{ title: t('nav.leaseHistory') }}
+        />
+        <Stack.Screen
+          name="LeaseHistoryDetail"
+          component={LeaseHistoryDetail}
+          options={{ title: t('nav.leaseHistoryDetail') }}
+        />
+        <Stack.Screen
+          name="OperatingCosts"
+          component={OperatingCosts}
+          options={{ title: t('nav.operatingCosts') }}
+        />
+        <Stack.Screen
+          name="OperatingCostDetail"
+          component={OperatingCostDetail}
+          options={{ title: t('nav.operatingCostDetail') }}
+        />
+        <Stack.Screen
+          name="ApartmentReport"
+          component={ApartmentReport}
+          options={{ title: t('nav.apartmentReport') }}
+        />
+        <Stack.Screen
+          name="OperatingCostSettings"
+          component={OperatingCostSettings}
+          options={{ title: t('nav.operatingCostSettings') }}
+        />
+        <Stack.Screen
+          name="OperatingCostMonth"
+          component={OperatingCostMonth}
+          options={{ title: t('nav.operatingCostMonth') }}
+        />
+        <Stack.Screen
+          name="HelpScreen"
+          component={HelpScreen}
+          options={{ title: t('nav.help') }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

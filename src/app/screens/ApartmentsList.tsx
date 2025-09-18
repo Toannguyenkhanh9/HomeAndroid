@@ -251,7 +251,7 @@ export default function ApartmentsList({navigation}: NativeStackScreenProps<Root
                 <BigIcon label={t('addApartment')}  icon="🏢" onPress={()=>setShowCreate(true)}/>
                 <BigIcon label={t('tenants')} icon="🧑‍🤝‍🧑" onPress={()=>navigation.navigate('TenantsList')}/>
                 <BigIcon label={t('settings')} icon="⚙️" onPress={()=>navigation.navigate('Settings')}/>
-                <BigIcon label={t('help')}  icon="❓" onPress={()=>navigation.navigate('Onboarding')}/>
+                <BigIcon label={t('helpmain')}  icon="❓" onPress={()=>navigation.navigate('HelpScreen')}/>
               </View>
             </View>
           </Container>
