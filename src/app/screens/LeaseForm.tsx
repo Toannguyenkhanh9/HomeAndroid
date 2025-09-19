@@ -12,6 +12,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
 import {useTranslation} from 'react-i18next';
+import { formatIntTyping, parseIntSafe, parseDecimalSafe } from '../../utils/number';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -47,7 +48,12 @@ export default function LeaseForm({route, navigation}: Props) {
   const [idNumber, setIdNumber] = useState('');
   const [phone, setPhone] = useState('');
 
+  // Kiểu chu kỳ tính tiền
   const [mode, setMode] = useState<'monthly' | 'daily'>('monthly');
+
+  // Kỳ hạn: có / không
+  const [term, setTerm] = useState<'fixed' | 'open'>('fixed'); // ✅ NEW
+
   const [startISO, setStartISO] = useState(new Date().toISOString().slice(0, 10));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [months, setMonths] = useState('12');
@@ -69,24 +75,30 @@ export default function LeaseForm({route, navigation}: Props) {
   const delCharge = (i: number) => setCharges(p => p.filter((_, idx) => idx !== i));
 
   const durationHint = useMemo(() => {
+    if (term === 'open') return t('leaseForm.noTerm') ?? 'Không kỳ hạn';
     if (mode === 'daily') {
       const n = parseAmount(days);
       return n > 0 ? `${n} ${t('leaseForm.days')}` : '—';
     }
     const m = parseAmount(months);
     return m > 0 ? `${m} ${t('leaseForm.months')}` : '—';
-  }, [mode, days, months, t]);
+  }, [term, mode, days, months, t]);
 
   function validate(): string | null {
     if (!roomId) return t('leaseForm.errorMissingRoomId');
     if (!startISO) return t('leaseForm.errorMissingStart');
-    if (mode === 'monthly') {
-      const m = parseAmount(months);
-      if (m <= 0) return t('leaseForm.errorMonths');
-    } else {
-      const d = parseAmount(days);
-      if (d <= 0) return t('leaseForm.errorDays');
+
+    // Nếu có kỳ hạn mới bắt buộc nhập thời lượng
+    if (term === 'fixed') {
+      if (mode === 'monthly') {
+        const m = parseAmount(months);
+        if (m <= 0) return t('leaseForm.errorMonths');
+      } else {
+        const d = parseAmount(days);
+        if (d <= 0) return t('leaseForm.errorDays');
+      }
     }
+
     if (allInclusive) {
       const pack = parseAmount(allInclusiveAmount);
       if (pack <= 0) return t('leaseForm.errorAllInclusive');
@@ -115,10 +127,27 @@ export default function LeaseForm({route, navigation}: Props) {
           .map(ch => ({
             name: ch.name.trim(),
             type: ch.isVariable ? 'variable' : 'fixed',
-            unit: ch.unit || (ch.isVariable ? 'đv' : 'tháng'),
-            unitPrice: parseAmount(ch.price || ''),
-            meterStart: ch.isVariable ? parseAmount(ch.meterStart || '') : undefined,
+            unit: ch.unit || (ch.isVariable ? t('rent.unit') : t('rent.month')),
+            unitPrice: parseDecimalSafe(ch.price || ''),
+            meterStart: ch.isVariable ? parseIntSafe(ch.meterStart || '') : undefined,
           }))
+      : undefined;
+
+    // Tính endDate/duration theo kỳ hạn
+    const endDateISO =
+      term === 'fixed' && mode === 'monthly'
+        ? (() => {
+            const s = new Date(startISO);
+            const m = parseAmount(months);
+            const end = new Date(s);
+            end.setMonth(end.getMonth() + m);
+            end.setDate(end.getDate() - 1);
+            return end.toISOString().slice(0, 10);
+          })()
+        : undefined;
+
+    const durationDays = term === 'fixed' && mode === 'daily'
+      ? parseAmount(days) || 1
       : undefined;
 
     const payload = {
@@ -129,18 +158,8 @@ export default function LeaseForm({route, navigation}: Props) {
       baseRent,
       baseRentCollect: collect,
       deposit,
-      durationDays: mode === 'daily' ? parseAmount(days) || 1 : undefined,
-      endDateISO:
-        mode === 'monthly'
-          ? (() => {
-              const s = new Date(startISO);
-              const m = parseAmount(months);
-              const end = new Date(s);
-              end.setMonth(end.getMonth() + m);
-              end.setDate(end.getDate() - 1);
-              return end.toISOString().slice(0, 10);
-            })()
-          : undefined,
+      durationDays,
+      endDateISO,
       tenant: fullName
         ? {full_name: fullName.trim(), id_number: idNumber.trim(), phone: phone.trim()}
         : undefined,
@@ -150,13 +169,60 @@ export default function LeaseForm({route, navigation}: Props) {
 
     try {
       const leaseId = startLeaseAdvanced(payload as any);
-      Alert.alert(t('common.success'), t('leaseForm.created'), [
-        {text: 'OK', onPress: () => navigation.replace('LeaseDetail', {leaseId})},
+
+      // ===== Thông báo số tiền cần thu ngay =====
+      const depositAmt = deposit;
+      const firstRent = collect === 'start' ? baseRent : 0;
+      const totalDueNow = depositAmt + firstRent;
+
+      const title = t('leaseForm.created');
+      const msg =
+        collect === 'start'
+          ? `${t('leaseForm.collectNow') }:\n• ${t('leaseForm.deposit') }: ${format(depositAmt)}\n• ${t('leaseForm.firstPeriodRent')}: ${format(firstRent)}\n= ${t('leaseForm.total')}: ${format(totalDueNow)}`
+          : `${t('leaseForm.collectNow') }:\n• ${t('leaseForm.deposit') }: ${format(depositAmt)}`;
+
+      Alert.alert(title, msg, [
+        {text: t('common.ok') || 'OK', onPress: () => navigation.replace('LeaseDetail', {leaseId})},
       ]);
     } catch (e: any) {
       Alert.alert(t('common.error'), String(e?.message || e));
     }
   }
+  function formatTypingDecimalPretty(s: string) {
+  if (!s) return '';
+
+  // chỉ giữ số và . , rồi thống nhất thập phân thành '.'
+  let raw = s.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+
+  // tách phần nguyên / thập phân, cho phép 1 dấu '.'
+  const dotIdx = raw.indexOf('.');
+  const hasDot = dotIdx !== -1;
+  const intDigits = (hasDot ? raw.slice(0, dotIdx) : raw).replace(/\./g, ''); // bỏ dấu . nhóm cũ
+  let fracDigits = hasDot ? raw.slice(dotIdx + 1).replace(/\./g, '') : '';
+
+  // format phần nguyên theo vi-VN
+  // vẫn cho phép hiển thị "0.xxx" khi người dùng gõ ".xxx"
+  const intForNumber = intDigits === '' ? '0' : intDigits;
+  const intFormatted = Number(intForNumber).toLocaleString('vi-VN');
+
+  // nếu người dùng vừa gõ dấu '.' ở cuối, giữ lại
+  if (hasDot && s.endsWith('.') && fracDigits === '') {
+    return intFormatted + '.';
+  }
+  return hasDot ? `${intFormatted}.${fracDigits}` : intFormatted;
+}
+
+// Parse thập phân an toàn từ chuỗi đã có tách nghìn
+function parseDecimal(s: string) {
+  if (!s) return 0;
+  // bỏ mọi ký tự ngoài số và dấu '.', gom lại chỉ 1 dấu '.' làm thập phân
+  const cleaned = s.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot === -1) return Number(cleaned || '0');
+  const head = cleaned.slice(0, firstDot).replace(/\./g, ''); // bỏ dấu . nhóm
+  const tail = cleaned.slice(firstDot + 1).replace(/\./g, ''); // bỏ . thừa
+  return Number(`${head}.${tail}`) || 0;
+}
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
@@ -187,9 +253,11 @@ export default function LeaseForm({route, navigation}: Props) {
           />
         </Card>
 
-        {/* Loại chu kỳ & thời hạn */}
+        {/* Loại chu kỳ & kỳ hạn */}
         <Card style={{gap: 10}}>
           <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseForm.contractType')}</Text>
+
+          {/* Chu kỳ */}
           <View style={{flexDirection: 'row', gap: 8}}>
             {(['monthly', 'daily'] as const).map(k => (
               <TouchableOpacity
@@ -208,14 +276,32 @@ export default function LeaseForm({route, navigation}: Props) {
             ))}
           </View>
 
+          {/* Kỳ hạn: có / không */}
+          <View style={{flexDirection: 'row', gap: 8}}>
+            {(['fixed', 'open'] as const).map(k => (
+              <TouchableOpacity
+                key={k}
+                onPress={() => setTerm(k)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  backgroundColor: term === k ? '#0ea5e9' : c.card,
+                }}>
+                <Text style={{color: term === k ? 'white' : c.text}}>
+                  {k === 'fixed'
+                    ? (t('leaseForm.fixedTerm') || 'Có kỳ hạn')
+                    : (t('leaseForm.openTerm') || 'Không kỳ hạn')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Ngày bắt đầu */}
           <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.startDate')}</Text>
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
-            style={{
-              borderRadius: 10,
-              padding: 10,
-              backgroundColor: c.card,
-            }}>
+            style={{borderRadius: 10, padding: 10, backgroundColor: c.card}}>
             <Text style={{color: c.text}}>{formatDateISO(startISO, dateFormat, language)}</Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -225,33 +311,34 @@ export default function LeaseForm({route, navigation}: Props) {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, date) => {
                 setShowDatePicker(false);
-                if (date) {
-                  setStartISO(date.toISOString().slice(0, 10));
-                }
+                if (date) setStartISO(date.toISOString().slice(0, 10));
               }}
             />
           )}
 
-          {mode === 'monthly' ? (
-            <>
-              <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.monthCount')}</Text>
-              <TextInput
-                keyboardType="numeric"
-                value={months}
-                onChangeText={setMonths}
-                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.dayCount')}</Text>
-              <TextInput
-                keyboardType="numeric"
-                value={days}
-                onChangeText={setDays}
-                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
-              />
-            </>
+          {/* Thời lượng: CHỈ hiển thị nếu có kỳ hạn */}
+          {term === 'fixed' && (
+            mode === 'monthly' ? (
+              <>
+                <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.monthCount')}</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={months}
+                  onChangeText={setMonths}
+                  style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={{color: c.subtext, marginTop: 6}}>{t('leaseForm.dayCount')}</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={days}
+                  onChangeText={setDays}
+                  style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
+                />
+              </>
+            )
           )}
 
           <Text style={{color: c.subtext}}>
@@ -281,7 +368,7 @@ export default function LeaseForm({route, navigation}: Props) {
           </View>
         </Card>
 
-        {/* PHÍ TRỌN GÓI */}
+        {/* PHÍ TRỌN GÓI / GIÁ CƠ BẢN + CỌC */}
         <Card style={{gap: 8}}>
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
             <Text style={{color: c.text, fontWeight: '800'}}>{t('leaseForm.allInclusive')}</Text>
@@ -317,7 +404,7 @@ export default function LeaseForm({route, navigation}: Props) {
               <TextInput
                 keyboardType="numeric"
                 value={baseRentText}
-                onChangeText={ttext => setBaseRentText(formatTyping(ttext))}
+                onChangeText={ttext => setBaseRentText(formatIntTyping(ttext))}
                 placeholder={t('leaseForm.amountPlaceholder')}
                 placeholderTextColor={c.subtext}
                 style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
@@ -329,7 +416,7 @@ export default function LeaseForm({route, navigation}: Props) {
           <TextInput
             keyboardType="numeric"
             value={depositText}
-            onChangeText={ttext => setDepositText(formatTyping(ttext))}
+            onChangeText={ttext => setDepositText(formatIntTyping(ttext))}
             placeholder="0"
             placeholderTextColor={c.subtext}
             style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
@@ -356,7 +443,7 @@ export default function LeaseForm({route, navigation}: Props) {
 
                 <View style={{flexDirection: 'row', gap: 8}}>
                   <TouchableOpacity
-                    onPress={() => updCharge(idx, {isVariable: false, unit: 'tháng'})}
+                    onPress={() => updCharge(idx, {isVariable: false, unit: t('rent.month')})}
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 6,
@@ -366,7 +453,7 @@ export default function LeaseForm({route, navigation}: Props) {
                     <Text style={{color: ch.isVariable ? c.text : 'white'}}>{t('leaseForm.fixed')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => updCharge(idx, {isVariable: true, unit: 'đv'})}
+                    onPress={() => updCharge(idx, {isVariable: true, unit: t('rent.unit')})}
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 6,
@@ -381,9 +468,9 @@ export default function LeaseForm({route, navigation}: Props) {
                   {ch.isVariable ? t('leaseForm.unitPricePerUnit') : t('leaseForm.unitPricePerPeriod')}
                 </Text>
                 <TextInput
-                  keyboardType="numeric"
+                  keyboardType="decimal-pad"
                   value={ch.price}
-                  onChangeText={ttext => updCharge(idx, {price: formatTyping(ttext)})}
+                  onChangeText={txt => updCharge(idx, { price: txt })}
                   style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
@@ -393,7 +480,7 @@ export default function LeaseForm({route, navigation}: Props) {
                     <TextInput
                       keyboardType="numeric"
                       value={ch.meterStart}
-                      onChangeText={ttext => updCharge(idx, {meterStart: formatTyping(ttext)})}
+                      onChangeText={txt => updCharge(idx, { meterStart: formatIntTyping(txt) })}
                       style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                     />
                   </>

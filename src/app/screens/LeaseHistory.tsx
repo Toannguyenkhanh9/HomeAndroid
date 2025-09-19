@@ -53,8 +53,8 @@ export default function LeaseHistory({ route, navigation }: Props) {
                 </Text>
                 <Text style={{ color: c.subtext }}>
                   {t('leaseHistory.status')}:{' '}
-                  <Text style={{ color: c.text }}>{l.status}</Text> •{' '}
-                  {t('leaseHistory.billing')}: {l.billing_cycle}
+                  <Text style={{ color: c.text }}>{l.status === 'ended' ? t('common.ended') : t('common.active')}</Text> •{' '}
+                  {t('leaseHistory.billing')}: {l.billing_cycle === 'monthly' ? t('common.monthly') : t('common.daily')}
                 </Text>
               </Card>
             </TouchableOpacity>

@@ -66,7 +66,7 @@ export type RootStackParamList = {
   OperatingCostMonth: { apartmentId: string; ym: string };
   OperatingCostSettings: { apartmentId: string };
   HelpScreen  : undefined;
-  HoldingDepositList: undefined;
+  HoldingDepositList:{ apartmentId: string }
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -137,14 +137,14 @@ function AppInner() {
             onDone: async (navigation: any) => {
               await AsyncStorage.setItem(ONBOARD_KEY, '1');
               setShowOnboarding(false);
-              navigation.replace('ApartmentsList');
+              navigation.replace('Leasea');
             },
           }}
         />
         <Stack.Screen
           name="ApartmentsList"
           component={ApartmentsList}
-          options={{ title: t('nav.apartments') }}
+          options={{ title: 'Leasea' }}
         />
         <Stack.Screen
           name="ApartmentForm"
@@ -254,7 +254,7 @@ function AppInner() {
         <Stack.Screen
           name="HoldingDepositList"
           component={HoldingDepositList}
-          options={{ title: t('nav.help') }}
+          options={{ title: t('holdingDeposits.title') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

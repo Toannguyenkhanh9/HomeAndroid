@@ -6,6 +6,11 @@ import * as RNLocalize from 'react-native-localize';
 const resources = {
   vi: {
     translation: {
+      brand: {
+        name: 'Leasea',
+        slogan: 'Quản lý thuê nhà, tối ưu lợi nhuận',
+        devBy: "Phát triển bởi Kevin Group"
+      },
       nav: {
         apartments: 'Căn hộ',
         apartmentForm: 'Thêm căn hộ',
@@ -269,7 +274,7 @@ const resources = {
 
         baseRent: 'Giá thuê cơ bản (tiền nhà)',
         deposit: 'Tiền cọc',
-        amountPlaceholder: 'VD: 3.000.000 đ',
+        amountPlaceholder: 'VD: 5.000.000 đ',
 
         chooseCharges: 'Chọn các khoản phí',
         chargeNamePlaceholder: 'Tên phí (VD: Điện, Nước...)',
@@ -288,6 +293,12 @@ const resources = {
         errorDays: 'Số ngày phải > 0',
         errorAllInclusive: 'Nhập số tiền trọn gói hợp lệ',
         errorBaseRent: 'Nhập giá thuê cơ bản hợp lệ',
+        collectNow: 'Số tiền cần thu',
+        firstPeriodRent: 'Tiền nhà ký đầu',
+        total: 'Tổng',
+        fixedTerm: 'Có kỳ hạn',
+        openTerm: 'Không kỳ hạn',
+        noTerm: 'Không kỳ hạn',
       },
       leaseHistory: {
         title: 'Lịch sử hợp đồng',
@@ -377,6 +388,10 @@ const resources = {
         delete: 'Xoá',
         saved: 'Đã lưu',
         savedMsg: 'Cấu hình chi phí đã được cập nhật.',
+        houserent:'Tiền thuê nhà',
+        employeecost : 'Lương nhân viên',
+        internet : 'Internet',
+        garbage : 'Rác'
       },
       roomForm: {
         missingApartmentId: 'Thiếu apartmentId',
@@ -545,7 +560,7 @@ const resources = {
         settings: {
           title: 'Cài đặt',
           desc: 'Thiết lập định dạng ngày/tiền tệ/ngôn ngữ, các thông số hiển thị...',
-          note: 'Đổi ngôn ngữ sẽ áp dụng cho toàn bộ ứng dụng (nếu đã cấu hình i18n).',
+          note: 'Đổi ngôn ngữ sẽ áp dụng cho toàn bộ ứng dụng',
         },
 
         tips: {
@@ -589,6 +604,11 @@ const resources = {
   },
   en: {
     translation: {
+      brand: {
+        name: 'Leasea',
+        slogan: 'Track Rent, Grow Smart',
+        devBy: "Developed by Kevin Group"
+      },
       nav: {
         apartments: 'Apartments',
         apartmentForm: 'Add Apartment',
@@ -788,7 +808,7 @@ const resources = {
         extendFail: 'Unable to extend',
         qtyShort: 'Quantity',
         consumed: 'Consumed',
-        priceThisCycle: 'Price this period00',
+        priceThisCycle: 'Price this period',
       },
       common: {
         room: 'Room',
@@ -855,7 +875,7 @@ const resources = {
 
         baseRent: 'Base rent',
         deposit: 'Deposit',
-        amountPlaceholder: 'e.g. 3,000,000 ₫',
+        amountPlaceholder: 'e.g. 800',
 
         chooseCharges: 'Choose charges',
         chargeNamePlaceholder: 'Charge name (e.g. Electricity, Water...)',
@@ -874,6 +894,12 @@ const resources = {
         errorDays: 'Days must be > 0',
         errorAllInclusive: 'Enter a valid all-inclusive amount',
         errorBaseRent: 'Enter a valid base rent amount',
+        collectNow: 'Amount to collect',
+        firstPeriodRent: 'Initial rent',
+        total: 'Total',
+        fixedTerm: 'Term',
+        openTerm: 'No term',
+        noTerm: 'No term',
       },
       leaseHistory: {
         title: 'Lease history',
@@ -964,6 +990,10 @@ const resources = {
         delete: 'Delete',
         saved: 'Saved',
         savedMsg: 'Expense configuration has been updated.',
+        houserent:'House rent', 
+        employeecost: 'Employee salary',
+        internet: 'Internet',
+        garbage: 'Garbage'
       },
       roomForm: {
         missingApartmentId: 'Missing apartmentId',
@@ -1131,7 +1161,7 @@ const resources = {
         settings: {
           title: 'Settings',
           desc: 'Configure date/currency/language and display options.',
-          note: 'Language changes apply across the app (if i18n is set up).',
+          note: 'Language changes apply across the app',
         },
 
         tips: {

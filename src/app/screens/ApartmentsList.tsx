@@ -19,7 +19,8 @@ import ApartmentCreateModal from '../components/ApartmentCreateModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { deleteApartment, hasUnpaidCycles } from '../../services/rent';
 import { useTranslation } from 'react-i18next';
-
+import AppHeader from '../components/AppHeader';
+import AppFooter from '../components/AppFooter';
 type Row = { id: string; name: string; address?: string | null };
 
 type Stats = {
@@ -91,12 +92,9 @@ function StatBox({
   const c = useThemeColors();
   const pillVar =
     typeof percent === 'number' ? pillVariantForPercent(percent) : 'muted';
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPress}
-      style={[cardStyle(c), { flex: 1, gap: 8, paddingVertical: 14 }]}
-    >
+
+  const BoxInner = (
+    <>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View
           style={{
@@ -111,6 +109,7 @@ function StatBox({
         >
           <Text style={{ fontSize: 16 }}>{icon}</Text>
         </View>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={{ color: c.text, fontSize: 18, fontWeight: '800' }}>
             {value}
@@ -119,11 +118,36 @@ function StatBox({
             <PercentPill value={percent} variant={pillVar} />
           ) : null}
         </View>
+
         <View style={{ flex: 1 }} />
-        <Text style={{ fontSize: 18, color: c.subtext, opacity: 0.6 }}>›</Text>
+        {/* chỉ hiện chevron nếu có onPress */}
+        {onPress ? (
+          <Text style={{ fontSize: 18, color: c.subtext, opacity: 0.6 }}>
+            ›
+          </Text>
+        ) : null}
       </View>
+
       <Text style={{ color: c.subtext, fontSize: 13 }}>{label}</Text>
+    </>
+  );
+
+  const containerStyle = [
+    cardStyle(c),
+    { flex: 1, gap: 8, paddingVertical: 14 },
+  ];
+
+  // Có onPress => TouchableOpacity, không thì View thường
+  return onPress ? (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={containerStyle}
+    >
+      {BoxInner}
     </TouchableOpacity>
+  ) : (
+    <View style={containerStyle}>{BoxInner}</View>
   );
 }
 
@@ -367,6 +391,7 @@ export default function ApartmentsList({
 
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+      <AppHeader />
       {/* Tabs */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
         <View
@@ -633,16 +658,13 @@ export default function ApartmentsList({
                   />
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('HoldingDepositList')}
-                  >
-                    <StatBox
-                      icon="🔒"
-                      iconBg="#E6F2F1"
-                      label={t('stat_holdingDeposit')}
-                      value={s.holdingDeposit}
-                    />
-                  </TouchableOpacity>
+                  <StatBox
+                    icon="🔒"
+                    iconBg="#E6F2F1"
+                    label={t('stat_holdingDeposit')}
+                    value={s.holdingDeposit}
+                    onPress={() => navigation.navigate('HoldingDepositList', { apartmentId: item.id })}
+                  />
                 </View>
               </View>
             );
@@ -656,6 +678,7 @@ export default function ApartmentsList({
           }
         />
       )}
+       <AppFooter />
     </View>
   );
 }

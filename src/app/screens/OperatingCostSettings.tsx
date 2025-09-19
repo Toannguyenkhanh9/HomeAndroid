@@ -41,14 +41,14 @@ export default function OperatingCostSettings({route, navigation}: Props) {
       }
     }
     setFixedRows(f.length ? f : [
-      {name:'Tiền thuê nhà', isVariable:false, defaultAmount:''},
-      {name:'Internet', isVariable:false, defaultAmount:''},
-      {name:'Rác', isVariable:false, defaultAmount:''},
-      {name:'Lương nhân viên', isVariable:false, defaultAmount:''},
+      {name: t('operatingCostSettings.houserent'), isVariable:false, defaultAmount:''},
+      {name:t('operatingCostSettings.internet'), isVariable:false, defaultAmount:''},
+      {name:t('operatingCostSettings.garbage'), isVariable:false, defaultAmount:''},
+      {name: t('operatingCostSettings.employeecost'), isVariable:false, defaultAmount:''},
     ]);
     setVarRows(v.length ? v : [
-      {name:'Điện', isVariable:true, defaultAmount:''},
-      {name:'Nước', isVariable:true, defaultAmount:''},
+      {name:t('rent.electricity'), isVariable:true, defaultAmount:''},
+      {name:t('rent.water'), isVariable:true, defaultAmount:''},
     ]);
   }, [apartmentId]);
 

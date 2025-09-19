@@ -1,75 +1,72 @@
-// src/app/screens/HoldingDepositList.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import Header from '../components/Header';
-import Card from '../components/Card';
-import { useThemeColors } from '../theme';
+import { query } from '../../db';
+import { useThemeColors, cardStyle } from '../theme';
 import { useCurrency } from '../../utils/currency';
-import { getLease, listLeases } from '../../services/rent';
-import { getTenant, getRoom } from '../../services/rent';
+import Card from '../components/Card';
+import { useTranslation } from 'react-i18next';
 import { formatDateISO } from '../../utils/date';
 import { useSettings } from '../state/SettingsContext';
-import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HoldingDepositList'>;
 
-export default function HoldingDepositList({ navigation }: Props) {
+export default function HoldingDepositList({ route }: Props) {
+  const { dateFormat, language } = useSettings();
+  const { apartmentId } = route.params;
   const c = useThemeColors();
   const { format } = useCurrency();
-  const { dateFormat, language } = useSettings();
-  const { t } = useTranslation();
-
   const [rows, setRows] = useState<any[]>([]);
-
+  const { t } = useTranslation();
   useEffect(() => {
-    try {
-      // lấy tất cả leases có deposit_amount > 0 và đang active
-      const all = listLeases().filter((l: any) => Number(l.deposit_amount) > 0 && l.status === 'active');
-      const enriched = all.map((l: any) => {
-        const tenant = l.tenant_id ? getTenant(l.tenant_id) : null;
-        const room = l.room_id ? getRoom(l.room_id) : null;
-        return {
-          ...l,
-          tenantName: tenant?.full_name || '',
-          tenantPhone: tenant?.phone || '',
-          roomCode: room?.code || '',
-        };
-      });
-      setRows(enriched);
-    } catch {}
-  }, []);
+    const list = query<any>(
+      `
+      SELECT l.id, l.deposit_amount, l.start_date, l.end_date, l.status,
+             r.code AS room_code,
+             t.full_name AS tenant_name, t.phone AS tenant_phone
+      FROM leases l
+      JOIN rooms r   ON r.id = l.room_id
+      LEFT JOIN tenants t ON t.id = l.tenant_id
+      WHERE r.apartment_id = ?
+        AND l.status = 'active'
+        AND l.deposit_amount IS NOT NULL
+        AND l.deposit_amount > 0
+      ORDER BY l.start_date DESC
+      `,
+      [apartmentId],
+    );
+    setRows(list);
+  }, [apartmentId]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-      <Header title={t('holdingDeposits.title')} />
+    <View style={{ flex: 1, backgroundColor: 'transparent', padding: 16, gap: 12 }}>
       <FlatList
         data={rows}
+        contentContainerStyle={{ gap: 12, paddingVertical: 8 }}
         keyExtractor={(i) => i.id}
-        contentContainerStyle={{ padding: 12, gap: 12 }}
+        renderItem={({ item }) => (
+          <View style={[cardStyle(c), { padding: 12 }]}>
+            <Text style={{ color: c.text, fontWeight: '800' }}>
+              {item.room_code || '—'} · {item.tenant_name || '—'}
+            </Text>
+            <Text style={{ color: c.subtext }}>
+              {item.tenant_phone || '—'}
+            </Text>
+            <Text style={{ color: c.text, marginTop: 6 }}>
+               {t('holdingDeposits.amount')}: <Text style={{ fontWeight: '800' }}>{format(Number(item.deposit_amount) || 0)}</Text>
+            </Text>
+            <Text style={{ color: c.subtext }}>
+               {t('holdingDeposits.start')}: {formatDateISO(item.start_date, dateFormat, language)}
+
+            </Text>
+          </View>
+        )}
         ListEmptyComponent={
           <Card>
             <Text style={{ color: c.subtext }}>{t('holdingDeposits.none')}</Text>
           </Card>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('LeaseDetail', { leaseId: item.id })}>
-            <Card style={{ gap: 6 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{item.tenantName || t('holdingDeposits.noTenant')}</Text>
-              {item.tenantPhone ? <Text style={{ color: c.subtext }}>{item.tenantPhone}</Text> : null}
-              <Text style={{ color: c.text }}>
-                {t('holdingDeposits.room')}: {item.roomCode || '—'}
-              </Text>
-              <Text style={{ color: c.text }}>
-                {t('holdingDeposits.start')}: {formatDateISO(item.start_date, dateFormat, language)}
-              </Text>
-              <Text style={{ color: c.text, fontWeight: '600' }}>
-                {t('holdingDeposits.amount')}: {format(item.deposit_amount)}
-              </Text>
-            </Card>
-          </TouchableOpacity>
-        )}
       />
     </View>
   );
