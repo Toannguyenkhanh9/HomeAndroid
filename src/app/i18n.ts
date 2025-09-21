@@ -7,9 +7,10 @@ const resources = {
   vi: {
     translation: {
       brand: {
+        nameslogan: 'Leasea-Quản lý nhà/phòng trọ thông minh',
         name: 'Leasea',
         slogan: 'Quản lý thuê nhà, tối ưu lợi nhuận',
-        devBy: "Phát triển bởi Kevin Group"
+        devBy: 'Phát triển bởi Kevin Group',
       },
       nav: {
         apartments: 'Căn hộ',
@@ -388,10 +389,10 @@ const resources = {
         delete: 'Xoá',
         saved: 'Đã lưu',
         savedMsg: 'Cấu hình chi phí đã được cập nhật.',
-        houserent:'Tiền thuê nhà',
-        employeecost : 'Lương nhân viên',
-        internet : 'Internet',
-        garbage : 'Rác'
+        houserent: 'Tiền thuê nhà',
+        employeecost: 'Lương nhân viên',
+        internet: 'Internet',
+        garbage: 'Rác',
       },
       roomForm: {
         missingApartmentId: 'Thiếu apartmentId',
@@ -417,8 +418,19 @@ const resources = {
       },
       tenantsList: {
         title: 'Người thuê',
-        add: 'Thêm',
-        empty: 'Chưa có người thuê',
+        active: 'Đang thuê',
+        ended: 'Đã ngừng thuê',
+        room: 'Phòng',
+        phone: 'SĐT',
+        noTenant: 'Chưa có người thuê',
+        delete: 'Xóa',
+        deleteConfirm: 'Bạn có chắc muốn xóa người thuê này?',
+        deleteSuccess: 'Xóa người thuê thành công',
+        deleteFail: 'Xóa người thuê thất bại',
+        all: 'Tất Cả',
+        viewLease: 'Xem Hợp Đồng',
+        deleteConfirmTitle: 'Xóa Người Thuê',
+        searchPh: 'Tìm kiếm theo phòng',
       },
       rent: {
         apartmentexistroom: 'Căn hộ còn phòng, không thể xoá.',
@@ -512,7 +524,7 @@ const resources = {
 
         rooms: {
           title: 'Phòng',
-          desc: 'Xem danh sách phòng theo căn hộ: mã phòng, trạng thái (trống/đang thuê/bảo trì), tầng, diện tích...',
+          desc: 'Nhấn vào căn hộ sẽ ra trang Phòng.Tạo phòng và xem danh sách phòng trong căn hộ: mã phòng, trạng thái (trống/đang thuê/bảo trì), tầng, diện tích...',
           note: 'Chạm để xem chi tiết phòng và hợp đồng hiện tại. Nhấn giữ để xoá phòng (nếu không còn hợp đồng).',
         },
 
@@ -524,7 +536,7 @@ const resources = {
         leases: {
           title: 'Hợp đồng',
           desc: 'Tạo HĐ theo tháng hoặc theo ngày. Có thể chọn thu tiền nhà đầu kỳ hoặc cuối kỳ, nhập tiền cọc, các khoản phí (cố định/biến đổi) hoặc bật chế độ trọn gói.',
-          note: 'Sau khi tạo HĐ, hệ thống sẽ sinh chu kỳ tự động. Bạn có thể cập nhật giá cho kỳ sau, hoặc kết thúc HĐ trước hạn (kèm quyết toán cọc).',
+          note: 'Chú ý : Khoàn phí biến đổi như điện,nươc ... chỉ cần nhập giá trên mỗi đơn vị (kwh,m2) và chỉ số ban đầu để khi tất toán sẽ nhập giá trị hiện tại, ứng dụng sẽ tính khối lượng tiêu thụ và tổng số tiền. Sau khi tạo HĐ, hệ thống sẽ sinh chu kỳ tự động. Bạn có thể cập nhật giá cho kỳ sau, hoặc kết thúc HĐ trước hạn (kèm quyết toán cọc).',
         },
 
         cycles: {
@@ -542,19 +554,35 @@ const resources = {
         charges: {
           title: 'Khoản phí',
           desc: 'Phí cố định có giá/kỳ. Phí biến đổi có đơn giá/đơn vị và nhập chỉ số đầu/cuối để tính tiền.',
-          note: 'Bạn có thể thêm phí tùy chỉnh, chỉnh giá áp dụng cho kỳ sau, hoặc dùng danh mục phí có sẵn.',
+          note: 'Bạn có thể thêm phí tùy chỉnh, chỉnh giá áp dụng cho kỳ sau, hoặc dùng danh mục phí có sẵn.Sau khi nhập tất cả các khoản phí người thuê phải trả nhấn tất toán sẽ xuất hóa đơn',
         },
 
         operatingCosts: {
           title: 'Chi phí hoạt động (Căn hộ)',
           desc: 'Thiết lập danh mục chi phí cố định/không cố định cho căn hộ; thêm dữ liệu theo từng tháng. Dùng cho báo cáo lãi/lỗ.',
-          note: 'Có thể tạo mẫu chi phí cố định để tự phát sinh mỗi tháng (VD: Internet, Rác, Lương...).',
+          note: 'Có thể tạo mẫu chi phí cố định để tự phát sinh mỗi tháng (VD: Internet, Rác, Lương...). Những khoản phí không cố định như điện, nước, gas... thì nhập theo từng tháng',
         },
 
         reports: {
           title: 'Báo cáo',
           desc: 'Chọn khoảng thời gian để xem doanh thu theo phòng, tổng chi phí hoạt động, và số dư cuối cùng.',
           note: 'Báo cáo giúp bạn nắm dòng tiền và hiệu quả cho thuê theo thời gian.',
+          monthly: {
+            title: 'Báo cáo hàng tháng',
+          },
+          year: 'Năm',
+          monthsToShow: 'Tháng',
+          chart: 'Biểu đồ',
+          stacked: 'Xếp chồng',
+          line: 'Dòng',
+          monthlyProfit: 'Lợi nhuận hàng tháng',
+          revenue: 'Doanh thu',
+          expense: 'Chi phí',
+          net: 'Lợi nhuận ròng',
+          tapHint: 'Nhấn vào một tháng để xem phân tích chi tiết theo từng căn hộ.',
+          detailsFor: 'Chi tiết',
+          total: 'Tổng cộng',
+          noData: 'Không có dữ liệu',
         },
 
         settings: {
@@ -600,14 +628,46 @@ const resources = {
         amount: 'Số tiền đặt cọc',
         noTenant: 'Không có khách thuê',
       },
+      onboarding: {
+        skip: 'Bỏ qua',
+        next: 'Tiếp',
+        start: 'Bắt đầu',
+        steps: {
+          0: {
+            title: 'Chào mừng!',
+            body: 'Ứng dụng giúp bạn quản lý căn hộ/phòng trọ: hợp đồng, chu kỳ thuê, hoá đơn, chi phí hoạt động và báo cáo.',
+          },
+          1: {
+            title: 'Bước 1 — Tạo căn hộ',
+            body: 'Vào "Căn hộ" → thêm căn hộ. Sau đó vào căn hộ để thêm các phòng.',
+          },
+          2: {
+            title: 'Bước 2 — Tạo hợp đồng',
+            body: 'Vào chi tiết phòng → "Tạo hợp đồng". Chọn chu kỳ, giá cơ bản và các khoản phí.',
+          },
+          3: {
+            title: 'Bước 3 — Tất toán chu kỳ',
+            body: 'Mỗi chu kỳ: nhập số công tơ (điện nước) và phụ phí phát sinh → tất toán để sinh hoá đơn.',
+          },
+          4: {
+            title: 'Chi phí hoạt động',
+            body: 'Cài đặt chi phí cố định/không cố định cho căn hộ. Vào từng tháng để nhập và lưu.',
+          },
+          5: {
+            title: 'Báo cáo',
+            body: 'Xem thu theo phòng và chi của căn hộ trong khoảng ngày → ra số dư cuối kỳ.',
+          },
+        },
+      },
     },
   },
   en: {
     translation: {
       brand: {
+        nameslogan: 'Leasea-Smart rental & room management',
         name: 'Leasea',
         slogan: 'Track Rent, Grow Smart',
-        devBy: "Developed by Kevin Group"
+        devBy: 'Developed by Kevin Group',
       },
       nav: {
         apartments: 'Apartments',
@@ -990,10 +1050,10 @@ const resources = {
         delete: 'Delete',
         saved: 'Saved',
         savedMsg: 'Expense configuration has been updated.',
-        houserent:'House rent', 
+        houserent: 'House rent',
         employeecost: 'Employee salary',
         internet: 'Internet',
-        garbage: 'Garbage'
+        garbage: 'Garbage',
       },
       roomForm: {
         missingApartmentId: 'Missing apartmentId',
@@ -1019,8 +1079,19 @@ const resources = {
       },
       tenantsList: {
         title: 'Tenants',
-        add: 'Add',
-        empty: 'No tenants yet',
+        active: 'Active',
+        ended: 'Ended',
+        room: 'Room',
+        phone: 'Phone',
+        noTenant: 'No tenant yet',
+        delete: 'Delete',
+        deleteConfirm: 'Are you sure you want to delete this tenant?',
+        deleteSuccess: 'Tenant deleted successfully',
+        deleteFail: 'Failed to delete tenant',
+        all: 'All',
+        viewLease: 'View Lease',
+        deleteConfirmTitle: 'Delete this tenant',
+        searchPh: 'Search by room',
       },
       rent: {
         apartmentexistroom: 'Apartment available, cannot be deleted.',
@@ -1113,7 +1184,7 @@ const resources = {
 
         rooms: {
           title: 'Rooms',
-          desc: 'View rooms by apartment: code, status (available/occupied/maintenance), floor, area...',
+          desc: 'Click on the apartment to go to the Rooms page.Ceate room and view rooms by apartment: code, status (available/occupied/maintenance), floor, area...',
           note: 'Tap to open room detail (and current lease). Long-press to delete when no lease remains.',
         },
 
@@ -1125,7 +1196,7 @@ const resources = {
         leases: {
           title: 'Leases',
           desc: 'Create monthly or daily leases. Choose to collect rent at start or end of cycle, add deposit, and configure fixed/variable charges or an all-inclusive package.',
-          note: 'After creating a lease, cycles are generated automatically. You can update prices for next cycles or end the lease early with deposit settlement.',
+          note: 'Note: For variable costs such as electricity, water... just enter the price per unit (kwh, m2) and the initial index so that when finalizing, enter the current value, the application will calculate the consumed volume and total amount.After creating a lease, cycles are generated automatically. You can update prices for next cycles or end the lease early with deposit settlement.',
         },
 
         cycles: {
@@ -1143,19 +1214,35 @@ const resources = {
         charges: {
           title: 'Charges',
           desc: 'Fixed charges use price per cycle. Variable charges use unit price and meter start/end to compute quantity.',
-          note: 'You can add custom charges, update prices for future cycles, or use the predefined catalog.',
+          note: 'You can add custom charges, update prices for future cycles, or use the predefined catalog.After entering all the fees the tenant must pay, click settle and the invoice will be generated.',
         },
 
         operatingCosts: {
           title: 'Operating Costs (Apartment)',
           desc: 'Configure fixed/variable cost templates for the apartment; add monthly entries for actuals. Used in profit/loss.',
-          note: 'Fixed templates can auto-spawn each month (e.g., Internet, Garbage, Staff).',
+          note: 'Fixed templates can auto-spawn each month (e.g., Internet, Garbage, Staff).Non-fixed fees such as electricity, water, gas... are entered monthly.',
         },
 
         reports: {
           title: 'Reports',
           desc: 'Pick a date range to view revenue by room, total operating costs, and the final balance.',
           note: 'Reports help you track cash flow and rental performance over time.',
+          monthly: {
+            title: 'Monthly performance',
+          },
+          year: 'Year',
+          monthsToShow: 'Months',
+          chart: 'Chart',
+          stacked: 'Stacked',
+          line: 'Line',
+          monthlyProfit: 'Monthly profit',
+          revenue: 'Revenue',
+          expense: 'Expense',
+          net: 'Net',
+          tapHint: 'Tap a month to see per-apartment breakdown.',
+          detailsFor: 'Details for',
+          total: 'Total',
+          noData: 'No data',
         },
 
         settings: {
@@ -1200,6 +1287,36 @@ const resources = {
         start: 'Start date',
         amount: 'Deposit amount',
         noTenant: 'No tenant',
+      },
+      onboarding: {
+        skip: 'Skip',
+        start: 'Get started',
+        steps: {
+          0: {
+            title: 'Welcome!',
+            body: 'This app helps you manage apartments/rooms: leases, billing cycles, invoices, operating costs and reports.',
+          },
+          1: {
+            title: 'Step 1 — Create an apartment',
+            body: 'Go to "Apartments" → add an apartment. Then open it to add rooms.',
+          },
+          2: {
+            title: 'Step 2 — Create a lease',
+            body: 'Open a room → "Create lease". Choose cycle, base rent and charges.',
+          },
+          3: {
+            title: 'Step 3 — Settle cycles',
+            body: 'Each cycle: enter meter readings and extra fees → settle to generate an invoice.',
+          },
+          4: {
+            title: 'Operating costs',
+            body: 'Set up fixed/variable costs for the apartment. Open each month to enter and save.',
+          },
+          5: {
+            title: 'Reports',
+            body: 'See revenue by room and apartment expenses in a date range → get period balance.',
+          },
+        },
       },
     },
   },

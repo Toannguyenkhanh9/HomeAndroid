@@ -341,7 +341,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
                   </Text>
                   <Text style={{ color: c.subtext }}>
                     {Number(it.is_variable) === 1
-                      ? `${t('leaseDetail.variable')} (${it.unit || ''})`
+                      ? `${t('leaseDetail.variable')} (${t('units.unitShort')})`
                       : t('leaseDetail.fixed')}
                   </Text>
                 </View>
@@ -351,7 +351,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
                     {format(it.unit_price || 0)}
                   </Text>
                   {Number(it.is_variable) === 1 &&
-                    ` / ${it.unit || t('units.unitShort')}`}
+                    ` / ${t('units.unitShort')}`}
                 </Text>
                 {Number(it.is_variable) === 1 && (
                   <Text style={{ color: c.subtext }}>

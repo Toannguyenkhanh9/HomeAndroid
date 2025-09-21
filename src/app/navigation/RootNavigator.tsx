@@ -40,6 +40,7 @@ import OperatingCostMonth from '../screens/OperatingCostMonth';
 import Onboarding from '../screens/Onboarding';
 import HelpScreen from '../screens/HelpScreen';
 import HoldingDepositList from '../screens/HoldingDepositList';
+import ReportsMonthly from '../screens/ReportsMonthly';
 import {useTranslation} from 'react-i18next';
 
 export type RootStackParamList = {
@@ -67,6 +68,7 @@ export type RootStackParamList = {
   OperatingCostSettings: { apartmentId: string };
   HelpScreen  : undefined;
   HoldingDepositList:{ apartmentId: string }
+  ReportsMonthly: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -144,7 +146,7 @@ function AppInner() {
         <Stack.Screen
           name="ApartmentsList"
           component={ApartmentsList}
-          options={{ title: 'Leasea' }}
+          options={{ title: t('brand.nameslogan') }}
         />
         <Stack.Screen
           name="ApartmentForm"
@@ -254,6 +256,11 @@ function AppInner() {
         <Stack.Screen
           name="HoldingDepositList"
           component={HoldingDepositList}
+          options={{ title: t('holdingDeposits.title') }}
+        />
+        <Stack.Screen
+          name="ReportsMonthly"
+          component={ReportsMonthly}
           options={{ title: t('holdingDeposits.title') }}
         />
       </Stack.Navigator>

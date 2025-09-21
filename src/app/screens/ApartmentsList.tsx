@@ -539,6 +539,11 @@ export default function ApartmentsList({
                   icon="⚙️"
                   onPress={() => navigation.navigate('Settings')}
                 />
+              <BigIcon
+                  label={t('settings')}
+                  icon="🏢"
+                  onPress={() => navigation.navigate('ReportsMonthly')}
+                />
                 <BigIcon
                   label={t('helpmain')}
                   icon="❓"

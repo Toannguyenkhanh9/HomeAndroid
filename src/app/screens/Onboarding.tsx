@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import {useThemeColors} from '../theme';
+import {useTranslation} from 'react-i18next';
 
 const {width} = Dimensions.get('window');
 
@@ -23,60 +24,61 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 //    welcome.png, apartment.png, contract.png, settle.png, opex.png, report.png
 //    Có thể thay bằng ảnh của bạn (giữ nguyên tên cho tiện).
 const IMAGES = {
-  welcome:   require('../assets/onboarding/welcome.png'),
-  apartment: require('../assets/onboarding/apartment.png'),
-  contract:  require('../assets/onboarding/contract.png'),
-  settle:    require('../assets/onboarding/settle.png'),
-  opex:      require('../assets/onboarding/opex.png'),
-  report:    require('../assets/onboarding/report.png'),
+  welcome:   require('../assets/1home.png'),
+  apartment: require('../assets/2Apartment.png'),
+  contract:  require('../assets/4lease.png'),
+  settle:    require('../assets/7charge.png'),
+  opex:      require('../assets/operatingCosts.png'),
+  report:    require('../assets/report.png'),
 } as const;
 
 type Step = { title: string; body: string; illustration?: any; placeholder?: string };
 
-const STEPS: Step[] = [
-  {
-    title: 'Chào mừng!',
-    body:
-      'Ứng dụng giúp bạn quản lý căn hộ/phòng trọ: hợp đồng, chu kỳ thuê, hoá đơn, chi phí hoạt động và báo cáo.',
-    illustration: IMAGES.welcome,
-    placeholder: '👋',
-  },
-  {
-    title: 'Bước 1 — Tạo căn hộ',
-    body: 'Vào “Căn hộ” → thêm căn hộ. Sau đó vào căn hộ để thêm các phòng.',
-    illustration: IMAGES.apartment,
-    placeholder: '🏢',
-  },
-  {
-    title: 'Bước 2 — Tạo hợp đồng',
-    body: 'Vào chi tiết phòng → “Tạo hợp đồng”. Chọn chu kỳ, giá cơ bản và các khoản phí.',
-    illustration: IMAGES.contract,
-    placeholder: '📄',
-  },
-  {
-    title: 'Bước 3 — Tất toán chu kỳ',
-    body: 'Mỗi chu kỳ: nhập số công tơ (điện nước) và phụ phí phát sinh → tất toán để sinh hoá đơn.',
-    illustration: IMAGES.settle,
-    placeholder: '🧾',
-  },
-  {
-    title: 'Chi phí hoạt động',
-    body: 'Cài đặt chi phí cố định/không cố định cho căn hộ. Vào từng tháng để nhập và lưu.',
-    illustration: IMAGES.opex,
-    placeholder: '🧰',
-  },
-  {
-    title: 'Báo cáo',
-    body: 'Xem thu theo phòng và chi của căn hộ trong khoảng ngày → ra số dư cuối kỳ.',
-    illustration: IMAGES.report,
-    placeholder: '📊',
-  },
-];
-
 export default function Onboarding({navigation}: Props) {
   const c = useThemeColors();
+  const {t} = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
+
+  // Lấy dữ liệu steps từ file dịch
+  const STEPS: Step[] = useMemo(() => ([
+    {
+      title: t('onboarding.steps.0.title'),
+      body: t('onboarding.steps.0.body'),
+      illustration: IMAGES.welcome,
+      placeholder: '👋',
+    },
+    {
+      title: t('onboarding.steps.1.title'),
+      body: t('onboarding.steps.1.body'),
+      illustration: IMAGES.apartment,
+      placeholder: '🏢',
+    },
+    {
+      title: t('onboarding.steps.2.title'),
+      body: t('onboarding.steps.2.body'),
+      illustration: IMAGES.contract,
+      placeholder: '📄',
+    },
+    {
+      title: t('onboarding.steps.3.title'),
+      body: t('onboarding.steps.3.body'),
+      illustration: IMAGES.settle,
+      placeholder: '🧾',
+    },
+    {
+      title: t('onboarding.steps.4.title'),
+      body: t('onboarding.steps.4.body'),
+      illustration: IMAGES.opex,
+      placeholder: '🧰',
+    },
+    {
+      title: t('onboarding.steps.5.title'),
+      body: t('onboarding.steps.5.body'),
+      illustration: IMAGES.report,
+      placeholder: '📊',
+    },
+  ]), [t]);
 
   const go = (to: number) => {
     setIndex(to);
@@ -104,7 +106,7 @@ export default function Onboarding({navigation}: Props) {
         ))}
       </View>
     ),
-    [index],
+    [index, STEPS.length],
   );
 
   const finish = async () => {
@@ -189,7 +191,7 @@ export default function Onboarding({navigation}: Props) {
             borderColor: '#2A2F3A',
           }}
         >
-          <Text style={{color: c.text, fontWeight: '700'}}>Bỏ qua</Text>
+          <Text style={{color: c.text, fontWeight: '700'}}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
 
         {index < STEPS.length - 1 ? (
@@ -202,7 +204,7 @@ export default function Onboarding({navigation}: Props) {
               borderRadius: 10,
             }}
           >
-            <Text style={{color: '#0B1220', fontWeight: '800'}}>Tiếp</Text>
+            <Text style={{color: '#0B1220', fontWeight: '800'}}>{t('onboarding.next')}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -214,7 +216,7 @@ export default function Onboarding({navigation}: Props) {
               borderRadius: 10,
             }}
           >
-            <Text style={{color: '#0B1220', fontWeight: '800'}}>Bắt đầu</Text>
+            <Text style={{color: '#0B1220', fontWeight: '800'}}>{t('onboarding.start')}</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -929,6 +929,7 @@ export function getReportRevenueByRoom(apartmentId:string, start:string, end:str
 }
 
 export function getReportOperatingExpenses(apartmentId:string, start:string, end:string) {
+  ensureOperatingTables();
   // gom theo ym trong range
   const rows = query<any>(`
     SELECT ym, name, amount
@@ -972,4 +973,69 @@ export function addOrUpdateRecurringCharges(
   items: Array<{ name: string; isVariable: boolean; unit?: string; price: number; meterStart?: number }>
 ) {
   for (const it of items) upsertRecurringChargeForLease(leaseId, it);
+}
+export function deleteTenant(tenantId: string) {
+  // Chặn xóa nếu còn hợp đồng active
+  const active = query<{c: number}>(
+    `SELECT COUNT(*) c FROM leases WHERE tenant_id = ? AND status = 'active'`,
+    [tenantId],
+  )[0]?.c ?? 0;
+  if (active > 0) {
+    throw new Error('Người thuê đang có hợp đồng hoạt động.');
+  }
+  // Xóa người thuê; dữ liệu lease đã kết thúc (ended) vẫn giữ để lưu lịch sử
+  exec(`DELETE FROM tenants WHERE id = ?`, [tenantId]);
+}
+export function totalOperatingExpenseByMonth(year: number, month: number) {
+  ensureOperatingTables();
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const row = query<{ sum: number }>(
+    `SELECT SUM(amount) AS sum FROM operating_expenses WHERE ym = ?`,
+    [ym],
+  )[0];
+  return Number(row?.sum || 0);
+}
+
+export function listYearsWithData(): number[] {
+  // gom năm từ invoices.issue_date và operating_expenses.ym
+  const inv = query<{ y: number }>(
+    `SELECT DISTINCT CAST(strftime('%Y', issue_date) AS INTEGER) AS y FROM invoices WHERE issue_date IS NOT NULL ORDER BY y ASC`,
+  ).map(x => Number(x.y)).filter(Boolean);
+
+  const opex = query<{ y: number }>(
+    `SELECT DISTINCT CAST(substr(ym,1,4) AS INTEGER) AS y FROM operating_expenses ORDER BY y ASC`,
+  ).map(x => Number(x.y)).filter(Boolean);
+
+  const all = Array.from(new Set([...inv, ...opex]));
+  if (all.length === 0) return [new Date().getFullYear()];
+  return all.sort((a, b) => a - b);
+}
+
+// Breakdown theo căn hộ cho 1 tháng (YYYY, M)
+export function listApartments() {
+  return query<any>(`SELECT id, name, address FROM apartments ORDER BY name ASC`);
+}
+
+export function revenueByApartmentForMonth(apartmentId: string, year: number, month: number) {
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  // tổng theo căn hộ, join invoices -> leases -> rooms
+  const row = query<{ sum: number }>(`
+    SELECT SUM(i.total) AS sum
+    FROM invoices i
+    JOIN leases l ON l.id = i.lease_id
+    JOIN rooms r ON r.id = l.room_id
+    WHERE r.apartment_id = ?
+      AND strftime('%Y-%m', i.issue_date) = ?
+  `, [apartmentId, ym])[0];
+  return Number(row?.sum || 0);
+}
+
+export function expenseByApartmentForMonth(apartmentId: string, year: number, month: number) {
+  ensureOperatingTables();
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const row = query<{ sum: number }>(
+    `SELECT SUM(amount) AS sum FROM operating_expenses WHERE apartment_id = ? AND ym = ?`,
+    [apartmentId, ym],
+  )[0];
+  return Number(row?.sum || 0);
 }

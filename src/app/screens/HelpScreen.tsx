@@ -6,12 +6,17 @@ import Card from '../components/Card';
 import { useThemeColors } from '../theme';
 import { useTranslation } from 'react-i18next';
 const IMAGES = {
-  welcome:   require('../assets/onboarding/welcome.png'),
-  apartment: require('../assets/onboarding/apartment.png'),
-  contract:  require('../assets/onboarding/contract.png'),
-  settle:    require('../assets/onboarding/settle.png'),
-  opex:      require('../assets/onboarding/opex.png'),
-  report:    require('../assets/onboarding/report.png'),
+  home:   require('../assets/1home.png'),
+  apartment: require('../assets/2Apartment.png'),
+  room: require('../assets/3room.png'),
+  lease: require('../assets/4lease.png'),
+  cycle: require('../assets/5cycle.png'),
+  invoice: require('../assets/6invoice.png'),
+  charge: require('../assets/7charge.png'),
+  operatingCosts: require('../assets/operatingCosts.png'),
+  report: require('../assets/report.png'),
+  setting:    require('../assets/setting.png'),
+  tenant:    require('../assets/tenants.png'),
 } as const;
 
 export default function HelpScreen() {
@@ -77,75 +82,76 @@ export default function HelpScreen() {
         <Section
           title={`1. ${t('help.main.title')}`}
           desc={t('help.main.desc')}
-          img={IMAGES.contract}
+          img={IMAGES.home}
         />
 
         <Section
           title={`2. ${t('help.apartments.title')}`}
           desc={t('help.apartments.desc')}
           note={t('help.apartments.note')}
+           img={IMAGES.apartment}
         />
 
         <Section
           title={`3. ${t('help.rooms.title')}`}
           desc={t('help.rooms.desc')}
           note={t('help.rooms.note')}
-           img={IMAGES.contract}
+           img={IMAGES.room}
         />
 
         <Section
           title={`4. ${t('help.tenants.title')}`}
           desc={t('help.tenants.desc')}
-           img={IMAGES.contract}
+           img={IMAGES.tenant}
         />
 
         <Section
           title={`5. ${t('help.leases.title')}`}
           desc={t('help.leases.desc')}
           note={t('help.leases.note')}
-           img={IMAGES.contract}
+           img={IMAGES.lease}
         />
 
         <Section
           title={`6. ${t('help.cycles.title')}`}
           desc={t('help.cycles.desc')}
           note={t('help.cycles.note')}
-           img={IMAGES.contract}
+           img={IMAGES.cycle}
         />
 
         <Section
           title={`7. ${t('help.invoices.title')}`}
           desc={t('help.invoices.desc')}
           note={t('help.invoices.note')}
-           img={IMAGES.contract}
+           img={IMAGES.invoice}
         />
 
         <Section
           title={`8. ${t('help.charges.title')}`}
           desc={t('help.charges.desc')}
           note={t('help.charges.note')}
-           img={IMAGES.contract}
+           img={IMAGES.charge}
         />
 
         <Section
           title={`9. ${t('help.operatingCosts.title')}`}
           desc={t('help.operatingCosts.desc')}
           note={t('help.operatingCosts.note')}
-           img={IMAGES.contract}
+           img={IMAGES.operatingCosts}
         />
 
         <Section
           title={`10. ${t('help.reports.title')}`}
           desc={t('help.reports.desc')}
           note={t('help.reports.note')}
-           img={IMAGES.contract}
+           img={IMAGES.report}
         />
 
         <Section
           title={`11. ${t('help.settings.title')}`}
           desc={t('help.settings.desc')}
           note={t('help.settings.note')}
-           img={IMAGES.contract}
+           img={IMAGES.setting}
         />
 
         <Card style={{ gap: 8 }}>
