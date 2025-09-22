@@ -58,7 +58,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
   const { dateFormat, language } = useSettings();
   const { leaseId } = route.params as any;
   const c = useThemeColors();
-  const { format  } = useCurrency();
+  const { format } = useCurrency();
   const { t } = useTranslation();
 
   const [lease, setLease] = useState<any>();
@@ -350,8 +350,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
                   <Text style={{ color: c.text }}>
                     {format(it.unit_price || 0)}
                   </Text>
-                  {Number(it.is_variable) === 1 &&
-                    ` / ${t('units.unitShort')}`}
+                  {Number(it.is_variable) === 1 && ` / ${t('units.unitShort')}`}
                 </Text>
                 {Number(it.is_variable) === 1 && (
                   <Text style={{ color: c.subtext }}>
@@ -435,6 +434,8 @@ export default function LeaseDetail({ route, navigation }: Props) {
                       padding: 10,
                       color: c.text,
                       backgroundColor: c.card,
+                      borderWidth: 1, // thêm border
+                      borderColor: c.subtext,
                     }}
                   />
                 </View>

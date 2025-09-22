@@ -125,41 +125,72 @@ export function parseDecimalComma(s: string) {
   const v = Number(cleaned);
   return Number.isFinite(v) ? v : 0;
 }
-// ── number.ts ──────────────────────────────────────────────────────────────────
-// Gõ realtime: nhóm nghìn = ".", thập phân = "," (chỉ có khi người dùng gõ)
-export function formatDecimalTypingCommaSmart(input: string): string {
+type TypingOpts = { convertDot?: boolean }; // default true
+
+export function formatDecimalTypingCommaSmart(input: string, opts: TypingOpts = {}): string {
+  const convertDot = opts.convertDot ?? true;
   if (!input) return '';
 
-  // chỉ giữ số + 2 dấu , .
+  // cho phép số + 2 dấu , .
   let raw = input.replace(/[^0-9.,]/g, '');
-  const firstSep = raw.search(/[.,]/);          // có gõ dấu thập phân chưa?
-  const hasDecimal = firstSep !== -1;
 
-  // chuẩn hóa: mọi '.' thành ',' để hiển thị thập phân
-  raw = raw.replace(/\./g, ',');
+  // nếu muốn giữ nguyên dấu '.' khi đang gõ => đừng đổi ở bước này
+  // nếu vẫn muốn behavior cũ => đổi ngay
+  if (convertDot) raw = raw.replace(/\./g, ',');
 
-  const [rawInt = '', rawFrac = ''] = hasDecimal ? raw.split(',', 2) : [raw, ''];
+  // Xác định dấu thập phân đang hiển thị: ưu tiên dấu ',', nếu chưa có mà có '.' thì coi '.' là thập phân “tạm”
+  const hasComma = raw.includes(',');
+  const hasDot   = raw.includes('.');
+  const decSep   = hasComma ? ',' : (hasDot ? '.' : null);
 
-  // bỏ 0 đầu (nhưng giữ "0" nếu rỗng)
-  let intDigits = rawInt.replace(/^0+(?!$)/, '');
+  const [rawIntPart, rawFracPart = ''] = decSep ? raw.split(decSep, 2) : [raw, ''];
 
-  // nhóm nghìn bằng dấu '.'
-  if (intDigits.length > 3) {
-    intDigits = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  }
+  // nhóm nghìn cho phần nguyên (dùng '.')
+  let intDigits = rawIntPart.replace(/\D/g, '').replace(/^0+(?!$)/, '');
+  if (intDigits.length > 3) intDigits = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-  // nếu người dùng vừa gõ dấu thập phân ở cuối -> giữ lại
-  if (hasDecimal && /[.,]$/.test(input)) return intDigits + ',';
+  // nếu người dùng vừa gõ dấu thập phân ở cuối → giữ lại ký tự họ gõ
+  if (decSep && /[.,]$/.test(input)) return intDigits + decSep;
 
-  return hasDecimal ? `${intDigits},${rawFrac.replace(/[^0-9]/g, '')}` : intDigits;
+  const fracDigits = rawFracPart.replace(/\D/g, '');
+  return decSep ? `${intDigits}${decSep}${fracDigits}` : intDigits;
 }
 
-// Parse về số: bỏ dấu nghìn '.', đổi ',' -> '.'
 export function parseDecimalCommaSmart(s: string): number {
   if (!s) return 0;
-  const cleaned = s.replace(/\./g, '').replace(',', '.');
-  const v = Number(cleaned);
+  // bỏ dấu nghìn '.', rồi chuẩn hoá thập phân về '.'
+  const normalized = s.replace(/\./g, '').replace(',', '.');
+  const v = Number(normalized);
   return Number.isFinite(v) ? v : 0;
+}
+export function formatDecimalTypingVNStrict(input: string): string {
+  if (!input) return '';
+  // chỉ cho số và dấu phẩy
+  let raw = input.replace(/[^0-9,]/g, '');
+
+  // tách phần nguyên / thập phân theo DẤU PHẨY ĐẦU TIÊN
+  const firstComma = raw.indexOf(',');
+  const hasComma = firstComma !== -1;
+  const intRaw  = hasComma ? raw.slice(0, firstComma) : raw;
+  const fracRaw = hasComma ? raw.slice(firstComma + 1).replace(/,/g, '') : '';
+
+  // nhóm nghìn cho phần nguyên bằng '.'
+  let intDigits = intRaw.replace(/\D/g, '');
+  // tránh rỗng -> '0' chỉ khi toàn bộ trống
+  if (intDigits === '') intDigits = '0';
+  const intGrouped = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  // nếu người dùng vừa gõ dấu ',' ở cuối -> giữ lại
+  if (hasComma && /,$/.test(raw)) return intGrouped + ',';
+
+  return hasComma ? `${intGrouped},${fracRaw}` : intGrouped;
+}
+
+// Parse về number: bỏ '.' và đổi ',' thành '.'
+export function parseDecimalCommaStrict(s: string): number {
+  if (!s) return 0;
+  const n = Number(s.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
 }
 
 
