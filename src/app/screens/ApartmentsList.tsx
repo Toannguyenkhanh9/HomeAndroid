@@ -540,8 +540,8 @@ export default function ApartmentsList({
                   onPress={() => navigation.navigate('Settings')}
                 />
               <BigIcon
-                  label={t('settings')}
-                  icon="🏢"
+                  label={t('reports.title')}
+                  icon="📊"
                   onPress={() => navigation.navigate('ReportsMonthly')}
                 />
                 <BigIcon

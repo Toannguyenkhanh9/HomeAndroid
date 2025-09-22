@@ -1,12 +1,12 @@
 // src/app/navigation/RootNavigator.tsx
-import React, {useEffect, useState} from 'react';
-import {useColorScheme} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 import {
   NavigationContainer,
   DarkTheme as NavDarkTheme,
   DefaultTheme as NavLightTheme,
 } from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import ApartmentsList from '../screens/ApartmentsList';
@@ -24,11 +24,11 @@ import TenantForm from '../screens/TenantForm';
 import ApartmentActivityMonths from '../screens/ApartmentActivityMonths';
 import ApartmentActivityDetail from '../screens/ApartmentActivityDetail';
 
-import {initDb} from '../../db';
-import {ensureRecurringChargesTable} from '../../db/index';
-import {closeExpiredLeases, seedChargeCatalogOnce} from '../../services/rent';
-import {initNotifications} from '../../services/notifications';
-import {I18nProvider, useI18n} from '../../i18n';
+import { initDb } from '../../db';
+import { ensureRecurringChargesTable } from '../../db/index';
+import { closeExpiredLeases, seedChargeCatalogOnce } from '../../services/rent';
+import { initNotifications } from '../../services/notifications';
+import { I18nProvider, useI18n } from '../../i18n';
 
 import LeaseHistory from '../screens/LeaseHistory';
 import LeaseHistoryDetail from '../screens/LeaseHistoryDetail';
@@ -41,7 +41,9 @@ import Onboarding from '../screens/Onboarding';
 import HelpScreen from '../screens/HelpScreen';
 import HoldingDepositList from '../screens/HoldingDepositList';
 import ReportsMonthly from '../screens/ReportsMonthly';
-import {useTranslation} from 'react-i18next';
+import ReportMonthDetail from '../screens/ReportMonthDetail';
+import { useTranslation } from 'react-i18next';
+import { bootstrapRentModule } from '../../services/rent';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -66,9 +68,10 @@ export type RootStackParamList = {
   ApartmentReport: { apartmentId: string };
   OperatingCostMonth: { apartmentId: string; ym: string };
   OperatingCostSettings: { apartmentId: string };
-  HelpScreen  : undefined;
-  HoldingDepositList:{ apartmentId: string }
+  HelpScreen: undefined;
+  HoldingDepositList: { apartmentId: string };
   ReportsMonthly: undefined;
+  ReportMonthDetail: { year: number; month: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -94,8 +97,8 @@ function AppInner() {
   const isDark = useColorScheme() === 'dark';
   const navTheme = isDark ? DarkNavTheme : LightNavTheme;
 
-  const {ready} = useI18n();
-  const {t} = useTranslation();
+  const { ready } = useI18n();
+  const { t } = useTranslation();
 
   const [dbReady, setDbReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
@@ -108,6 +111,7 @@ function AppInner() {
         seedChargeCatalogOnce();
         initNotifications();
         closeExpiredLeases();
+        bootstrapRentModule();
       } finally {
         setDbReady(true);
       }
@@ -261,8 +265,9 @@ function AppInner() {
         <Stack.Screen
           name="ReportsMonthly"
           component={ReportsMonthly}
-          options={{ title: t('holdingDeposits.title') }}
+          options={{ title: t('reports.title') }}
         />
+        <Stack.Screen name="ReportMonthDetail" component={ReportMonthDetail} />
       </Stack.Navigator>
     </NavigationContainer>
   );

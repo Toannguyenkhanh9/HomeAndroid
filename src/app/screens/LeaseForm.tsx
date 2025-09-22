@@ -12,7 +12,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
 import {useTranslation} from 'react-i18next';
-import { formatIntTyping, parseIntSafe, parseDecimalSafe } from '../../utils/number';
+import { formatIntTyping, parseIntSafe, parseDecimalSafe,parseDecimalComma,formatDecimalTypingComma,formatDecimalTypingCommaSmart,parseDecimalCommaSmart } from '../../utils/number';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -128,7 +128,7 @@ export default function LeaseForm({route, navigation}: Props) {
             name: ch.name.trim(),
             type: ch.isVariable ? 'variable' : 'fixed',
             unit: ch.unit || (ch.isVariable ? t('rent.unit') : t('rent.month')),
-            unitPrice: parseDecimalSafe(ch.price || ''),
+            unitPrice: parseDecimalCommaSmart(ch.price || ''),
             meterStart: ch.isVariable ? parseIntSafe(ch.meterStart || '') : undefined,
           }))
       : undefined;
@@ -211,6 +211,8 @@ export default function LeaseForm({route, navigation}: Props) {
   }
   return hasDot ? `${intFormatted}.${fracDigits}` : intFormatted;
 }
+const formatTypingDecimalNoNegative = (s: string) =>
+  formatTypingDecimalPretty(String(s || '').replace(/-/g, ''));
 
 // Parse thập phân an toàn từ chuỗi đã có tách nghìn
 function parseDecimal(s: string) {
@@ -223,6 +225,51 @@ function parseDecimal(s: string) {
   const tail = cleaned.slice(firstDot + 1).replace(/\./g, ''); // bỏ . thừa
   return Number(`${head}.${tail}`) || 0;
 }
+// Giới hạn tối đa bao nhiêu chữ số thập phân khi đang gõ
+const MAX_FRAC = 3;
+
+/** Format kiểu đang gõ: không âm, nhóm nghìn phần nguyên, giữ dấu chấm cuối, không pad 0 */
+function formatDecimalTypingNoNegative(input: string) {
+  if (!input) return '';
+
+  // bỏ dấu âm, chuẩn hoá dấu thập phân về '.'
+  let raw = String(input).replace(/-/g, '').replace(/,/g, '.');
+
+  // chỉ cho 0-9 và '.'; nếu có >1 dấu '.', giữ cái đầu
+  raw = raw.replace(/[^0-9.]/g, '');
+  const firstDot = raw.indexOf('.');
+  const hasDot = firstDot !== -1;
+
+  let intPart = hasDot ? raw.slice(0, firstDot) : raw;
+  let fracPart = hasDot ? raw.slice(firstDot + 1) : '';
+
+  // bỏ mọi dấu '.' “nhóm” cũ trong phần nguyên
+  intPart = intPart.replace(/\./g, '');
+  // giới hạn số chữ số thập phân
+  if (fracPart.length > MAX_FRAC) fracPart = fracPart.slice(0, MAX_FRAC);
+  // cho phép người dùng gõ ".xx" → hiểu là "0.xx"
+  const intForNumber = intPart === '' ? '0' : intPart;
+  const intFormatted = Number(intForNumber).toLocaleString('vi-VN');
+
+  if (hasDot) {
+    // Nếu người dùng vừa gõ dấu '.' và chưa có số thập phân → giữ dấu '.'
+    if (input.endsWith('.') && fracPart === '') return intFormatted + '.';
+    return `${intFormatted}${fracPart ? '.' + fracPart : ''}`;
+  }
+  return intFormatted;
+}
+
+/** Parse an toàn về số (không dùng trong onChangeText, chỉ khi submit) */
+function parseDecimalLoose(s: string) {
+  if (!s) return 0;
+  const cleaned = String(s).replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot < 0) return Number(cleaned || '0') || 0;
+  const head = cleaned.slice(0, firstDot).replace(/\./g, '');
+  const tail = cleaned.slice(firstDot + 1).replace(/\./g, '');
+  return Number(`${head}.${tail}`) || 0;
+}
+
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
@@ -470,7 +517,7 @@ function parseDecimal(s: string) {
                 <TextInput
                   keyboardType="decimal-pad"
                   value={ch.price}
-                  onChangeText={txt => updCharge(idx, { price: txt })}
+                  onChangeText={txt =>  updCharge(idx, { price: formatDecimalTypingCommaSmart(txt) })}
                   style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
                 />
 
