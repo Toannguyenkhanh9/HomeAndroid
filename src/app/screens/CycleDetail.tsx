@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import FormInput from '../components/FormInput';
 import { useThemeColors } from '../theme';
 import {
   getCycle,
@@ -30,7 +30,12 @@ import {
   extendLeaseAndAddCycles,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
-import { formatNumber as groupVN } from '../../utils/number';
+import {
+  formatNumber as groupVN,
+  formatIntTyping,
+  formatDecimalTypingVNStrict,
+  parseDecimalCommaStrict,
+} from '../../utils/number';
 
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import ViewShot, { captureRef } from 'react-native-view-shot';
@@ -54,30 +59,10 @@ type ChargeRow = {
 
 type ExtraItem = { name: string; amount: string };
 
-// ===== Helpers =====
-// Dùng cho số nguyên (tiền tệ tổng, chỉ số công tơ, v.v.)
-function parseAmount(s: string) {
+// Helpers
+function parseAmountInt(s: string) {
   const digits = (s || '').replace(/[^\d]/g, '');
   return digits ? Number(digits) : 0;
-}
-function formatTyping(s: string) {
-  const digits = s.replace(/\D/g, '');
-  if (!digits) return '';
-  return Number(digits).toLocaleString('vi-VN');
-}
-
-// Dùng cho số thập phân (giá cố định có thể có . hoặc ,)
-function parseDecimal(s: string) {
-  if (!s) return 0;
-  const t = s.replace(/\s/g, '').replace(/,/g, '.');
-  const m = t.match(/^\d*(?:\.\d+)?/);
-  return m && m[0] ? Number(m[0]) : 0;
-}
-function formatTypingDecimal(s: string) {
-  let t = (s || '').replace(/,/g, '.').replace(/[^\d.]/g, '');
-  // giữ duy nhất một dấu chấm
-  t = t.replace(/\.(?=.*\.)/g, '');
-  return t;
 }
 
 export default function CycleDetail({ route, navigation }: Props) {
@@ -118,7 +103,7 @@ export default function CycleDetail({ route, navigation }: Props) {
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
-    () => endExtras.reduce((s, it) => s + parseAmount(it.amount), 0),
+    () => endExtras.reduce((s, it) => s + parseAmountInt(it.amount), 0),
     [endExtras],
   );
   const [depositPreview, setDepositPreview] = useState<number>(0);
@@ -187,21 +172,23 @@ export default function CycleDetail({ route, navigation }: Props) {
 
   useEffect(reload, [cycleId]);
 
+  // Tổng preview
   const previewTotal = useMemo(() => {
     let sum = 0;
     for (const r of rows) {
       if (r.is_variable === 1) {
-        const current = parseAmount(r.value);
+        const current = parseAmountInt(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
         sum += consumed * (r.unit_price || 0);
       } else {
-        sum += parseDecimal(r.value); // cho phép thập phân
+        sum += parseDecimalCommaStrict(r.value); // thập phân theo VN
       }
     }
-    for (const ex of extras) sum += parseAmount(ex.amount);
+    for (const ex of extras) sum += parseAmountInt(ex.amount);
     return sum;
   }, [rows, extras]);
 
+  // điện/nước / preview
   const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
     useMemo(() => {
       const isWater = (u?: string | null) =>
@@ -223,7 +210,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       } else {
         for (const r of rows) {
           if (r.is_variable !== 1) continue;
-          const current = parseAmount(r.value);
+          const current = parseAmountInt(r.value);
           const consumed = Math.max(0, current - (r.meter_start || 0));
           const money = consumed * (r.unit_price || 0);
           if (isElec(r.unit)) _pElec += money;
@@ -238,38 +225,30 @@ export default function CycleDetail({ route, navigation }: Props) {
       };
     }, [rows, status, invId]);
 
-  // nhập cho biến số (chỉ số công tơ – số nguyên)
+  // Handlers nhập
   const onChangeVarValue = (id: string, text: string) => {
     setRows(prev =>
       prev.map(r =>
-        r.charge_type_id === id ? { ...r, value: formatTyping(text) } : r,
+        r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r,
       ),
     );
   };
-  // nhập cho giá cố định có thập phân
   const onChangeFixedValue = (id: string, text: string) => {
     setRows(prev =>
       prev.map(r =>
-        r.charge_type_id === id ? { ...r, value: formatTypingDecimal(text) } : r,
+        r.charge_type_id === id
+          ? { ...r, value: formatDecimalTypingVNStrict(text) }
+          : r,
       ),
     );
   };
 
-  const onBlurValue = (id: string) => {
-    setRows(prev =>
-      prev.map(r => {
-        if (r.charge_type_id !== id) return r;
-        return r.is_variable === 1 ? r : { ...r, value: formatTypingDecimal(r.value) };
-      }),
-    );
-  };
-
-  // ====== Lưu kỳ & xử lý cuối kỳ ======
+  // Lưu
   function saveEdits(scope: 'cycle' | 'lease') {
     if (scope === 'lease') {
       for (const r of rows) {
         if (r.is_variable === 0) {
-          const newPrice = parseDecimal(r.value);
+          const newPrice = parseDecimalCommaStrict(r.value);
           if (newPrice !== r.unit_price) {
             updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
           }
@@ -291,7 +270,7 @@ export default function CycleDetail({ route, navigation }: Props) {
 
     for (const r of rows) {
       if (r.is_variable === 1) {
-        const current = parseAmount(r.value);
+        const current = parseAmountInt(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
         variableInputs.push({
           charge_type_id: r.charge_type_id,
@@ -299,7 +278,7 @@ export default function CycleDetail({ route, navigation }: Props) {
           meter_end: current,
         });
       } else {
-        const newPrice = parseDecimal(r.value);
+        const newPrice = parseDecimalCommaStrict(r.value);
         const delta = newPrice - (r.unit_price || 0);
         if (delta !== 0)
           adjustments.push({
@@ -309,7 +288,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       }
     }
     for (const ex of extras) {
-      const amt = parseAmount(ex.amount);
+      const amt = parseAmountInt(ex.amount);
       if (ex.name.trim() && amt > 0)
         adjustments.push({ name: ex.name.trim(), amount: amt });
     }
@@ -323,7 +302,6 @@ export default function CycleDetail({ route, navigation }: Props) {
     reload();
     onSettled?.();
 
-    // Nếu là chu kỳ cuối => hỏi tiếp
     if (isLastCycle(cycleId)) {
       Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
         { text: t('cycleDetail.endLease'), onPress: () => setShowEndModal(true) },
@@ -402,12 +380,6 @@ export default function CycleDetail({ route, navigation }: Props) {
     } catch (e: any) {
       Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
     }
-  }
-
-  async function exportImage() {
-    if (!viewShotRef.current) return;
-    const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
-    Alert.alert(t('cycleDetail.imageExported'), uri);
   }
 
   return (
@@ -505,19 +477,35 @@ export default function CycleDetail({ route, navigation }: Props) {
                           <Text style={{ color: c.subtext }}>
                             {t('cycleDetail.startIndex')}: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
                           </Text>
-                          <Text style={{ color: c.subtext, marginTop: 4 }}>
-                            {t('cycleDetail.currentIndex')}: {' '}
-                            <Text style={{ color: c.text }}>
-                              {currentReadings[r.charge_type_id] != null
-                                ? groupVN(String(currentReadings[r.charge_type_id]))
-                                : t('cycleDetail.notEntered')}
-                            </Text>
-                          </Text>
+
+                          {/* Label + input cùng hàng */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
+                            <FormInput
+                              style={{ flex: 1 }}
+                              keyboardType="numeric"
+                              value={r.value}
+                              onChangeText={(txt) => onChangeVarValue(r.charge_type_id, txt)}
+                            />
+                          </View>
                         </>
                       ) : (
-                        <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
-                        </Text>
+                        <>
+                          <Text style={{ color: c.subtext }}>
+                            {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
+                          </Text>
+
+                          {/* Label + input cùng hàng */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
+                            <FormInput
+                              style={{ flex: 1 }}
+                              keyboardType="decimal-pad"
+                              value={r.value}
+                              onChangeText={(txt) => onChangeFixedValue(r.charge_type_id, txt)}
+                            />
+                          </View>
+                        </>
                       )}
                     </View>
                   ))}
@@ -542,9 +530,9 @@ export default function CycleDetail({ route, navigation }: Props) {
 
               {rows.map(r => {
                 const isVar = r.is_variable === 1;
-                const current = parseAmount(r.value);
+                const current = parseAmountInt(r.value);
                 const consumed = isVar ? Math.max(0, current - (r.meter_start || 0)) : 0;
-                const partial = isVar ? consumed * (r.unit_price || 0) : parseDecimal(r.value);
+                const partial = isVar ? consumed * (r.unit_price || 0) : parseDecimalCommaStrict(r.value);
 
                 return (
                   <View key={r.charge_type_id} style={{ borderRadius: 10, padding: 10 }}>
@@ -564,13 +552,13 @@ export default function CycleDetail({ route, navigation }: Props) {
                           {t('cycleDetail.prevIndex')}: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
                         </Text>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <Text style={{ color: c.subtext, width: 120 }}>{t('cycleDetail.currentIndex')}</Text>
-                          <TextInput
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                          <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
+                          <FormInput
+                            style={{ flex: 1 }}
                             keyboardType="numeric"
                             value={r.value}
-                            onChangeText={t2 => onChangeVarValue(r.charge_type_id, t2)}
-                            style={{ flex: 1, backgroundColor: c.card, color: c.text, padding: 10, borderRadius: 10 }}
+                            onChangeText={(t2) => onChangeVarValue(r.charge_type_id, t2)}
                           />
                         </View>
 
@@ -583,16 +571,17 @@ export default function CycleDetail({ route, navigation }: Props) {
                         <Text style={{ color: c.subtext }}>
                           {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
                         </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <Text style={{ color: c.subtext, width: 120 }}>{t('cycleDetail.priceThisCycle')}</Text>
-                          <TextInput
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                          <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
+                          <FormInput
+                            style={{ flex: 1 }}
                             keyboardType="decimal-pad"
                             value={r.value}
-                            onChangeText={t2 => onChangeFixedValue(r.charge_type_id, t2)}
-                            onBlur={() => onBlurValue(r.charge_type_id)}
-                            style={{ flex: 1, backgroundColor: c.card, color: c.text, padding: 10, borderRadius: 10 }}
+                            onChangeText={(t2) => onChangeFixedValue(r.charge_type_id, t2)}
                           />
                         </View>
+
                         <Text style={{ color: c.subtext, marginTop: 6 }}>
                           {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(partial)}</Text>
                         </Text>
@@ -615,13 +604,12 @@ export default function CycleDetail({ route, navigation }: Props) {
                       style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
                     />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TextInput
+                      <FormInput
+                        style={{ flex: 1 }}
                         placeholder={t('cycleDetail.amountPlaceholder')}
-                        placeholderTextColor={c.subtext}
-                        keyboardType="numeric"
+                        keyboardType="decimal-pad"
                         value={ex.amount}
-                        onChangeText={t2 => updateExtra(idx, { amount: formatTyping(t2) })}
-                        style={{ flex: 1, borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+                        onChangeText={(t2) => updateExtra(idx, { amount: formatDecimalTypingVNStrict(t2) })}
                       />
                       <Button title={t('common.delete')} variant="ghost" onPress={() => removeExtra(idx)} />
                     </View>
@@ -650,7 +638,7 @@ export default function CycleDetail({ route, navigation }: Props) {
         )}
       </ViewShot>
 
-      {/* ===== Modal kết thúc hợp đồng / quyết toán cọc ===== */}
+      {/* Modal kết thúc hợp đồng */}
       <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={() => setShowEndModal(false)}>
         <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'flex-end'}}>
           <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16, gap:10}}>
@@ -669,13 +657,12 @@ export default function CycleDetail({ route, navigation }: Props) {
                     style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
                   />
                   <View style={{flexDirection:'row', gap:8}}>
-                    <TextInput
+                    <FormInput
+                      style={{flex:1}}
                       placeholder={t('cycleDetail.amountWithHint')}
-                      placeholderTextColor={c.subtext}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
                       value={ex.amount}
-                      onChangeText={t2 => updEndExtra(idx,{ amount: formatTyping(t2) })}
-                      style={{flex:1, borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                      onChangeText={(t2) => updEndExtra(idx,{ amount: formatDecimalTypingVNStrict(t2) })}
                     />
                     <Button title={t('common.delete')} variant="ghost" onPress={() => delEndExtra(idx)} />
                   </View>
@@ -701,7 +688,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                 onPress={() => {
                   const payload = endExtras
                     .filter(it => it.name.trim())
-                    .map(it => ({ name: it.name.trim(), amount: parseAmount(it.amount || '') }));
+                    .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount || '') }));
                   const res = endLeaseWithSettlement(leaseId, payload);
                   setShowEndModal(false);
                   Alert.alert(
@@ -720,7 +707,7 @@ export default function CycleDetail({ route, navigation }: Props) {
         </View>
       </Modal>
 
-      {/* ===== Modal gia hạn hợp đồng (nhập số tháng/ngày) ===== */}
+      {/* Modal gia hạn hợp đồng */}
       <Modal visible={showExtendModal} transparent animationType="fade" onRequestClose={() => setShowExtendModal(false)}>
         <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'center', padding:16}}>
           <View style={{backgroundColor:c.bg, borderRadius:12, padding:16, gap:10}}>

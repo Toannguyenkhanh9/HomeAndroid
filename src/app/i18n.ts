@@ -35,6 +35,7 @@ const resources = {
         operatingCostSettings: 'Cài đặt chi phí vận hành',
         operatingCostMonth: 'Chi phí vận hành theo tháng',
         help: 'Hướng dẫn',
+        reportmonthdetail : "Báo cáo chi tiết theo tháng"
       },
       settings: 'Cài đặt',
       rooms: 'Phòng',
@@ -238,6 +239,7 @@ const resources = {
         remove: 'Xoá',
         edit: 'Sửa',
         open: 'Mở',
+        undo: 'hoàn tác'
       },
       invoiceDetail: {
         title: 'Hóa đơn',
@@ -708,6 +710,7 @@ const resources = {
         operatingCostSettings: 'Operating Cost Settings',
         operatingCostMonth: 'Operating Costs by Month',
         help: 'Help',
+        reportmonthdetail : "Report Month Detail"
       },
       settings: 'Settings',
       rooms: 'Rooms',
@@ -914,6 +917,7 @@ const resources = {
         remove: 'Remove',
         edit: 'Edit',
         open: 'Open',
+        undo:'Undo',
       },
       invoiceDetail: {
         title: 'Invoice',

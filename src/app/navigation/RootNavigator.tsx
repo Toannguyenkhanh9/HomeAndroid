@@ -267,7 +267,8 @@ function AppInner() {
           component={ReportsMonthly}
           options={{ title: t('reports.title') }}
         />
-        <Stack.Screen name="ReportMonthDetail" component={ReportMonthDetail} />
+        <Stack.Screen name="ReportMonthDetail" component={ReportMonthDetail}
+         options={{ title: t('nav.reportmonthdetail') }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

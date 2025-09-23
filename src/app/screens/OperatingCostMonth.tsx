@@ -1,15 +1,20 @@
 // src/app/screens/OperatingCostMonth.tsx
 import React, {useEffect, useState, useMemo} from 'react';
-import {View, Text, ScrollView, TextInput, Alert} from 'react-native';
+import {View, Text, ScrollView, Alert} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import FormInput from '../components/FormInput';
 import {useThemeColors} from '../theme';
 import {getOperatingMonth, saveOperatingMonth} from '../../services/rent';
 import {useCurrency} from '../../utils/currency';
-import {groupVN, onlyDigits} from '../../utils/number';
+import {
+  formatNumber as groupVN,
+  formatDecimalTypingVNStrict,
+  parseDecimalCommaStrict,
+} from '../../utils/number';
 import {useTranslation} from 'react-i18next';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostMonth'>;
@@ -18,7 +23,7 @@ type Row = {
   id?: string | null;
   name: string;
   is_variable: number;
-  amount: string;
+  amount: string;   // chuỗi đã format kiểu VN (1.234,56)
   ad_hoc?: boolean;
 };
 
@@ -38,17 +43,21 @@ export default function OperatingCostMonth({route, navigation}: Props) {
         id: i.id,
         name: i.name,
         is_variable: Number(i.is_variable) || 0,
-        amount: i.amount == null ? '' : groupVN(String(i.amount)),
+        // hiển thị theo chuẩn VN: 1.234,56
+        amount: i.amount == null ? '' : formatDecimalTypingVNStrict(String(i.amount)),
         ad_hoc: !!i.ad_hoc,
       })),
     );
     setLoaded(true);
   }, [apartmentId, ym]);
 
+  // format khi gõ số tiền
   const setAmountFmt = (idx: number, typed: string) => {
-    const raw = onlyDigits(typed);
-    const formatted = raw === '' ? '' : groupVN(String(Number(raw)));
-    setRows(arr => arr.map((x, i) => (i === idx ? {...x, amount: formatted} : x)));
+    setRows(arr =>
+      arr.map((x, i) =>
+        i === idx ? {...x, amount: formatDecimalTypingVNStrict(typed)} : x,
+      ),
+    );
   };
 
   const updateName = (idx: number, name: string) =>
@@ -73,22 +82,20 @@ export default function OperatingCostMonth({route, navigation}: Props) {
   const addAdHocRow = () =>
     setRows(arr => [
       ...arr,
-      {
-        id: null,
-        name: '',
-        is_variable: 1,
-        amount: '',
-        ad_hoc: true,
-      },
+      { id: null, name: '', is_variable: 1, amount: '', ad_hoc: true },
     ]);
 
+  // tổng = cộng các amount đã parse theo dấu , thập phân
   const total = useMemo(
-    () => rows.reduce((s, r) => s + (Number(onlyDigits(r.amount || '')) || 0), 0),
+    () => rows.reduce((s, r) => s + parseDecimalCommaStrict(r.amount || ''), 0),
     [rows],
   );
 
   const save = () => {
-    const invalid = rows.find(r => r.ad_hoc && (!r.name.trim() || !(Number(onlyDigits(r.amount || '')) > 0)));
+    // kiểm tra dòng phát sinh: cần name & amount > 0
+    const invalid = rows.find(
+      r => r.ad_hoc && (!r.name.trim() || !(parseDecimalCommaStrict(r.amount || '') > 0)),
+    );
     if (invalid) {
       Alert.alert(t('common.missing'), t('operatingCostMonth.missingInfo'), [{text: t('common.ok')}]);
       return;
@@ -99,7 +106,7 @@ export default function OperatingCostMonth({route, navigation}: Props) {
       name: (r.name || '').trim(),
       is_variable: Number(r.is_variable) || 0,
       unit: null,
-      amount: Number(onlyDigits(r.amount || '')) || 0,
+      amount: parseDecimalCommaStrict(r.amount || ''), // <-- parse chuẩn VN
       ad_hoc: r.ad_hoc ? 1 : 0,
     }));
 
@@ -135,30 +142,25 @@ export default function OperatingCostMonth({route, navigation}: Props) {
                   : t('operatingCostMonth.tagFixed')}
               </Text>
 
-              <TextInput
+              <FormInput
                 placeholder={t('operatingCostMonth.expenseName')}
-                placeholderTextColor={c.subtext}
                 value={r.name}
                 onChangeText={t => updateName(idx, t)}
-                style={{borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card}}
               />
 
-              <TextInput
-                keyboardType="numeric"
+              <FormInput
+                keyboardType="decimal-pad"
                 value={r.amount}
                 onChangeText={t => setAmountFmt(idx, t)}
                 placeholder={t('operatingCostMonth.expenseAmount')}
-                placeholderTextColor={c.subtext}
-                style={{
-                  borderRadius: 10,
-                  padding: 10,
-                  color: c.text,
-                  backgroundColor: c.card,
-                }}
               />
 
               <View style={{alignItems: 'flex-end'}}>
-                <Button title={t('operatingCostMonth.deleteThisMonth')} variant="ghost" onPress={() => removeRow(idx)} />
+                <Button
+                  title={t('operatingCostMonth.deleteThisMonth')}
+                  variant="ghost"
+                  onPress={() => removeRow(idx)}
+                />
               </View>
             </View>
           ))}

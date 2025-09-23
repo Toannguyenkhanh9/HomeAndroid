@@ -152,7 +152,7 @@ export default function Onboarding({navigation}: Props) {
                   <Image
                     source={s.illustration}
                     resizeMode="cover"
-                    style={{width: '100%', height: 200}}
+                    style={{width: '100%', height: 600}}
                   />
                 ) : (
                   <View
