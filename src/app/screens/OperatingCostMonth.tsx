@@ -1,6 +1,6 @@
 // src/app/screens/OperatingCostMonth.tsx
 import React, {useEffect, useState, useMemo} from 'react';
-import {View, Text, ScrollView, Alert} from 'react-native';
+import {View, Text, ScrollView, Alert,KeyboardAvoidingView,Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -125,7 +125,10 @@ export default function OperatingCostMonth({route, navigation}: Props) {
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: 'transparent'}}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
       <Header title={t('operatingCostMonth.title', {ym})} />
       <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
         <Card style={{gap: 10}}>
@@ -180,6 +183,6 @@ export default function OperatingCostMonth({route, navigation}: Props) {
           <Button title={t('common.save')} onPress={save} />
         </View>
       </ScrollView>
-    </View>
+   </KeyboardAvoidingView>
   );
 }

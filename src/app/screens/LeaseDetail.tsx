@@ -7,6 +7,8 @@ import {
   Alert,
   Modal,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -241,7 +243,10 @@ export default function LeaseDetail({ route, navigation }: Props) {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
       {!editMode ? (
         <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
           <Card>
@@ -583,6 +588,6 @@ export default function LeaseDetail({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+      </KeyboardAvoidingView>
   );
 }

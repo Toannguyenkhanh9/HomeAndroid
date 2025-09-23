@@ -11,7 +11,7 @@ import {SettingsProvider, useSettings} from './src/app/state/SettingsContext';
 import i18n from './src/app/i18n';
 import {I18nextProvider} from 'react-i18next';
 import {ThemeProvider} from './src/app/theme';
-
+import PushNotification from 'react-native-push-notification';
 // ❌ KHÔNG import NavigationContainer ở đây
 // import {NavigationContainer} from '@react-navigation/native';
 
@@ -24,6 +24,7 @@ function LanguageSync({children}: {children: React.ReactNode}) {
   }, [language]);
   return <>{children}</>;
 }
+
 
 export default function App() {
   const isDarkMode = useColorScheme() === 'dark';

@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
   Platform,
+  KeyboardAvoidingView
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -200,7 +201,10 @@ export default function LeaseForm({ route, navigation }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
         {/* Khách thuê */}
         <Card style={{ gap: 8 }}>
@@ -423,6 +427,6 @@ export default function LeaseForm({ route, navigation }: Props) {
           <Button title={t('leaseForm.createLease')} onPress={submit} />
         </View>
       </ScrollView>
-    </View>
+      </KeyboardAvoidingView>
   );
 }

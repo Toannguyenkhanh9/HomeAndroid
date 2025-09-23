@@ -1,6 +1,6 @@
 // src/app/screens/OperatingCostDetail.tsx
 import React, {useEffect, useMemo, useState} from 'react';
-import {View, Text, ScrollView, TextInput, Alert} from 'react-native';
+import {View, Text, ScrollView, TextInput, Alert, KeyboardAvoidingView,Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import Header from '../components/Header';
@@ -58,7 +58,10 @@ export default function OperatingCostDetail({route}: Props) {
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: 'transparent'}}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
       <Header title={t('operatingCostDetail.title', {ym})} />
       <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
         <Card>
@@ -176,6 +179,6 @@ export default function OperatingCostDetail({route}: Props) {
           />
         </Card>
       </ScrollView>
-    </View>
+      </KeyboardAvoidingView>
   );
 }

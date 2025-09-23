@@ -8,6 +8,8 @@ import {
   ScrollView,
   Modal,
   Share,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -383,7 +385,10 @@ export default function CycleDetail({ route, navigation }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
         {!editMode ? (
           <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
@@ -742,6 +747,6 @@ export default function CycleDetail({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+      </KeyboardAvoidingView>
   );
 }
