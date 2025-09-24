@@ -1,6 +1,6 @@
 // src/app/navigation/RootNavigator.tsx
 import React, { useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, PermissionsAndroid, Platform } from 'react-native';
 import {
   NavigationContainer,
   DarkTheme as NavDarkTheme,
@@ -92,6 +92,21 @@ const DarkNavTheme = {
     background: 'transparent',
   },
 };
+async function requestNotifPermissionAndroid13(t:any) {
+  if (Platform.OS === 'android' && Platform.Version >= 33) {
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      {
+        title:  t('notify.title'),
+        message: t('notify.message'),
+        buttonPositive: t('notify.buttonPositive'),
+        buttonNegative: t('notify.buttonNegative'),
+      },
+    );
+    return res === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  return true;
+}
 
 function AppInner() {
   const isDark = useColorScheme() === 'dark';
@@ -112,6 +127,10 @@ function AppInner() {
         initNotifications();
         closeExpiredLeases();
         bootstrapRentModule();
+        (async () => {
+          await requestNotifPermissionAndroid13(t);
+          initNotifications(); // tạo channel
+        })();
       } finally {
         setDbReady(true);
       }
@@ -122,7 +141,7 @@ function AppInner() {
         setShowOnboarding(true);
       }
     })();
-  }, []);
+  }, [t]);
 
   if (!ready || !dbReady || showOnboarding === null) return null;
 
@@ -133,6 +152,8 @@ function AppInner() {
         screenOptions={{
           contentStyle: { backgroundColor: 'transparent' },
           headerStyle: { backgroundColor: 'transparent' },
+          headerTintColor: '#000',                 // ← icon/back & text header màu đen
+          headerTitleStyle: { color: '#000' },  
         }}
       >
         <Stack.Screen
@@ -151,6 +172,7 @@ function AppInner() {
           name="ApartmentsList"
           component={ApartmentsList}
           options={{ title: t('brand.nameslogan') }}
+          
         />
         <Stack.Screen
           name="ApartmentForm"
@@ -267,8 +289,11 @@ function AppInner() {
           component={ReportsMonthly}
           options={{ title: t('reports.title') }}
         />
-        <Stack.Screen name="ReportMonthDetail" component={ReportMonthDetail}
-         options={{ title: t('nav.reportmonthdetail') }} />
+        <Stack.Screen
+          name="ReportMonthDetail"
+          component={ReportMonthDetail}
+          options={{ title: t('nav.reportmonthdetail') }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

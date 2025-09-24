@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity,ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import Card from '../components/Card';
@@ -27,6 +27,7 @@ export default function ReportsMonthly({ navigation }: Props) {
     <View
       style={{ flex: 1, backgroundColor: 'transparent', padding: 12, gap: 12 }}
     >
+       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
       <Card
         style={{
           flexDirection: 'row',
@@ -173,6 +174,7 @@ export default function ReportsMonthly({ navigation }: Props) {
           ))}
         </View>
       </Card>
+      </ScrollView>
     </View>
   );
 }

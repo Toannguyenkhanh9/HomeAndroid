@@ -35,7 +35,7 @@ const resources = {
         operatingCostSettings: 'Cài đặt chi phí vận hành',
         operatingCostMonth: 'Chi phí vận hành theo tháng',
         help: 'Hướng dẫn',
-        reportmonthdetail : "Báo cáo chi tiết theo tháng"
+        reportmonthdetail: 'Báo cáo chi tiết theo tháng',
       },
       settings: 'Cài đặt',
       rooms: 'Phòng',
@@ -89,7 +89,7 @@ const resources = {
       stat_overdue: 'Quá hạn hợp đồng',
       stat_unpaid: 'Đang nợ tiền',
       stat_holdingDeposit: 'Đang giữ cọc',
-      month :"Tháng",
+      month: 'Tháng',
       apartmentCreate: {
         title: 'Thêm căn hộ',
         enterName: 'Vui lòng nhập tên căn hộ',
@@ -239,7 +239,7 @@ const resources = {
         remove: 'Xoá',
         edit: 'Sửa',
         open: 'Mở',
-        undo: 'hoàn tác'
+        undo: 'hoàn tác',
       },
       invoiceDetail: {
         title: 'Hóa đơn',
@@ -677,6 +677,12 @@ const resources = {
         apartment: 'Căn hộ',
         profit: 'Lợi nhuận',
       },
+      notify: {
+        title: 'Quyền thông báo',
+        message: 'Cho phép ứng dụng gửi nhắc lịch thu tiền.',
+        buttonPositive: 'Cho phép',
+        buttonNegative: 'Từ chối',
+      },
     },
   },
   en: {
@@ -710,7 +716,7 @@ const resources = {
         operatingCostSettings: 'Operating Cost Settings',
         operatingCostMonth: 'Operating Costs by Month',
         help: 'Help',
-        reportmonthdetail : "Report Month Detail"
+        reportmonthdetail: 'Report Month Detail',
       },
       settings: 'Settings',
       rooms: 'Rooms',
@@ -764,7 +770,7 @@ const resources = {
       stat_overdue: 'Overdue leases',
       stat_unpaid: 'Unpaid',
       stat_holdingDeposit: 'Holding deposits',
-      month :"Month",
+      month: 'Month',
       apartmentCreate: {
         title: 'Add Apartment',
         enterName: 'Please enter apartment name',
@@ -917,7 +923,7 @@ const resources = {
         remove: 'Remove',
         edit: 'Edit',
         open: 'Open',
-        undo:'Undo',
+        undo: 'Undo',
       },
       invoiceDetail: {
         title: 'Invoice',
@@ -1352,6 +1358,12 @@ const resources = {
         breakdownFor: 'Breakdown for',
         apartment: 'Apartment',
         profit: 'Profit',
+      },
+      notify: {
+        title: 'Notification permission',
+        message: 'Allow the app to send collection schedule reminders.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Deny',
       },
     },
   },

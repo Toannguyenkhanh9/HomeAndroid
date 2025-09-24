@@ -9,7 +9,7 @@ import {
   Modal,
   Share,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -45,6 +45,9 @@ import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 
+// 🔔 notifications
+import { scheduleReminder, cancelReminder } from '../../services/notifications';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
 };
@@ -67,13 +70,30 @@ function parseAmountInt(s: string) {
   return digits ? Number(digits) : 0;
 }
 
+// ➕ Format tiền VN khi đang gõ: ngăn nghìn bằng ".", thập phân bằng ","
+function formatVNMoneyTyping(input: string) {
+  if (!input) return '';
+  // chỉ giữ chữ số và dấu phẩy
+  let s = input.replace(/[^\d,]/g, '');
+  // tách phần nguyên / thập phân (chỉ 1 dấu phẩy)
+  const [rawInt = '', ...rest] = s.split(',');
+  const rawDec = rest.join('').replace(/,/g, '');
+  // bỏ 0 đầu nhưng vẫn cho "0" khi người dùng gõ 0
+  const int = rawInt.replace(/^0+(?=\d)/, '');
+  // chèn dấu chấm ngăn nghìn
+  const groupedInt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return rawDec ? `${groupedInt},${rawDec}` : groupedInt;
+}
+
 export default function CycleDetail({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { dateFormat, language } = useSettings();
   const { cycleId, onSettled } = route.params as any;
   const c = useThemeColors();
   const { format } = useCurrency();
+
   const viewShotRef = useRef<ViewShot>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const [leaseId, setLeaseId] = useState<string>('');
   const [leaseInfo, setLeaseInfo] = useState<any>(null);
@@ -112,6 +132,14 @@ export default function CycleDetail({ route, navigation }: Props) {
 
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extendCount, setExtendCount] = useState<string>('');
+
+  const isFixedTerm = useMemo(() => {
+    if (!leaseInfo) return false;
+    const billing = String(leaseInfo.billing_cycle);
+    if (billing === 'monthly') return !!leaseInfo.end_date;
+    if (billing === 'daily') return Number(leaseInfo.duration_days || 0) > 0;
+    return false;
+  }, [leaseInfo]);
 
   const reload = () => {
     const cyc = getCycle(cycleId);
@@ -162,7 +190,8 @@ export default function CycleDetail({ route, navigation }: Props) {
         is_variable: Number(it.is_variable),
         unit_price: Number(it.unit_price) || 0,
         meter_start: Number(it.meter_start) || 0,
-        value: it.is_variable ? '' : String(it.unit_price ?? ''),
+        // ✅ khởi tạo đã có format VN
+        value: it.is_variable ? '' : formatVNMoneyTyping(String(it.unit_price ?? '')),
       }));
       setRows(normalized);
       setInvId(undefined);
@@ -174,7 +203,6 @@ export default function CycleDetail({ route, navigation }: Props) {
 
   useEffect(reload, [cycleId]);
 
-  // Tổng preview
   const previewTotal = useMemo(() => {
     let sum = 0;
     for (const r of rows) {
@@ -183,14 +211,13 @@ export default function CycleDetail({ route, navigation }: Props) {
         const consumed = Math.max(0, current - (r.meter_start || 0));
         sum += consumed * (r.unit_price || 0);
       } else {
-        sum += parseDecimalCommaStrict(r.value); // thập phân theo VN
+        sum += parseDecimalCommaStrict(r.value);
       }
     }
     for (const ex of extras) sum += parseAmountInt(ex.amount);
     return sum;
   }, [rows, extras]);
 
-  // điện/nước / preview
   const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
     useMemo(() => {
       const isWater = (u?: string | null) =>
@@ -219,33 +246,23 @@ export default function CycleDetail({ route, navigation }: Props) {
           if (isWater(r.unit)) _pWater += money;
         }
       }
-      return {
-        elecTotal: _elec,
-        waterTotal: _water,
-        previewElecTotal: _pElec,
-        previewWaterTotal: _pWater,
-      };
+      return { elecTotal: _elec, waterTotal: _water, previewElecTotal: _pElec, previewWaterTotal: _pWater };
     }, [rows, status, invId]);
 
-  // Handlers nhập
   const onChangeVarValue = (id: string, text: string) => {
     setRows(prev =>
-      prev.map(r =>
-        r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r,
-      ),
-    );
-  };
-  const onChangeFixedValue = (id: string, text: string) => {
-    setRows(prev =>
-      prev.map(r =>
-        r.charge_type_id === id
-          ? { ...r, value: formatDecimalTypingVNStrict(text) }
-          : r,
-      ),
+      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r)),
     );
   };
 
-  // Lưu
+  // ✅ gõ “Giá kỳ này” có format VN ngay
+  const onChangeFixedValue = (id: string, text: string) => {
+    const formatted = formatVNMoneyTyping(text);
+    setRows(prev =>
+      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)),
+    );
+  };
+
   function saveEdits(scope: 'cycle' | 'lease') {
     if (scope === 'lease') {
       for (const r of rows) {
@@ -262,37 +279,23 @@ export default function CycleDetail({ route, navigation }: Props) {
       return;
     }
 
-    // settle kỳ
-    const variableInputs: Array<{
-      charge_type_id: string;
-      quantity: number;
-      meter_end?: number;
-    }> = [];
+    const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
     for (const r of rows) {
       if (r.is_variable === 1) {
         const current = parseAmountInt(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
-        variableInputs.push({
-          charge_type_id: r.charge_type_id,
-          quantity: consumed,
-          meter_end: current,
-        });
+        variableInputs.push({ charge_type_id: r.charge_type_id, quantity: consumed, meter_end: current });
       } else {
         const newPrice = parseDecimalCommaStrict(r.value);
         const delta = newPrice - (r.unit_price || 0);
-        if (delta !== 0)
-          adjustments.push({
-            name: `${t('cycleDetail.adjust')} ${r.name}`,
-            amount: delta,
-          });
+        if (delta !== 0) adjustments.push({ name: `${t('cycleDetail.adjust')} ${r.name}`, amount: delta });
       }
     }
     for (const ex of extras) {
       const amt = parseAmountInt(ex.amount);
-      if (ex.name.trim() && amt > 0)
-        adjustments.push({ name: ex.name.trim(), amount: amt });
+      if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
     const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
@@ -301,10 +304,35 @@ export default function CycleDetail({ route, navigation }: Props) {
     setInvId(inv.id);
     setInvTotal(inv.total || 0);
     setExtras([]);
+
+    // HĐ không kỳ hạn → tự thêm 1 kỳ mới
+    try {
+      const billing = String(leaseInfo?.billing_cycle);
+      const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
+      const isOpenDaily = billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
+      if (isOpenMonthly || isOpenDaily) {
+        extendLeaseAndAddCycles(leaseId, 1);
+      }
+    } catch {}
+
     reload();
     onSettled?.();
 
-    if (isLastCycle(cycleId)) {
+    try {
+      const isMonthly = String(leaseInfo?.billing_cycle) === 'monthly';
+      const nextSettle = new Date(period.e);
+      if (isMonthly) nextSettle.setMonth(nextSettle.getMonth() + 1);
+      else nextSettle.setDate(nextSettle.getDate() + 1);
+      const nextISO = nextSettle.toISOString().slice(0, 10);
+      scheduleReminder(
+        `lease_${leaseId}_cycle_settle_${nextISO}`,
+        t('notify.settleTitle') || 'Tất toán kỳ',
+        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        nextISO,
+      );
+    } catch {}
+
+    if (isFixedTerm && isLastCycle(cycleId)) {
       Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
         { text: t('cycleDetail.endLease'), onPress: () => setShowEndModal(true) },
         { text: t('cycleDetail.keepLease'), onPress: () => setShowExtendModal(true) },
@@ -370,28 +398,53 @@ export default function CycleDetail({ route, navigation }: Props) {
     Alert.alert(t('cycleDetail.pdfExported'), res.filePath || '—');
   }
 
-  async function shareImage() {
-    try {
-      if (!viewShotRef.current) return;
-      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+async function shareImage() {
+  try {
+    if (!scrollRef.current) {
+      Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
+      return;
+    }
+
+    // Chụp toàn bộ nội dung ScrollView
+    const fileUri = await captureRef(scrollRef.current, {
+      format: 'png',
+      quality: 1,
+      result: 'tmpfile',
+      snapshotContentContainer: true,
+    });
+
+    // Đảm bảo có tiền tố file://
+    const uri = fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`;
+
+    if (Platform.OS === 'android') {
+      // ⚠️ Android: CHỈ gửi url (không kèm message) để chắc chắn share ảnh
       await Share.share({
         url: uri,
-        message: t('cycleDetail.shareMessage'),
         title: t('cycleDetail.shareTitle'),
       });
-    } catch (e: any) {
-      Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
+    } else {
+      // iOS chấp nhận cả message và url
+      await Share.share({
+        url: uri,
+        title: t('cycleDetail.shareTitle'),
+        message: t('cycleDetail.shareMessage'),
+      });
     }
+  } catch (e: any) {
+    Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
   }
+}
 
   return (
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
         {!editMode ? (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+      <ScrollView
+        ref={scrollRef}
+        collapsable={false}
+        contentContainerStyle={{ padding: 12, gap: 12 }}
+        showsVerticalScrollIndicator
+      >
             <Card>
               <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.roomInfo')}</Text>
               <Text style={{ color: roomCode ? c.text : c.subtext }}>{t('common.room')}: {roomCode || '—'}</Text>
@@ -483,15 +536,11 @@ export default function CycleDetail({ route, navigation }: Props) {
                             {t('cycleDetail.startIndex')}: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
                           </Text>
 
-                          {/* Label + input cùng hàng */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
-                            <FormInput
-                              style={{ flex: 1 }}
-                              keyboardType="numeric"
-                              value={r.value}
-                              onChangeText={(txt) => onChangeVarValue(r.charge_type_id, txt)}
-                            />
+                          <View style={{ flexDirection:'row', alignItems:'center', marginTop:8 }}>
+                            <Text style={{ color:c.subtext, flex:1 }}>{t('cycleDetail.currentIndex')}</Text>
+                            <Text style={{ color:r.value ? c.text : c.subtext, textAlign:'right' }}>
+                              {r.value ? groupVN(String(parseInt((r.value || '').replace(/\D/g,''),10)||0)) : t('cycleDetail.notEntered')}
+                            </Text>
                           </View>
                         </>
                       ) : (
@@ -499,16 +548,11 @@ export default function CycleDetail({ route, navigation }: Props) {
                           <Text style={{ color: c.subtext }}>
                             {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
                           </Text>
-
-                          {/* Label + input cùng hàng */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
-                            <FormInput
-                              style={{ flex: 1 }}
-                              keyboardType="decimal-pad"
-                              value={r.value}
-                              onChangeText={(txt) => onChangeFixedValue(r.charge_type_id, txt)}
-                            />
+                          <View style={{ flexDirection:'row', alignItems:'center', marginTop:8 }}>
+                            <Text style={{ color:c.subtext, flex:1 }}>{t('cycleDetail.priceThisCycle')}</Text>
+                            <Text style={{ color:c.text, textAlign:'right' }}>
+                              {format(parseDecimalCommaStrict(r.value || String(r.unit_price)))}
+                            </Text>
                           </View>
                         </>
                       )}
@@ -529,7 +573,7 @@ export default function CycleDetail({ route, navigation }: Props) {
             )}
           </ScrollView>
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+          <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
 
@@ -695,6 +739,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     .filter(it => it.name.trim())
                     .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount || '') }));
                   const res = endLeaseWithSettlement(leaseId, payload);
+                  try { cancelReminder(`lease_end_${leaseId}`); } catch {}
                   setShowEndModal(false);
                   Alert.alert(
                     t('cycleDetail.ended'),
@@ -739,6 +784,19 @@ export default function CycleDetail({ route, navigation }: Props) {
                   setExtendCount('');
                   reload();
                   Alert.alert(t('common.success'), t('cycleDetail.extendedOk'));
+                  try {
+                    const isMonthly = String(leaseInfo?.billing_cycle) === 'monthly';
+                    const next = new Date(period.e);
+                    if (isMonthly) next.setMonth(next.getMonth() + 1);
+                    else next.setDate(next.getDate() + 1);
+                    const nextISO = next.toISOString().slice(0,10);
+                    scheduleReminder(
+                      `lease_${leaseId}_cycle_settle_${nextISO}`,
+                      t('notify.settleTitle') || 'Tất toán kỳ',
+                      t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+                      nextISO
+                    );
+                  } catch {}
                 } catch(e:any) {
                   Alert.alert(t('common.error'), e?.message || t('cycleDetail.extendFail'));
                 }
@@ -747,6 +805,6 @@ export default function CycleDetail({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 }

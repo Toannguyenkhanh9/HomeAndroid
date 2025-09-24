@@ -27,6 +27,8 @@ import {
   parseDecimalCommaStrict,
   formatDecimalTypingVNStrict,
 } from '../../utils/number';
+// ⬇️ Thêm import notifications
+import { scheduleReminder } from '../../services/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -34,7 +36,7 @@ type ChargeDraft = {
   name: string;
   isVariable: boolean;
   unit?: string;
-  price?: string;         // ✅ fix: bỏ ký tự thừa
+  price?: string;
   meterStart?: string;
 };
 
@@ -180,6 +182,41 @@ export default function LeaseForm({ route, navigation }: Props) {
     try {
       const leaseId = startLeaseAdvanced(payload as any);
 
+      // ====== Lên lịch thông báo ======
+      // 1) Thông báo ngày kết thúc hợp đồng (nếu có)
+      if (endDateISO) {
+        scheduleReminder(
+          `lease_end_${leaseId}`,
+          t('notify.leaseEndTitle') || 'Kết thúc hợp đồng',
+          t('notify.leaseEndMsg') || 'Hợp đồng kết thúc hôm nay. Vui lòng kiểm tra & tất toán.',
+          endDateISO // 09:00 theo scheduleReminder
+        );
+      }
+
+      // 2) Thông báo ngày tất toán kỳ đầu tiên (9h sáng)
+      const firstSettleISO = (() => {
+        if (mode === 'monthly') {
+          const s = new Date(startISO);
+          const e = new Date(s);
+          e.setMonth(e.getMonth() + 1);
+          e.setDate(e.getDate() - 1);
+          return e.toISOString().slice(0, 10);
+        } else {
+          const s = new Date(startISO);
+          const n = Math.max(1, durationDays || 1);
+          s.setDate(s.getDate() + n - 1);
+          return s.toISOString().slice(0, 10);
+        }
+      })();
+
+      scheduleReminder(
+        `lease_settle_${leaseId}_1`,
+        t('notify.settleTitle') || 'Tất toán kỳ',
+        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        firstSettleISO
+      );
+      // =================================
+
       const depositAmt = deposit;
       const firstRent = collect === 'start' ? baseRent : 0;
       const totalDueNow = depositAmt + firstRent;
@@ -201,10 +238,10 @@ export default function LeaseForm({ route, navigation }: Props) {
   }
 
   return (
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
         {/* Khách thuê */}
         <Card style={{ gap: 8 }}>
@@ -410,7 +447,7 @@ export default function LeaseForm({ route, navigation }: Props) {
                     <FormInput
                       keyboardType="numeric"
                       value={ch.meterStart}
-                      onChangeText={txt => updCharge(idx, { meterStart: formatIntTyping(txt) })}  // ✅ fix: đúng field
+                      onChangeText={txt => updCharge(idx, { meterStart: formatIntTyping(txt) })}
                     />
                   </>
                 )}
@@ -427,6 +464,6 @@ export default function LeaseForm({ route, navigation }: Props) {
           <Button title={t('leaseForm.createLease')} onPress={submit} />
         </View>
       </ScrollView>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 }
