@@ -1032,11 +1032,28 @@ export function revenueByApartmentForMonth(apartmentId: string, year: number, mo
 
 export function expenseByApartmentForMonth(apartmentId: string, year: number, month: number) {
   ensureOperatingTables();
+  ensureOperatingCostTables();
   const ym = `${year}-${String(month).padStart(2, '0')}`;
+
   const row = query<{ sum: number }>(
-    `SELECT SUM(amount) AS sum FROM operating_expenses WHERE apartment_id = ? AND ym = ?`,
-    [apartmentId, ym],
+    `
+    SELECT SUM(expense) AS sum
+    FROM (
+      -- nguồn 1: operating_expenses
+      SELECT SUM(amount) AS expense
+      FROM operating_expenses
+      WHERE apartment_id = ? AND ym = ?
+      UNION ALL
+      -- nguồn 2: op_cost_* (tháng vận hành theo mẫu)
+      SELECT SUM(oi.amount) AS expense
+      FROM op_cost_items oi
+      JOIN op_cost_months om ON om.id = oi.month_id
+      WHERE om.apartment_id = ? AND om.ym = ?
+    )
+    `,
+    [apartmentId, ym, apartmentId, ym],
   )[0];
+
   return Number(row?.sum || 0);
 }
 
@@ -1054,14 +1071,8 @@ export function revenueByApartmentMonth(apartmentId: string, year: number, month
 }
 
 export function expensesByApartmentMonth(apartmentId: string, year: number, month: number) {
-  const ym = `${year}-${String(month).padStart(2,'0')}`;
-  const row = query<{ sum: number }>(`
-    SELECT SUM(amount) sum
-    FROM operating_expenses
-    WHERE apartment_id = ?
-      AND ym = ?
-  `, [apartmentId, ym])[0];
-  return Number(row?.sum || 0);
+  // alias cho hàm trên (nếu nơi khác đang gọi)
+  return expenseByApartmentForMonth(apartmentId, year, month);
 }
 
 export function revenueAllApartmentsByMonth(year: number) {
@@ -1073,42 +1084,82 @@ export function revenueAllApartmentsByMonth(year: number) {
   return arr;
 }
 export function revenueAndExpenseByApartmentForMonth(year: number, month: number) {
+  ensureOperatingTables();
+  ensureOperatingCostTables();
+
   const ym = `${year}-${String(month).padStart(2, '0')}`;
 
-  // Doanh thu theo apartment (cộng invoices.total)
-  const revenue = query<any>(`
+  // Doanh thu theo apartment (invoices.total)
+  const revenue = query<any>(
+    `
     SELECT a.id AS apartment_id, a.name, SUM(i.total) AS revenue
     FROM invoices i
-    JOIN leases l ON l.id = i.lease_id
-    JOIN rooms r ON r.id = l.room_id
+    JOIN leases  l ON l.id = i.lease_id
+    JOIN rooms   r ON r.id = l.room_id
     JOIN apartments a ON a.id = r.apartment_id
     WHERE strftime('%Y-%m', i.issue_date) = ?
     GROUP BY a.id, a.name
     ORDER BY a.name ASC
-  `, [ym]).map(x => ({ ...x, revenue: Number(x.revenue || 0) }));
+    `,
+    [ym],
+  ).map(x => ({ ...x, revenue: Number(x.revenue || 0) }));
 
-  // Chi phí hoạt động theo apartment (bảng operating_expenses, theo ym)
-  const expenses = query<any>(`
-    SELECT apartment_id, SUM(amount) AS expense
-    FROM operating_expenses
-    WHERE ym = ?
+  // Chi phí theo apartment: GỘP 2 nguồn và SUM lại
+  const expenses = query<any>(
+    `
+    SELECT apartment_id, SUM(expense) AS expense FROM (
+      -- nguồn 1
+      SELECT apartment_id, SUM(amount) AS expense
+      FROM operating_expenses
+      WHERE ym = ?
+      GROUP BY apartment_id
+      UNION ALL
+      -- nguồn 2
+      SELECT om.apartment_id AS apartment_id, SUM(oi.amount) AS expense
+      FROM op_cost_items oi
+      JOIN op_cost_months om ON om.id = oi.month_id
+      WHERE om.ym = ?
+      GROUP BY om.apartment_id
+    )
     GROUP BY apartment_id
-  `, [ym]).map(x => ({ apartment_id: x.apartment_id, expense: Number(x.expense || 0) }));
+    `,
+    [ym, ym],
+  ).map(x => ({ apartment_id: x.apartment_id, expense: Number(x.expense || 0) }));
 
-  // Gộp 2 bảng
+  // Gộp revenue + expense
   const map: Record<string, { apartment_id: string; name: string; revenue: number; expense: number; profit: number }> = {};
-  for (const r of revenue) map[r.apartment_id] = { apartment_id: r.apartment_id, name: r.name, revenue: r.revenue, expense: 0, profit: r.revenue };
+
+  for (const r of revenue) {
+    map[r.apartment_id] = {
+      apartment_id: r.apartment_id,
+      name: r.name,
+      revenue: r.revenue,
+      expense: 0,
+      profit: r.revenue,
+    };
+  }
+
   for (const e of expenses) {
-    if (!map[e.apartment_id]) map[e.apartment_id] = { apartment_id: e.apartment_id, name: '—', revenue: 0, expense: 0, profit: 0 };
+    if (!map[e.apartment_id]) {
+      // TH có chi phí mà không có doanh thu tháng đó
+      const apt = query<any>(`SELECT name FROM apartments WHERE id=? LIMIT 1`, [e.apartment_id])[0];
+      map[e.apartment_id] = {
+        apartment_id: e.apartment_id,
+        name: apt?.name || '—',
+        revenue: 0,
+        expense: 0,
+        profit: 0,
+      };
+    }
     map[e.apartment_id].expense = e.expense;
     map[e.apartment_id].profit = (map[e.apartment_id].revenue || 0) - e.expense;
   }
+
   const rows = Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
-  const totals = rows.reduce((s, r) => ({
-    revenue: s.revenue + r.revenue,
-    expense: s.expense + r.expense,
-    profit: s.profit + r.profit,
-  }), { revenue: 0, expense: 0, profit: 0 });
+  const totals = rows.reduce(
+    (s, r) => ({ revenue: s.revenue + r.revenue, expense: s.expense + r.expense, profit: s.profit + r.profit }),
+    { revenue: 0, expense: 0, profit: 0 },
+  );
 
   return { rows, totals };
 }

@@ -7,7 +7,6 @@ import {
   Alert,
   ScrollView,
   Modal,
-  Share,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -44,6 +43,7 @@ import ViewShot, { captureRef } from 'react-native-view-shot';
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
+import Share from 'react-native-share';
 
 // 🔔 notifications
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
@@ -399,42 +399,30 @@ export default function CycleDetail({ route, navigation }: Props) {
   }
 
 async function shareImage() {
-  try {
-    if (!scrollRef.current) {
-      Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
-      return;
-    }
-
-    // Chụp toàn bộ nội dung ScrollView
-    const fileUri = await captureRef(scrollRef.current, {
-      format: 'png',
-      quality: 1,
-      result: 'tmpfile',
-      snapshotContentContainer: true,
-    });
-
-    // Đảm bảo có tiền tố file://
-    const uri = fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`;
-
-    if (Platform.OS === 'android') {
-      // ⚠️ Android: CHỈ gửi url (không kèm message) để chắc chắn share ảnh
-      await Share.share({
-        url: uri,
-        title: t('cycleDetail.shareTitle'),
+    try {
+      if (!scrollRef.current) {
+        Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
+        return;
+      }
+      const filePath = await captureRef(scrollRef.current, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+        snapshotContentContainer: true,
       });
-    } else {
-      // iOS chấp nhận cả message và url
-      await Share.share({
+
+      // react-native-share yêu cầu dạng file://
+      const uri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+
+      await Share.open({
         url: uri,
-        title: t('cycleDetail.shareTitle'),
-        message: t('cycleDetail.shareMessage'),
+        type: 'image/png',
+        failOnCancel: false,
       });
+    } catch (e: any) {
+      Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
     }
-  } catch (e: any) {
-    Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
   }
-}
-
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>

@@ -11,7 +11,7 @@ import { revenueAndExpenseByApartmentForMonth } from '../../services/rent';
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportMonthDetail'>;
 
 export default function ReportMonthDetail({ route }: Props) {
-  // ✅ fallback khi route.params bị undefined (VD: mở screen trực tiếp)
+  // Fallback nếu vào screen trực tiếp
   const now = new Date();
   const fallback = { year: now.getFullYear(), month: now.getMonth() + 1 };
   const { year, month } = (route?.params ?? fallback);
@@ -25,45 +25,159 @@ export default function ReportMonthDetail({ route }: Props) {
     [year, month],
   );
 
+  const HeaderCell = ({ children, flex = 1, align = 'left' as 'left'|'right' }) => (
+    <Text
+      style={{
+        flex,
+        color: c.text,
+        fontWeight: '700',
+        textAlign: align,
+        fontVariant: ['tabular-nums'],
+      }}
+      numberOfLines={1}
+    >
+      {children}
+    </Text>
+  );
+
+  const Num = ({ value, align = 'right' as 'left'|'right', bold = false, color }: any) => (
+    <Text
+      style={{
+        flex: 1,
+        textAlign: align,
+        color: color ?? c.text,
+        fontWeight: bold ? '700' : '400',
+        fontVariant: ['tabular-nums'],
+      }}
+      numberOfLines={1}
+    >
+      {format(value)}
+    </Text>
+  );
+
+  const ProfitBadge = ({ value }: { value: number }) => {
+    const positive = value >= 0;
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'flex-end',
+        }}
+      >
+        <View
+          style={{
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 999,
+            backgroundColor: positive ? '#e8f7ee' : '#fdecec',
+          }}
+        >
+          <Text
+            style={{
+              color: positive ? '#15803d' : '#dc2626',
+              fontWeight: '700',
+              fontVariant: ['tabular-nums'],
+            }}
+            numberOfLines={1}
+          >
+            {format(value)}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderItem = ({ item, index }: any) => (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        backgroundColor: index % 2 === 0 ? c.bg : c.card,
+        borderRadius: 8,
+      }}
+    >
+      <Text style={{ flex: 2, color: c.text }} numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Num value={item.revenue} />
+      <Num value={item.expense} />
+      <ProfitBadge value={item.profit} />
+    </View>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: 'transparent', padding: 12, gap: 12 }}>
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '800' }}>
-          {t('reports.breakdownFor')} {month}/{year}
-        </Text>
+    <View style={{ flex: 1, padding: 12, gap: 12 }}>
+      {/* Header chip */}
+      <Card style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            backgroundColor: c.card,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+          }}
+        >
+          <Text style={{ color: c.text, fontWeight: '700' }}>
+            {t('reports.breakdownFor')} {month}/{year}
+          </Text>
+        </View>
       </Card>
 
-      <Card>
-        <View style={{ flexDirection: 'row', paddingVertical: 6 }}>
-          <Text style={{ flex: 2, color: c.subtext }}>{t('reports.apartment')}</Text>
-          <Text style={{ flex: 1, color: c.subtext, textAlign: 'right' }}>{t('reports.revenue')}</Text>
-          <Text style={{ flex: 1, color: c.subtext, textAlign: 'right' }}>{t('reports.expense')}</Text>
-          <Text style={{ flex: 1, color: c.subtext, textAlign: 'right' }}>{t('reports.profit')}</Text>
+      {/* Table */}
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Table header */}
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            backgroundColor: '#e9f6e9',
+            borderBottomWidth: 1,
+            borderBottomColor: c.card,
+            alignItems: 'center',
+          }}
+        >
+          <HeaderCell flex={2}>{t('reports.apartment')}</HeaderCell>
+          <HeaderCell align="right">{t('reports.revenue')}</HeaderCell>
+          <HeaderCell align="right">{t('reports.expense')}</HeaderCell>
+          <HeaderCell align="right">{t('reports.profit')}</HeaderCell>
         </View>
 
         <FlatList
           data={rows}
           keyExtractor={(it) => it.apartment_id}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          renderItem={({ item }) => (
-            <View style={{ flexDirection: 'row' }}>
-              <Text style={{ flex: 2, color: c.text }}>{item.name}</Text>
-              <Text style={{ flex: 1, color: c.text, textAlign: 'right' }}>{format(item.revenue)}</Text>
-              <Text style={{ flex: 1, color: c.text, textAlign: 'right' }}>{format(item.expense)}</Text>
-              <Text style={{ flex: 1, color: item.profit >= 0 ? c.text : '#ef4444', textAlign: 'right' }}>
-                {format(item.profit)}
-              </Text>
-            </View>
-          )}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
+          contentContainerStyle={{ padding: 12, paddingTop: 10 }}
           ListFooterComponent={
-            <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: c.card, paddingTop: 8 }}>
-              <View style={{ flexDirection: 'row' }}>
-                <Text style={{ flex: 2, color: c.text, fontWeight: '700' }}>{t('reports.total')}</Text>
-                <Text style={{ flex: 1, color: c.text, textAlign: 'right', fontWeight: '700' }}>{format(totals.revenue)}</Text>
-                <Text style={{ flex: 1, color: c.text, textAlign: 'right', fontWeight: '700' }}>{format(totals.expense)}</Text>
-                <Text style={{ flex: 1, color: totals.profit >= 0 ? c.text : '#ef4444', textAlign: 'right', fontWeight: '700' }}>
-                  {format(totals.profit)}
+            <View
+              style={{
+                marginTop: 6,
+                paddingTop: 10,
+                borderTopWidth: 1,
+                borderTopColor: c.card,
+                paddingHorizontal: 0,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  backgroundColor: '#f5f7f2',
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ flex: 2, color: c.text, fontWeight: '800' }}>
+                  {t('reports.total')}
                 </Text>
+                <Num value={totals.revenue} bold />
+                <Num value={totals.expense} bold />
+                <ProfitBadge value={totals.profit} />
               </View>
             </View>
           }
