@@ -154,17 +154,7 @@ export default function Settings() {
           />
         </Card> */}
 
-      {/* Sample data */}
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('demoData')}</Text>
-        <Button
-          title={t('createDemo')}
-          onPress={() => {
-            const r = seedDemo();
-            Alert.alert('OK', JSON.stringify(r, null, 2));
-          }}
-        />
-      </Card>
+      
       </ScrollView>
     </View>
     

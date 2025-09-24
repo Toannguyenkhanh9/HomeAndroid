@@ -25,12 +25,12 @@ export const LIGHT: ThemeColors = {
 };
 
 export const DARK: ThemeColors = {
-  bg: '#22C55E',
-  card: '#1C2541',
-  text: '#E0E6F8',
-  subtext: '#94A3B8',
-  primary: '#5BC0BE',
-  divider: '#1F2937',
+  bg: '#F7FAFC',
+  card: '#FFFFFF',
+  text: '#0B1220',
+  subtext: '#6B7280',
+  primary: '#22C55E',
+  divider: '#E5E7EB',
   success: '#10B981',
   warn: '#F59E0B',
   danger: '#EF4444',
