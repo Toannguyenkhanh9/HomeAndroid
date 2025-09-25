@@ -32,19 +32,26 @@ export default function Settings() {
 
   const [jsonText, setJsonText] = useState('');
 
-  const LANGS: Array<{ code:
-    'vi'|'en'|'es'|'fr'|'de'|'zh'|'ja'|'ko'|'ru'|'ar'; label: string }> = [
-    { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'en', label: 'English' },
-    { code: 'es', label: 'Español' },
-    { code: 'fr', label: 'Français' },
-    { code: 'de', label: 'Deutsch' },
-    { code: 'zh', label: '中文' },
-    { code: 'ja', label: '日本語' },
-    { code: 'ko', label: '한국어' },
-    { code: 'ru', label: 'Русский' },
-    { code: 'ar', label: 'العربية' },
-  ];
+const LANGS: Array<{ code:
+  'vi'|'en'|'es'|'fr'|'de'|'zh'|'ja'|'ko'|'ru'|'ar'|
+  'hi'|'th'|'id'|'ms'|'fil'|'pt'; label: string }> = [
+  { code: 'vi', label: 'Tiếng Việt' },
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'zh', label: '中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'hi', label: 'हिन्दी' },         // Hindi - Ấn Độ
+  { code: 'th', label: 'ภาษาไทย' },        // Thai
+  { code: 'id', label: 'Bahasa Indonesia' }, // Indonesia
+  { code: 'ms', label: 'Bahasa Melayu' },  // Malaysia
+  { code: 'fil', label: 'Filipino' },      // Philippines
+  { code: 'pt', label: 'Português' },      // Bồ Đào Nha
+];
 
   const applyLanguage = (lng: typeof LANGS[number]['code']) => {
     // lưu vào SettingsContext (persist) + cập nhật i18n runtime
@@ -105,7 +112,7 @@ export default function Settings() {
       {/* Notifications */}
       <Card>
         <Text style={{ color: c.text, fontWeight: '700' }}>{t('notif')}</Text>
-        <Text style={{ color: c.subtext, marginBottom: 8 }}>{t('notifHint')}</Text>
+        {/* <Text style={{ color: c.subtext, marginBottom: 8 }}>{t('notifHint')}</Text> */}
         <Button
           title={notificationsEnabled ? t('toggleNotifOff') : t('toggleNotifOn')}
           onPress={() => {
