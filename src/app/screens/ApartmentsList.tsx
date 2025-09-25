@@ -549,6 +549,11 @@ export default function ApartmentsList({
                   icon="❓"
                   onPress={() => navigation.navigate('HelpScreen')}
                 />
+                <BigIcon
+                  label={t('helpmain')}
+                  icon="❓"
+                  onPress={() => navigation.navigate('PricingPlans')}
+                />
               </View>
             </View>
           </Container>
