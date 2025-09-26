@@ -37,6 +37,7 @@ import {
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
@@ -62,6 +63,7 @@ function parseAmount(s: string) {
 }
 
 export default function LeaseDetail({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { dateFormat, language } = useSettings();
   const { leaseId } = route.params as any;
   const c = useThemeColors();
@@ -248,7 +250,9 @@ export default function LeaseDetail({ route, navigation }: Props) {
     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
   >
       {!editMode ? (
-        <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
           <Card>
             <Text style={{ color: c.text, fontWeight: '800', marginBottom: 8 }}>
               {t('leaseDetail.tenant')}
@@ -310,13 +314,23 @@ export default function LeaseDetail({ route, navigation }: Props) {
             ))}
           </Card>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
             <Button title={t('leaseDetail.endEarly')} onPress={attemptEndEarly} />
             <Button title={t('common.edit')} onPress={() => setEditMode(true)} />
           </View>
         </ScrollView>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
           <Card>
             <Text style={{ color: c.text, fontWeight: '800', marginBottom: 8 }}>
               {t('leaseDetail.baseRentNext')}
@@ -474,7 +488,15 @@ export default function LeaseDetail({ route, navigation }: Props) {
             ))}
           </Card>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
             <Button
               title={t('common.cancel')}
               variant="ghost"

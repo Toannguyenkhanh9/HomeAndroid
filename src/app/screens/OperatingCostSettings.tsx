@@ -10,11 +10,13 @@ import {useThemeColors} from '../theme';
 import { formatDecimalTypingVNStrict, parseDecimalCommaStrict, formatNumber as groupVN } from '../../utils/number';
 import {listOperatingCostTemplates, replaceOperatingCostTemplates} from '../../services/rent';
 import {useTranslation} from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostSettings'>;
 type Row = {name:string; isVariable:boolean; defaultAmount?:string};
 
 export default function OperatingCostSettings({route, navigation}: Props) {
+  const insets = useSafeAreaInsets();
   const {apartmentId} = route.params as any;
   const c = useThemeColors();
   const {t} = useTranslation();
@@ -96,11 +98,9 @@ export default function OperatingCostSettings({route, navigation}: Props) {
      style={{ flex: 1 }}
      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{padding:12, gap:12}}
-        showsVerticalScrollIndicator
-      >
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         <Card style={{gap:10}}>
           <Text style={{color:c.text, fontWeight:'800'}}>{t('operatingCostSettings.fixedCosts')}</Text>
           {fixedRows.map((r, idx)=>(

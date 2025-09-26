@@ -16,7 +16,7 @@ import {
   parseDecimalCommaStrict,
 } from '../../utils/number';
 import {useTranslation} from 'react-i18next';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostMonth'>;
 
 type Row = {
@@ -28,6 +28,7 @@ type Row = {
 };
 
 export default function OperatingCostMonth({route, navigation}: Props) {
+  const insets = useSafeAreaInsets();
   const {apartmentId, ym} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
@@ -130,7 +131,9 @@ export default function OperatingCostMonth({route, navigation}: Props) {
     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
   >
       <Header title={t('operatingCostMonth.title', {ym})} />
-      <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         <Card style={{gap: 10}}>
           <Text style={{color: c.text, fontWeight: '800'}}>{t('operatingCostMonth.expenses')}</Text>
 
@@ -179,7 +182,15 @@ export default function OperatingCostMonth({route, navigation}: Props) {
           </Text>
         </Card>
 
-        <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 10}}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
           <Button title={t('common.save')} onPress={save} />
         </View>
       </ScrollView>

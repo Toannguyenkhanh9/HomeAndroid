@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  ScrollView
 } from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
@@ -18,6 +19,7 @@ import Button from '../components/Button';
 import {useFocusEffect} from '@react-navigation/native';
 import {deleteRoom} from '../../services/rent';
 import {useTranslation} from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Row = { id: string; code: string; status: string; floor?: number; area?: number };
 
@@ -37,6 +39,7 @@ export default function RoomForm({
   const {apartmentId} = route.params;
   const c = useThemeColors();
   const {t} = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const [rooms, setRooms] = React.useState<Row[]>([]);
   const [q, setQ] = React.useState('');
@@ -102,7 +105,9 @@ export default function RoomForm({
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: 'transparent'}}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
       <FlatList
         data={filtered}
         keyExtractor={i => i.id}
@@ -241,6 +246,6 @@ export default function RoomForm({
           reload();
         }}
       />
-    </View>
+      </ScrollView>
   );
 }

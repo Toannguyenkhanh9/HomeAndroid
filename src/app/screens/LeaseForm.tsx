@@ -29,6 +29,7 @@ import {
 } from '../../utils/number';
 // ⬇️ Thêm import notifications
 import { scheduleReminder } from '../../services/notifications';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -54,6 +55,7 @@ function parseAmount(s: string) {
 }
 
 export default function LeaseForm({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { dateFormat, language } = useSettings();
   const { t } = useTranslation();
   const roomId = (route.params as any)?.roomId;
@@ -242,7 +244,9 @@ export default function LeaseForm({ route, navigation }: Props) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         {/* Khách thuê */}
         <Card style={{ gap: 8 }}>
           <FormInput placeholder={t('leaseForm.tenantName')} value={fullName} onChangeText={setFullName} />
@@ -459,7 +463,15 @@ export default function LeaseForm({ route, navigation }: Props) {
         )}
 
         {/* Actions */}
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
           <Button title={t('common.cancel')} variant="ghost" onPress={() => navigation.goBack()} />
           <Button title={t('leaseForm.createLease')} onPress={submit} />
         </View>

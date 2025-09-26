@@ -9,6 +9,7 @@ import Input from '../components/Input';
 import {useThemeColors} from '../theme';
 import {useI18n} from '../../i18n';
 import {useCurrency} from '../../utils/currency';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Reports() {
   const now = new Date();
@@ -30,7 +31,7 @@ export default function Reports() {
       </Card>
       {rev !== undefined && (
         <Card>
-          <Text style={{color:c.text}}>{t('revenue')}: {format(rev)} đ</Text>
+          <Text style={{color:c.text}}>{t('revenue')}: {format(rev)}</Text>
         </Card>
       )}
     </View>

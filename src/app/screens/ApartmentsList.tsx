@@ -21,6 +21,7 @@ import { deleteApartment, hasUnpaidCycles } from '../../services/rent';
 import { useTranslation } from 'react-i18next';
 import AppHeader from '../components/AppHeader';
 import AppFooter from '../components/AppFooter';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Row = { id: string; name: string; address?: string | null };
 
 type Stats = {
@@ -309,7 +310,7 @@ export default function ApartmentsList({
 }: NativeStackScreenProps<RootStackParamList, 'ApartmentsList'>) {
   const c = useThemeColors();
   const { t } = useTranslation();
-
+  const insets = useSafeAreaInsets();
   const [rows, setRows] = React.useState<Row[]>([]);
   const [showCreate, setShowCreate] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'manage' | 'overview'>(
@@ -539,7 +540,7 @@ export default function ApartmentsList({
                   icon="⚙️"
                   onPress={() => navigation.navigate('Settings')}
                 />
-              <BigIcon
+                <BigIcon
                   label={t('reports.title')}
                   icon="📊"
                   onPress={() => navigation.navigate('ReportsMonthly')}
@@ -550,8 +551,8 @@ export default function ApartmentsList({
                   onPress={() => navigation.navigate('HelpScreen')}
                 />
                 <BigIcon
-                  label={t('helpmain')}
-                  icon="❓"
+                  label={t('pricing.menuTitle')}
+                  icon="💳"
                   onPress={() => navigation.navigate('PricingPlans')}
                 />
               </View>
@@ -673,7 +674,11 @@ export default function ApartmentsList({
                     iconBg="#E6F2F1"
                     label={t('stat_holdingDeposit')}
                     value={s.holdingDeposit}
-                    onPress={() => navigation.navigate('HoldingDepositList', { apartmentId: item.id })}
+                    onPress={() =>
+                      navigation.navigate('HoldingDepositList', {
+                        apartmentId: item.id,
+                      })
+                    }
                   />
                 </View>
               </View>
@@ -688,7 +693,7 @@ export default function ApartmentsList({
           }
         />
       )}
-       <AppFooter />
+      <AppFooter />
     </View>
   );
 }

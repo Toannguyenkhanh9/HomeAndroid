@@ -47,6 +47,7 @@ import Share from 'react-native-share';
 
 // 🔔 notifications
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
@@ -86,6 +87,7 @@ function formatVNMoneyTyping(input: string) {
 }
 
 export default function CycleDetail({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { dateFormat, language } = useSettings();
   const { cycleId, onSettled } = route.params as any;
@@ -430,8 +432,10 @@ async function shareImage() {
       <ScrollView
         ref={scrollRef}
         collapsable={false}
-        contentContainerStyle={{ padding: 12, gap: 12 }}
+        contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100, gap: 12 }}
         showsVerticalScrollIndicator
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
       >
             <Card>
               <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.roomInfo')}</Text>
@@ -551,17 +555,35 @@ async function shareImage() {
             </Card>
 
             {status==='settled' ? (
-              <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
                 <Button title={t('cycleDetail.share')} onPress={shareImage}/>
               </View>
             ) : (
-              <View style={{ alignItems: 'flex-end' }}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
                 <Button title={t('cycleDetail.settleNow')} onPress={() => setEditMode(true)} />
               </View>
             )}
           </ScrollView>
         ) : (
-          <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 12, gap: 12 }} showsVerticalScrollIndicator>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
 
@@ -667,9 +689,17 @@ async function shareImage() {
               </View>
             </Card>
 
-            <View style={{  alignItems: 'flex-end',  justifyContent: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <Button title={t('cycleDetail.settleNow')} onPress={() => saveEdits('cycle')} />
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
               <Button title={t('common.cancel')} variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
+              <Button title={t('cycleDetail.settleNow')} onPress={() => saveEdits('cycle')} />
             </View>
           </ScrollView>
         )}
@@ -718,7 +748,15 @@ async function shareImage() {
                   : `→ ${t('cycleDetail.noFurther')}`}
             </Text>
 
-            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
               <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
               <Button
                 title={t('cycleDetail.finish')}
@@ -761,7 +799,15 @@ async function shareImage() {
               placeholderTextColor={c.subtext}
               style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card }}
             />
-            <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+        <View  style={{
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+          flexDirection: 'row',
+          gap: 12,
+        }}>
               <Button title={t('common.cancel')} variant="ghost" onPress={()=>{ setShowExtendModal(false); setExtendCount(''); }} />
               <Button title={t('common.confirm')} onPress={()=>{
                 const n = Number(extendCount);

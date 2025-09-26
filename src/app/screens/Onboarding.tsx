@@ -15,6 +15,7 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 import {useThemeColors} from '../theme';
 import {useTranslation} from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const {width} = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ const IMAGES = {
 type Step = { title: string; body: string; illustration?: any; placeholder?: string };
 
 export default function Onboarding({navigation}: Props) {
+  const insets = useSafeAreaInsets();
   const c = useThemeColors();
   const {t} = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
@@ -122,6 +124,9 @@ export default function Onboarding({navigation}: Props) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onMomentumEnd}
+        contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
       >
         {STEPS.map((s, i) => (
           <View key={i} style={{width, paddingHorizontal: 20}}>

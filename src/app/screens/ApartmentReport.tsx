@@ -15,7 +15,7 @@ import { onlyDigits } from '../../utils/number';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
 import {useTranslation} from 'react-i18next';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Props = NativeStackScreenProps<RootStackParamList, 'ApartmentReport'>;
 
 const toYMD = (d: Date) =>  d.toISOString().slice(0, 10);
@@ -42,6 +42,7 @@ function monthsInRange(from: Date, to: Date): string[] {
 }
 
 export default function ApartmentReport({ route }: Props) {
+  const insets = useSafeAreaInsets();
   const {dateFormat, language} = useSettings();
   const { apartmentId } = route.params as any;
   const c = useThemeColors();
@@ -93,7 +94,9 @@ export default function ApartmentReport({ route }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-      <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         <Card>
           <Text style={{ color: c.text, fontWeight: '800', marginBottom: 8 }}>{t('apartmentReport.range')}</Text>
 

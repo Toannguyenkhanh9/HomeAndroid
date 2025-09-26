@@ -12,10 +12,11 @@ import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseHistoryDetail'>;
 
 export default function LeaseHistoryDetail({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { dateFormat, language } = useSettings();
   const { t } = useTranslation();
   const { leaseId } = route.params;
@@ -99,7 +100,9 @@ export default function LeaseHistoryDetail({ route, navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-      <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         <Card>
           <Text style={{ color: c.text }}>
             {t('leaseHistoryDetail.start')}: {formatDateISO(lease?.start_date, dateFormat, language) || '—'}

@@ -1,6 +1,6 @@
 // src/app/screens/Settings.tsx
 import React, { useState } from 'react';
-import { View, Text, Alert,ScrollView } from 'react-native';
+import { View, Text, Alert, ScrollView } from 'react-native';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -12,7 +12,7 @@ import { seedDemo } from '../../services/seed';
 import { useI18n } from '../../i18n';
 import { useSettings } from '../state/SettingsContext'; // << dùng context mới
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function Settings() {
   const c = useThemeColors();
@@ -32,35 +32,52 @@ export default function Settings() {
 
   const [jsonText, setJsonText] = useState('');
 
-const LANGS: Array<{ code:
-  'vi'|'en'|'es'|'fr'|'de'|'zh'|'ja'|'ko'|'ru'|'ar'|
-  'hi'|'th'|'id'|'ms'|'fil'|'pt'; label: string }> = [
-  { code: 'vi', label: 'Tiếng Việt' },
-  { code: 'en', label: 'English' },
-  { code: 'es', label: 'Español' },
-  { code: 'fr', label: 'Français' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'zh', label: '中文' },
-  { code: 'ja', label: '日本語' },
-  { code: 'ko', label: '한국어' },
-  { code: 'ru', label: 'Русский' },
-  { code: 'ar', label: 'العربية' },
-  { code: 'hi', label: 'हिन्दी' },         // Hindi - Ấn Độ
-  { code: 'th', label: 'ภาษาไทย' },        // Thai
-  { code: 'id', label: 'Bahasa Indonesia' }, // Indonesia
-  { code: 'ms', label: 'Bahasa Melayu' },  // Malaysia
-  { code: 'fil', label: 'Filipino' },      // Philippines
-  { code: 'pt', label: 'Português' },      // Bồ Đào Nha
-];
+  const LANGS: Array<{
+    code:
+      | 'vi'
+      | 'en'
+      | 'es'
+      | 'fr'
+      | 'de'
+      | 'zh'
+      | 'ja'
+      | 'ko'
+      | 'ru'
+      | 'ar'
+      | 'hi'
+      | 'th'
+      | 'id'
+      | 'ms'
+      | 'fil'
+      | 'pt';
+    label: string;
+  }> = [
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Español' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'zh', label: '中文' },
+    { code: 'ja', label: '日本語' },
+    { code: 'ko', label: '한국어' },
+    { code: 'ru', label: 'Русский' },
+    { code: 'ar', label: 'العربية' },
+    { code: 'hi', label: 'हिन्दी' }, // Hindi - Ấn Độ
+    { code: 'th', label: 'ภาษาไทย' }, // Thai
+    { code: 'id', label: 'Bahasa Indonesia' }, // Indonesia
+    { code: 'ms', label: 'Bahasa Melayu' }, // Malaysia
+    { code: 'fil', label: 'Filipino' }, // Philippines
+    { code: 'pt', label: 'Português' }, // Bồ Đào Nha
+  ];
 
-  const applyLanguage = (lng: typeof LANGS[number]['code']) => {
+  const applyLanguage = (lng: (typeof LANGS)[number]['code']) => {
     // lưu vào SettingsContext (persist) + cập nhật i18n runtime
     setLanguage(lng);
     setLang(lng);
   };
 
   return (
-    <View style={{ flex: 1, padding: 16, backgroundColor:'transparent' }}>
+    <View style={{ flex: 1, padding: 16, backgroundColor: 'transparent' }}>
       <ScrollView
         contentContainerStyle={{
           padding: 16,
@@ -68,87 +85,118 @@ const LANGS: Array<{ code:
           gap: 16, // khoảng cách đều giữa các Card
         }}
       >
-      {/* Language */}
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('language')}</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-          {LANGS.map((it) => (
-            <Button
-              key={it.code}
-              title={it.label}
-              variant={language === it.code ? 'primary' : 'ghost'}
-              onPress={() => applyLanguage(it.code)}
-            />
-          ))}
-        </View>
-      </Card>
+        {/* Language */}
+        <Card>
+          <Text style={{ color: c.text, fontWeight: '700' }}>
+            {t('language')}
+          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
+            {LANGS.map(it => (
+              <Button
+                key={it.code}
+                title={it.label}
+                variant={language === it.code ? 'primary' : 'ghost'}
+                onPress={() => applyLanguage(it.code)}
+              />
+            ))}
+          </View>
+        </Card>
 
-      {/* Theme */}
-      {/* <Card>
+        {/* Theme */}
+        {/* <Card>
         <Text style={{ color: c.text }}>{t('theme')}: {String(themeMode)}</Text>
         <View style={{ height: 8 }} />
         <Button title={t('switchTheme')} onPress={toggleTheme} />
       </Card> */}
 
-      {/* Date format (đã bỏ Currency) */}
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('format')}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: c.text }}>{t('date')}: {dateFormat}</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        {/* Date format (đã bỏ Currency) */}
+        <Card>
+          <Text style={{ color: c.text, fontWeight: '700' }}>
+            {t('format')}
+          </Text>
+          <View style={{ height: 8 }} />
+          <Text style={{ color: c.text }}>
+            {t('date')}: {dateFormat}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+            <Button
+              title="YYYY-MM-DD"
+              variant={dateFormat === 'YYYY-MM-DD' ? 'primary' : 'ghost'}
+              onPress={() => setDateFormat('YYYY-MM-DD')}
+            />
+            <Button
+              title="DD/MM/YYYY"
+              variant={dateFormat === 'DD/MM/YYYY' ? 'primary' : 'ghost'}
+              onPress={() => setDateFormat('DD/MM/YYYY')}
+            />
+          </View>
+        </Card>
+
+        {/* Notifications */}
+        <Card>
+          <Text style={{ color: c.text, fontWeight: '700' }}>{t('notif')}</Text>
+          {/* <Text style={{ color: c.subtext, marginBottom: 8 }}>{t('notifHint')}</Text> */}
           <Button
-            title="YYYY-MM-DD"
-            variant={dateFormat === 'YYYY-MM-DD' ? 'primary' : 'ghost'}
-            onPress={() => setDateFormat('YYYY-MM-DD')}
+            title={
+              notificationsEnabled ? t('toggleNotifOff') : t('toggleNotifOn')
+            }
+            onPress={() => {
+              setNotificationsEnabled(!notificationsEnabled);
+              Alert.alert('OK', '');
+            }}
+          />
+        </Card>
+
+        {/* Backup / Restore */}
+        <Card>
+          <Text style={{ color: c.text, fontWeight: '700' }}>
+            {t('backup')}
+          </Text>
+          <View style={{ height: 8 }} />
+          <Button
+            title={t('exportJson')}
+            onPress={() => setJsonText(exportAllAsJson(true))}
+          />
+          <View style={{ height: 8 }} />
+          <Input
+            placeholder={t('pasteJson')}
+            value={jsonText}
+            onChangeText={setJsonText}
+            multiline
+            numberOfLines={6}
+            style={{ height: 120, textAlignVertical: 'top' }}
           />
           <Button
-            title="DD/MM/YYYY"
-            variant={dateFormat === 'DD/MM/YYYY' ? 'primary' : 'ghost'}
-            onPress={() => setDateFormat('DD/MM/YYYY')}
+            title={t('importJson')}
+            variant="danger"
+            onPress={() => {
+              try {
+                const result = importFromJson(jsonText);
+                const summary = Object.entries(result)
+                  .map(
+                    ([table, { inserted, skipped }]) =>
+                      `${table}: +${inserted} / ~${skipped}`,
+                  )
+                  .join('\n');
+
+                Alert.alert(
+                  t('importedOk'),
+                  `${t('importSummary')}\n\n${summary}`,
+                );
+              } catch (e: any) {
+                Alert.alert('Error', e.message || String(e));
+              }
+            }}
           />
-        </View>
-      </Card>
-
-      {/* Notifications */}
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('notif')}</Text>
-        {/* <Text style={{ color: c.subtext, marginBottom: 8 }}>{t('notifHint')}</Text> */}
-        <Button
-          title={notificationsEnabled ? t('toggleNotifOff') : t('toggleNotifOn')}
-          onPress={() => {
-            setNotificationsEnabled(!notificationsEnabled);
-            Alert.alert('OK', '');
-          }}
-        />
-      </Card>
-
-      {/* Backup / Restore */}
-      <Card>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('backup')}</Text>
-        <View style={{ height: 8 }} />
-        <Button
-          title={t('exportJson')}
-          onPress={() => setJsonText(exportAllAsJson(true))}
-        />
-        <View style={{ height: 8 }} />
-        <Input
-          placeholder={t('pasteJson')}
-          value={jsonText}
-          onChangeText={setJsonText}
-          multiline
-          numberOfLines={6}
-          style={{ height: 120, textAlignVertical: 'top' }}
-        />
-        <Button
-          title={t('importJson')}
-          variant="danger"
-          onPress={() => {
-            importFromJson(jsonText);
-            Alert.alert('OK', t('importedOk'));
-          }}
-        />
-      </Card>
-       {/* <Card>
+        </Card>
+        {/* <Card>
           <Text style={{ color: c.text, fontWeight: '700' }}>Hướng dẫn sử dụng</Text>
           <View style={{ height: 8 }} />
           <Button
@@ -160,10 +208,7 @@ const LANGS: Array<{ code:
             }}
           />
         </Card> */}
-
-      
       </ScrollView>
     </View>
-    
   );
 }

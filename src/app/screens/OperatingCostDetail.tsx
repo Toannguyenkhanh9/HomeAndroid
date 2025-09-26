@@ -18,10 +18,12 @@ import {
   removeFixedExpenseTemplate,
 } from '../../services/rent';
 import {useTranslation} from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OperatingCostDetail'>;
 
 export default function OperatingCostDetail({route}: Props) {
+  const insets = useSafeAreaInsets();
   const {apartmentId, ym} = route.params as any;
   const c = useThemeColors();
   const {format} = useCurrency();
@@ -63,7 +65,9 @@ export default function OperatingCostDetail({route}: Props) {
     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
   >
       <Header title={t('operatingCostDetail.title', {ym})} />
-      <ScrollView contentContainerStyle={{padding: 12, gap: 12}}>
+      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
+       contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled">
         <Card>
           <Text style={{color: c.text, fontWeight: '700'}}>{t('operatingCostDetail.monthlyExpenses')}</Text>
           {items.length === 0 ? (

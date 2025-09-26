@@ -60,11 +60,14 @@ export function importFromJson(s: string) {
   // KQ để show cho user nếu muốn
   const result: Record<string, { inserted: number; skipped: number }> = {};
   let data: Record<string, any[]>;
+  if (!s || !s.trim()) {
+    throw new Error('Input Json to Import');
+  }
 
   try {
     data = JSON.parse(s);
   } catch {
-    throw new Error('JSON không hợp lệ.');
+    throw new Error('Invalid JSON');
   }
 
   // Transaction + tắt/bật foreign_keys để tránh thứ tự phụ thuộc
