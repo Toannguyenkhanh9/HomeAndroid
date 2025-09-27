@@ -107,10 +107,12 @@ export default function RoomForm({
   return (
       <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled>
       <FlatList
         data={filtered}
         keyExtractor={i => i.id}
+        scrollEnabled={false}
         numColumns={2}
         columnWrapperStyle={{justifyContent: 'space-between', marginBottom: 12}}
         contentContainerStyle={{paddingHorizontal: 16, paddingBottom: 96, paddingTop: 12}}
