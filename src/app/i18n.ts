@@ -1547,6 +1547,69 @@ const resources = {
 
   es: {
     translation: {
+      variableFees: {
+        title: 'Ingresar cargos variables',
+        quantityPlaceholder: 'Cantidad',
+        extraTitle: 'Agregar costos extra',
+        extraNamePlaceholder: 'Nombre del costo',
+        extraAmountPlaceholder: 'Monto',
+        addRow: 'Agregar fila',
+      },
+      holdingDeposits: {
+        title: 'Depósitos en garantía',
+        none: 'No hay depósitos en garantía',
+        room: 'Habitación',
+        start: 'Fecha de inicio',
+        amount: 'Monto del depósito',
+        noTenant: 'Sin inquilino',
+      },
+      onboarding: {
+        skip: 'Omitir',
+        next: 'Siguiente',
+        start: 'Empezar',
+        steps: {
+          0: {
+            title: '¡Bienvenido!',
+            body: 'Esta app te ayuda a gestionar apartamentos/habitaciones: contratos, ciclos de facturación, facturas, costos operativos y reportes.',
+          },
+          1: {
+            title: 'Paso 1 — Crear un apartamento',
+            body: 'Ve a "Apartamentos" → agrega un apartamento. Luego ábrelo para añadir habitaciones.',
+          },
+          2: {
+            title: 'Paso 2 — Crear un contrato',
+            body: 'Abre una habitación → "Crear contrato". Elige ciclo, renta base y cargos.',
+          },
+          3: {
+            title: 'Paso 3 — Liquidar ciclos',
+            body: 'Cada ciclo: ingresa lecturas de medidores y cargos extra → liquida para generar una factura.',
+          },
+          4: {
+            title: 'Costos operativos',
+            body: 'Configura costos fijos/variables del apartamento. Abre cada mes para ingresar y guardar.',
+          },
+          5: {
+            title: 'Reportes',
+            body: 'Consulta ingresos por habitación y gastos del apartamento en un rango de fechas → obtén el balance del período.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'unidad',
+        month: 'mes',
+      },
+      roomCreate: {
+        title: 'Agregar habitación',
+        missingApartmentId: 'Falta el ID del apartamento',
+        enterRoomCode: 'Por favor, ingresa el código de la habitación',
+        createFail: 'No se puede crear la habitación',
+        codePlaceholder: 'Código de la habitación (p. ej., P201)',
+        floorPlaceholder: 'Piso',
+        areaPlaceholder: 'Área (m²)',
+        save: 'Guardar habitación',
+        duplicateCode:
+          'El código de la habitación ya existe en este apartamento.',
+      },
       brand: {
         nameslogan: 'Leasea-Gestión inteligente de alquileres y habitaciones',
         name: 'Leasea',
@@ -2015,37 +2078,6 @@ const resources = {
             'Si necesitas soporte, envía captura del problema al desarrollador.',
         },
       },
-      onboarding: {
-        skip: 'Saltar',
-        next: 'Siguiente',
-        start: 'Comenzar',
-        steps: {
-          0: {
-            title: '¡Bienvenido!',
-            body: 'Esta app te ayuda a gestionar apartamentos/habitaciones: contratos, ciclos, facturas, costos e informes.',
-          },
-          1: {
-            title: 'Paso 1 — Crear apartamento',
-            body: 'Ve a "Apartamentos" → agrega uno. Luego abre para añadir habitaciones.',
-          },
-          2: {
-            title: 'Paso 2 — Crear contrato',
-            body: 'Abre una habitación → "Crear contrato". Configura renta, depósito y cargos.',
-          },
-          3: {
-            title: 'Paso 3 — Liquidar ciclos',
-            body: 'Cada ciclo: ingresa lecturas y cargos extras → liquida para generar factura.',
-          },
-          4: {
-            title: 'Costos operativos',
-            body: 'Configura costos fijos/variables para el apartamento. Abre cada mes para ingresar y guardar.',
-          },
-          5: {
-            title: 'Informes',
-            body: 'Consulta ingresos y gastos por rango de fechas → obtén balance del período.',
-          },
-        },
-      },
       reports: {
         title: 'Informes',
         monthly: 'Ingresos mensuales',
@@ -2153,6 +2185,68 @@ const resources = {
   },
   fr: {
     translation: {
+      variableFees: {
+        title: 'Saisir les frais variables',
+        quantityPlaceholder: 'Quantité',
+        extraTitle: 'Ajouter des coûts supplémentaires',
+        extraNamePlaceholder: 'Nom du coût',
+        extraAmountPlaceholder: 'Montant',
+        addRow: 'Ajouter une ligne',
+      },
+      holdingDeposits: {
+        title: 'Dépôts de garantie',
+        none: 'Aucun dépôt en cours',
+        room: 'Chambre',
+        start: 'Date de début',
+        amount: 'Montant du dépôt',
+        noTenant: 'Aucun locataire',
+      },
+      onboarding: {
+        skip: 'Ignorer',
+        next: 'Suivant',
+        start: 'Commencer',
+        steps: {
+          0: {
+            title: 'Bienvenue !',
+            body: 'Cette application vous aide à gérer appartements/chambres : baux, cycles de facturation, factures, coûts d’exploitation et rapports.',
+          },
+          1: {
+            title: 'Étape 1 — Créer un appartement',
+            body: 'Allez à "Appartements" → ajoutez un appartement. Puis ouvrez-le pour ajouter des chambres.',
+          },
+          2: {
+            title: 'Étape 2 — Créer un bail',
+            body: 'Ouvrez une chambre → "Créer un bail". Choisissez le cycle, le loyer de base et les frais.',
+          },
+          3: {
+            title: 'Étape 3 — Régler les cycles',
+            body: 'À chaque cycle : saisissez les relevés de compteurs et les frais supplémentaires → réglez pour générer une facture.',
+          },
+          4: {
+            title: 'Coûts d’exploitation',
+            body: 'Configurez des coûts fixes/variables pour l’appartement. Ouvrez chaque mois pour saisir et enregistrer.',
+          },
+          5: {
+            title: 'Rapports',
+            body: 'Consultez les revenus par chambre et les dépenses de l’appartement sur une période → obtenez le solde de période.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'unité',
+        month: 'mois',
+      },
+      roomCreate: {
+        title: 'Ajouter une chambre',
+        missingApartmentId: 'ID d’appartement manquant',
+        enterRoomCode: 'Veuillez saisir le code de la chambre',
+        createFail: 'Impossible de créer la chambre',
+        codePlaceholder: 'Code de la chambre (ex. : P201)',
+        floorPlaceholder: 'Étage',
+        areaPlaceholder: 'Surface (m²)',
+        save: 'Enregistrer la chambre',
+        duplicateCode: 'Ce code de chambre existe déjà dans cet appartement.',
+      },
       brand: {
         nameslogan: 'Leasea-Gestion intelligente des locations et chambres',
         name: 'Leasea',
@@ -2537,6 +2631,69 @@ const resources = {
 
   de: {
     translation: {
+      variableFees: {
+        title: 'Variable Gebühren eingeben',
+        quantityPlaceholder: 'Menge',
+        extraTitle: 'Zusätzliche Kosten hinzufügen',
+        extraNamePlaceholder: 'Kostenname',
+        extraAmountPlaceholder: 'Betrag',
+        addRow: 'Zeile hinzufügen',
+      },
+      holdingDeposits: {
+        title: 'Hinterlegte Kautionen',
+        none: 'Keine Kautionen hinterlegt',
+        room: 'Zimmer',
+        start: 'Startdatum',
+        amount: 'Kautionsbetrag',
+        noTenant: 'Kein Mieter',
+      },
+      onboarding: {
+        skip: 'Überspringen',
+        next: 'Weiter',
+        start: 'Los geht’s',
+        steps: {
+          0: {
+            title: 'Willkommen!',
+            body: 'Diese App hilft dir bei der Verwaltung von Wohnungen/Zimmern: Mietverträge, Abrechnungszyklen, Rechnungen, Betriebskosten und Berichte.',
+          },
+          1: {
+            title: 'Schritt 1 — Wohnung anlegen',
+            body: 'Gehe zu "Wohnungen" → füge eine Wohnung hinzu. Danach öffnen, um Zimmer hinzuzufügen.',
+          },
+          2: {
+            title: 'Schritt 2 — Mietvertrag erstellen',
+            body: 'Ein Zimmer öffnen → "Vertrag erstellen". Zyklus, Grundmiete und Gebühren wählen.',
+          },
+          3: {
+            title: 'Schritt 3 — Zyklen abrechnen',
+            body: 'Jeden Zyklus: Zählerstände und Zusatzgebühren eingeben → abrechnen, um eine Rechnung zu erzeugen.',
+          },
+          4: {
+            title: 'Betriebskosten',
+            body: 'Feste/variable Kosten für die Wohnung einrichten. Jeden Monat öffnen, eingeben und speichern.',
+          },
+          5: {
+            title: 'Berichte',
+            body: 'Umsatz nach Zimmer und Wohnungs­ausgaben im Datumsbereich ansehen → Periodensaldo erhalten.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'Einheit',
+        month: 'Monat',
+      },
+      roomCreate: {
+        title: 'Zimmer hinzufügen',
+        missingApartmentId: 'Wohnungs-ID fehlt',
+        enterRoomCode: 'Bitte Zimmercode eingeben',
+        createFail: 'Zimmer kann nicht erstellt werden',
+        codePlaceholder: 'Zimmercode (z. B. P201)',
+        floorPlaceholder: 'Etage',
+        areaPlaceholder: 'Fläche (m²)',
+        save: 'Zimmer speichern',
+        duplicateCode:
+          'Dieser Zimmercode ist in dieser Wohnung bereits vorhanden.',
+      },
       brand: {
         nameslogan: 'Leasea-Intelligente Verwaltung von Mieten und Zimmern',
         name: 'Leasea',
@@ -2920,6 +3077,68 @@ const resources = {
 
   zh: {
     translation: {
+      variableFees: {
+        title: '输入可变费用',
+        quantityPlaceholder: '数量',
+        extraTitle: '添加额外费用',
+        extraNamePlaceholder: '费用名称',
+        extraAmountPlaceholder: '金额',
+        addRow: '添加行',
+      },
+      holdingDeposits: {
+        title: '保留押金',
+        none: '暂无保留的押金',
+        room: '房间',
+        start: '开始日期',
+        amount: '押金额',
+        noTenant: '无租客',
+      },
+      onboarding: {
+        skip: '跳过',
+        next: '下一步',
+        start: '开始使用',
+        steps: {
+          0: {
+            title: '欢迎！',
+            body: '本应用帮助你管理公寓/房间：租约、计费周期、发票、运营成本和报表。',
+          },
+          1: {
+            title: '步骤 1 — 创建公寓',
+            body: '进入“公寓” → 添加公寓。然后打开以添加房间。',
+          },
+          2: {
+            title: '步骤 2 — 创建租约',
+            body: '打开一个房间 → “创建租约”。选择周期、基础房租和收费。',
+          },
+          3: {
+            title: '步骤 3 — 结算周期',
+            body: '每个周期：输入表计读数和额外费用 → 结算以生成发票。',
+          },
+          4: {
+            title: '运营成本',
+            body: '为公寓设置固定/可变成本。打开每个月进行录入并保存。',
+          },
+          5: {
+            title: '报表',
+            body: '按房间查看收入和公寓支出，在日期范围内 → 获取期间结余。',
+          },
+        },
+      },
+      units: {
+        unitShort: '单位',
+        month: '月',
+      },
+      roomCreate: {
+        title: '添加房间',
+        missingApartmentId: '缺少公寓ID',
+        enterRoomCode: '请输入房间编号',
+        createFail: '无法创建房间',
+        codePlaceholder: '房间编号（例如 P201）',
+        floorPlaceholder: '楼层',
+        areaPlaceholder: '面积（m²）',
+        save: '保存房间',
+        duplicateCode: '此公寓中已存在该房间编号。',
+      },
       brand: {
         nameslogan: 'Leasea-智能租赁与房间管理',
         name: 'Leasea',
@@ -3293,6 +3512,68 @@ const resources = {
 
   ja: {
     translation: {
+      variableFees: {
+        title: '変動費を入力',
+        quantityPlaceholder: '数量',
+        extraTitle: '追加費用を追加',
+        extraNamePlaceholder: '費用名',
+        extraAmountPlaceholder: '金額',
+        addRow: '行を追加',
+      },
+      holdingDeposits: {
+        title: '預り金',
+        none: '保有している預り金はありません',
+        room: '部屋',
+        start: '開始日',
+        amount: '預り金額',
+        noTenant: '入居者なし',
+      },
+      onboarding: {
+        skip: 'スキップ',
+        next: '次へ',
+        start: 'はじめる',
+        steps: {
+          0: {
+            title: 'ようこそ！',
+            body: '本アプリはアパート/部屋の管理（賃貸契約、請求サイクル、請求書、運用コスト、レポート）を支援します。',
+          },
+          1: {
+            title: 'ステップ1 — アパートを作成',
+            body: '「アパート」へ → アパートを追加。開いて部屋を追加します。',
+          },
+          2: {
+            title: 'ステップ2 — 契約を作成',
+            body: '部屋を開く → 「契約を作成」。サイクル、基本家賃、料金を選択。',
+          },
+          3: {
+            title: 'ステップ3 — サイクルを精算',
+            body: '各サイクル：メーター値と追加費用を入力 → 精算して請求書を作成。',
+          },
+          4: {
+            title: '運用コスト',
+            body: 'アパートの固定費/変動費を設定。各月を開いて入力・保存します。',
+          },
+          5: {
+            title: 'レポート',
+            body: '部屋別の収益とアパート費用を期間で確認 → 期間残高を取得。',
+          },
+        },
+      },
+      units: {
+        unitShort: '単位',
+        month: '月',
+      },
+      roomCreate: {
+        title: '部屋を追加',
+        missingApartmentId: 'アパートIDがありません',
+        enterRoomCode: '部屋コードを入力してください',
+        createFail: '部屋を作成できません',
+        codePlaceholder: '部屋コード（例：P201）',
+        floorPlaceholder: '階',
+        areaPlaceholder: '面積（m²）',
+        save: '部屋を保存',
+        duplicateCode: 'このアパートには同じ部屋コードが既に存在します。',
+      },
       brand: {
         nameslogan: 'Leasea-スマート賃貸・部屋管理',
         name: 'Leasea',
@@ -3673,6 +3954,68 @@ const resources = {
 
   ko: {
     translation: {
+      variableFees: {
+        title: '변동 비용 입력',
+        quantityPlaceholder: '수량',
+        extraTitle: '추가 비용 추가',
+        extraNamePlaceholder: '비용 이름',
+        extraAmountPlaceholder: '금액',
+        addRow: '행 추가',
+      },
+      holdingDeposits: {
+        title: '보유 보증금',
+        none: '보유 중인 보증금이 없습니다',
+        room: '방',
+        start: '시작일',
+        amount: '보증금액',
+        noTenant: '세입자 없음',
+      },
+      onboarding: {
+        skip: '건너뛰기',
+        next: '다음',
+        start: '시작하기',
+        steps: {
+          0: {
+            title: '환영합니다!',
+            body: '이 앱은 아파트/방 관리: 임대차, 청구 주기, 송장, 운영비 및 보고서를 도와줍니다.',
+          },
+          1: {
+            title: '1단계 — 아파트 생성',
+            body: '"아파트"로 이동 → 아파트 추가. 열어서 방을 추가하세요.',
+          },
+          2: {
+            title: '2단계 — 임대 계약 생성',
+            body: '방을 열고 → "계약 생성". 주기, 기본 임대료 및 요금을 선택.',
+          },
+          3: {
+            title: '3단계 — 주기 정산',
+            body: '각 주기: 계량기 지침과 추가 비용 입력 → 정산하여 송장을 생성.',
+          },
+          4: {
+            title: '운영비',
+            body: '아파트의 고정/변동 비용을 설정. 매월 열어 입력하고 저장.',
+          },
+          5: {
+            title: '보고서',
+            body: '기간 범위에서 방별 수익과 아파트 지출을 확인 → 기간 잔액 확인.',
+          },
+        },
+      },
+      units: {
+        unitShort: '단위',
+        month: '월',
+      },
+      roomCreate: {
+        title: '방 추가',
+        missingApartmentId: '아파트 ID가 없습니다',
+        enterRoomCode: '방 코드를 입력하세요',
+        createFail: '방을 생성할 수 없습니다',
+        codePlaceholder: '방 코드(예: P201)',
+        floorPlaceholder: '층',
+        areaPlaceholder: '면적(m²)',
+        save: '방 저장',
+        duplicateCode: '이 아파트에 동일한 방 코드가 이미 존재합니다.',
+      },
       brand: {
         nameslogan: 'Leasea-스마트 임대 및 방 관리',
         name: 'Leasea',
@@ -4046,6 +4389,68 @@ const resources = {
 
   ru: {
     translation: {
+      variableFees: {
+        title: 'Ввести переменные сборы',
+        quantityPlaceholder: 'Количество',
+        extraTitle: 'Добавить дополнительные расходы',
+        extraNamePlaceholder: 'Название расхода',
+        extraAmountPlaceholder: 'Сумма',
+        addRow: 'Добавить строку',
+      },
+      holdingDeposits: {
+        title: 'Удерживаемые депозиты',
+        none: 'Нет удерживаемых депозитов',
+        room: 'Комната',
+        start: 'Дата начала',
+        amount: 'Сумма депозита',
+        noTenant: 'Нет жильца',
+      },
+      onboarding: {
+        skip: 'Пропустить',
+        next: 'Далее',
+        start: 'Начать',
+        steps: {
+          0: {
+            title: 'Добро пожаловать!',
+            body: 'Это приложение помогает управлять квартирами/комнатами: договорами аренды, циклами выставления счетов, счетами, операционными расходами и отчётами.',
+          },
+          1: {
+            title: 'Шаг 1 — Создайте квартиру',
+            body: 'Перейдите в «Квартиры» → добавьте квартиру. Затем откройте её, чтобы добавить комнаты.',
+          },
+          2: {
+            title: 'Шаг 2 — Создайте договор аренды',
+            body: 'Откройте комнату → «Создать договор». Выберите цикл, базовую аренду и начисления.',
+          },
+          3: {
+            title: 'Шаг 3 — Закрывайте циклы',
+            body: 'Каждый цикл: введите показания счётчиков и доп. сборы → закройте, чтобы сформировать счёт.',
+          },
+          4: {
+            title: 'Операционные расходы',
+            body: 'Настройте фиксированные/переменные расходы для квартиры. Открывайте каждый месяц для ввода и сохранения.',
+          },
+          5: {
+            title: 'Отчёты',
+            body: 'Смотрите доходы по комнатам и расходы квартиры за период → получите баланс периода.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'единица',
+        month: 'месяц',
+      },
+      roomCreate: {
+        title: 'Добавить комнату',
+        missingApartmentId: 'Отсутствует ID квартиры',
+        enterRoomCode: 'Пожалуйста, введите код комнаты',
+        createFail: 'Не удалось создать комнату',
+        codePlaceholder: 'Код комнаты (например, P201)',
+        floorPlaceholder: 'Этаж',
+        areaPlaceholder: 'Площадь (m²)',
+        save: 'Сохранить комнату',
+        duplicateCode: 'Такой код комнаты уже существует в этой квартире.',
+      },
       brand: {
         nameslogan: 'Leasea — умное управление арендой и комнатами',
         name: 'Leasea',
@@ -4429,6 +4834,68 @@ const resources = {
 
   ar: {
     translation: {
+      variableFees: {
+        title: 'إدخال الرسوم المتغيرة',
+        quantityPlaceholder: 'الكمية',
+        extraTitle: 'إضافة تكاليف إضافية',
+        extraNamePlaceholder: 'اسم التكلفة',
+        extraAmountPlaceholder: 'المبلغ',
+        addRow: 'إضافة صف',
+      },
+      holdingDeposits: {
+        title: 'الودائع المحتجزة',
+        none: 'لا توجد ودائع محتجزة',
+        room: 'الغرفة',
+        start: 'تاريخ البدء',
+        amount: 'مبلغ الوديعة',
+        noTenant: 'لا يوجد مستأجر',
+      },
+      onboarding: {
+        skip: 'تخطي',
+        next: 'التالي',
+        start: 'ابدأ',
+        steps: {
+          0: {
+            title: 'مرحبًا!',
+            body: 'يساعدك هذا التطبيق على إدارة الشقق/الغرف: عقود الإيجار، دورات الفوترة، الفواتير، التكاليف التشغيلية والتقارير.',
+          },
+          1: {
+            title: 'الخطوة 1 — إنشاء شقة',
+            body: 'اذهب إلى "الشقق" → أضف شقة. ثم افتحها لإضافة الغرف.',
+          },
+          2: {
+            title: 'الخطوة 2 — إنشاء عقد إيجار',
+            body: 'افتح غرفة → "إنشاء عقد". اختر الدورة، الإيجار الأساسي والرسوم.',
+          },
+          3: {
+            title: 'الخطوة 3 — تسوية الدورات',
+            body: 'في كل دورة: أدخل قراءات العدادات والرسوم الإضافية → سَوِّ لتوليد فاتورة.',
+          },
+          4: {
+            title: 'التكاليف التشغيلية',
+            body: 'اضبط التكاليف الثابتة/المتغيرة للشقة. افتح كل شهر للإدخال والحفظ.',
+          },
+          5: {
+            title: 'التقارير',
+            body: 'اعرض الإيرادات حسب الغرفة ومصروفات الشقة ضمن نطاق تاريخ → احصل على رصيد الفترة.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'وحدة',
+        month: 'شهر',
+      },
+      roomCreate: {
+        title: 'إضافة غرفة',
+        missingApartmentId: 'معرّف الشقة مفقود',
+        enterRoomCode: 'يرجى إدخال رمز الغرفة',
+        createFail: 'لا يمكن إنشاء الغرفة',
+        codePlaceholder: 'رمز الغرفة (مثال: P201)',
+        floorPlaceholder: 'الطابق',
+        areaPlaceholder: 'المساحة (m²)',
+        save: 'حفظ الغرفة',
+        duplicateCode: 'رمز الغرفة موجود بالفعل في هذه الشقة.',
+      },
       brand: {
         nameslogan: 'Leasea - إدارة ذكية للإيجار والغرف',
         name: 'Leasea',
@@ -4735,30 +5202,6 @@ const resources = {
           desc: 'من هنا يمكنك الوصول إلى الشقق، الغرف، المستأجرين، العقود، الدورات، الفواتير، التكاليف والتقارير.',
         },
       },
-      roomCreate: {
-        title: 'إضافة غرفة',
-        enterRoomCode: 'الرجاء إدخال رمز الغرفة',
-        save: 'حفظ الغرفة',
-      },
-      variableFees: {
-        title: 'إدخال الرسوم المتغيرة',
-        quantityPlaceholder: 'الكمية',
-        addRow: 'إضافة صف',
-      },
-      onboarding: {
-        skip: 'تخطي',
-        start: 'ابدأ',
-        steps: {
-          0: {
-            title: 'مرحباً!',
-            body: 'هذا التطبيق يساعدك على إدارة الشقق والغرف',
-          },
-          1: {
-            title: 'الخطوة 1 — أنشئ شقة',
-            body: 'اذهب إلى "الشقق" وأضف شقة.',
-          },
-        },
-      },
       reports: {
         title: 'التقارير',
         monthly: 'الإيرادات الشهرية',
@@ -4853,6 +5296,68 @@ const resources = {
   },
   th: {
     translation: {
+      variableFees: {
+        title: 'กรอกค่าธรรมเนียมแบบผันแปร',
+        quantityPlaceholder: 'ปริมาณ',
+        extraTitle: 'เพิ่มค่าใช้จ่ายเพิ่มเติม',
+        extraNamePlaceholder: 'ชื่อค่าใช้จ่าย',
+        extraAmountPlaceholder: 'จำนวนเงิน',
+        addRow: 'เพิ่มแถว',
+      },
+      holdingDeposits: {
+        title: 'เงินมัดจำที่ถืออยู่',
+        none: 'ไม่มีเงินมัดจำที่ถืออยู่',
+        room: 'ห้อง',
+        start: 'วันที่เริ่ม',
+        amount: 'จำนวนเงินมัดจำ',
+        noTenant: 'ไม่มีผู้เช่า',
+      },
+      onboarding: {
+        skip: 'ข้าม',
+        next: 'ถัดไป',
+        start: 'เริ่มต้นใช้งาน',
+        steps: {
+          0: {
+            title: 'ยินดีต้อนรับ!',
+            body: 'แอปนี้ช่วยคุณจัดการอพาร์ตเมนต์/ห้อง: สัญญาเช่า รอบบิล ใบแจ้งหนี้ ต้นทุนการดำเนินงาน และรายงาน',
+          },
+          1: {
+            title: 'ขั้นตอนที่ 1 — สร้างอพาร์ตเมนต์',
+            body: 'ไปที่ "อพาร์ตเมนต์" → เพิ่มอพาร์ตเมนต์ แล้วเปิดเพื่อเพิ่มห้อง',
+          },
+          2: {
+            title: 'ขั้นตอนที่ 2 — สร้างสัญญาเช่า',
+            body: 'เปิดห้อง → "สร้างสัญญาเช่า" เลือกรอบ ระยะค่าเช่าพื้นฐาน และค่าธรรมเนียม',
+          },
+          3: {
+            title: 'ขั้นตอนที่ 3 — ปิดรอบ',
+            body: 'ทุกรอบ: กรอกมิเตอร์และค่าใช้จ่ายเพิ่มเติม → ปิดรอบเพื่อออกใบแจ้งหนี้',
+          },
+          4: {
+            title: 'ต้นทุนการดำเนินงาน',
+            body: 'ตั้งค่าต้นทุนคงที่/ผันแปรของอพาร์ตเมนต์ เปิดแต่ละเดือนเพื่อกรอกและบันทึก',
+          },
+          5: {
+            title: 'รายงาน',
+            body: 'ดูรายได้ตามห้องและค่าใช้จ่ายของอพาร์ตเมนต์ตามช่วงวันที่ → รับยอดคงเหลือของรอบ',
+          },
+        },
+      },
+      units: {
+        unitShort: 'หน่วย',
+        month: 'เดือน',
+      },
+      roomCreate: {
+        title: 'เพิ่มห้อง',
+        missingApartmentId: 'ไม่มีรหัสอพาร์ตเมนต์',
+        enterRoomCode: 'กรุณากรอกรหัสห้อง',
+        createFail: 'ไม่สามารถสร้างห้องได้',
+        codePlaceholder: 'รหัสห้อง (เช่น P201)',
+        floorPlaceholder: 'ชั้น',
+        areaPlaceholder: 'พื้นที่ (m²)',
+        save: 'บันทึกห้อง',
+        duplicateCode: 'มีรหัสห้องนี้อยู่แล้วในอพาร์ตเมนต์นี้',
+      },
       brand: {
         nameslogan: 'Leasea - การจัดการเช่าและห้องพักอัจฉริยะ',
         name: 'Leasea',
@@ -5325,6 +5830,68 @@ const resources = {
   },
   id: {
     translation: {
+      variableFees: {
+        title: 'Masukkan biaya variabel',
+        quantityPlaceholder: 'Kuantitas',
+        extraTitle: 'Tambah biaya tambahan',
+        extraNamePlaceholder: 'Nama biaya',
+        extraAmountPlaceholder: 'Jumlah',
+        addRow: 'Tambah baris',
+      },
+      holdingDeposits: {
+        title: 'Deposit yang ditahan',
+        none: 'Tidak ada deposit yang ditahan',
+        room: 'Kamar',
+        start: 'Tanggal mulai',
+        amount: 'Jumlah deposit',
+        noTenant: 'Tidak ada penyewa',
+      },
+      onboarding: {
+        skip: 'Lewati',
+        next: 'Berikutnya',
+        start: 'Mulai',
+        steps: {
+          0: {
+            title: 'Selamat datang!',
+            body: 'Aplikasi ini membantu Anda mengelola apartemen/kamar: sewa, siklus penagihan, faktur, biaya operasional, dan laporan.',
+          },
+          1: {
+            title: 'Langkah 1 — Buat apartemen',
+            body: 'Buka "Apartemen" → tambahkan apartemen. Lalu buka untuk menambahkan kamar.',
+          },
+          2: {
+            title: 'Langkah 2 — Buat sewa',
+            body: 'Buka kamar → "Buat sewa". Pilih siklus, sewa dasar, dan biaya.',
+          },
+          3: {
+            title: 'Langkah 3 — Selesaikan siklus',
+            body: 'Setiap siklus: masukkan angka meter dan biaya tambahan → selesaikan untuk membuat faktur.',
+          },
+          4: {
+            title: 'Biaya operasional',
+            body: 'Atur biaya tetap/variabel untuk apartemen. Buka tiap bulan untuk input dan simpan.',
+          },
+          5: {
+            title: 'Laporan',
+            body: 'Lihat pendapatan per kamar dan pengeluaran apartemen dalam rentang tanggal → dapatkan saldo periode.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'satuan',
+        month: 'bulan',
+      },
+      roomCreate: {
+        title: 'Tambah kamar',
+        missingApartmentId: 'ID apartemen hilang',
+        enterRoomCode: 'Silakan masukkan kode kamar',
+        createFail: 'Tidak dapat membuat kamar',
+        codePlaceholder: 'Kode kamar (mis. P201)',
+        floorPlaceholder: 'Lantai',
+        areaPlaceholder: 'Luas (m²)',
+        save: 'Simpan kamar',
+        duplicateCode: 'Kode kamar sudah ada di apartemen ini.',
+      },
       brand: {
         nameslogan: 'Leasea - Manajemen pintar sewa & kamar',
         name: 'Leasea',
@@ -5797,6 +6364,68 @@ const resources = {
   },
   ms: {
     translation: {
+      variableFees: {
+        title: 'Masukkan yuran berubah',
+        quantityPlaceholder: 'Kuantiti',
+        extraTitle: 'Tambah kos tambahan',
+        extraNamePlaceholder: 'Nama kos',
+        extraAmountPlaceholder: 'Jumlah',
+        addRow: 'Tambah baris',
+      },
+      holdingDeposits: {
+        title: 'Deposit yang dipegang',
+        none: 'Tiada deposit dipegang',
+        room: 'Bilik',
+        start: 'Tarikh mula',
+        amount: 'Jumlah deposit',
+        noTenant: 'Tiada penyewa',
+      },
+      onboarding: {
+        skip: 'Langkau',
+        next: 'Seterusnya',
+        start: 'Mula',
+        steps: {
+          0: {
+            title: 'Selamat datang!',
+            body: 'Apl ini membantu anda mengurus apartmen/bilik: pajakan, kitaran bil, invois, kos operasi dan laporan.',
+          },
+          1: {
+            title: 'Langkah 1 — Cipta apartmen',
+            body: 'Pergi ke "Apartmen" → tambah apartmen. Kemudian buka untuk menambah bilik.',
+          },
+          2: {
+            title: 'Langkah 2 — Cipta pajakan',
+            body: 'Buka bilik → "Cipta pajakan". Pilih kitaran, sewa asas dan caj.',
+          },
+          3: {
+            title: 'Langkah 3 — Setel kitaran',
+            body: 'Setiap kitaran: masukkan bacaan meter dan kos tambahan → setel untuk jana invois.',
+          },
+          4: {
+            title: 'Kos operasi',
+            body: 'Sediakan kos tetap/berubah untuk apartmen. Buka setiap bulan untuk masukkan dan simpan.',
+          },
+          5: {
+            title: 'Laporan',
+            body: 'Lihat hasil mengikut bilik dan perbelanjaan apartmen dalam julat tarikh → dapatkan baki tempoh.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'unit',
+        month: 'bulan',
+      },
+      roomCreate: {
+        title: 'Tambah bilik',
+        missingApartmentId: 'ID apartmen tiada',
+        enterRoomCode: 'Sila masukkan kod bilik',
+        createFail: 'Tidak dapat membuat bilik',
+        codePlaceholder: 'Kod bilik (cth. P201)',
+        floorPlaceholder: 'Tingkat',
+        areaPlaceholder: 'Luas (m²)',
+        save: 'Simpan bilik',
+        duplicateCode: 'Kod bilik sudah wujud dalam apartmen ini.',
+      },
       brand: {
         nameslogan: 'Leasea - Pengurusan pintar sewaan & bilik',
         name: 'Leasea',
@@ -6203,6 +6832,69 @@ const resources = {
   },
   fil: {
     translation: {
+      variableFees: {
+        title: 'Ilagay ang mga nagbabagong fee',
+        quantityPlaceholder: 'Dami',
+        extraTitle: 'Magdagdag ng dagdag na gastos',
+        extraNamePlaceholder: 'Pangalan ng gastos',
+        extraAmountPlaceholder: 'Halaga',
+        addRow: 'Magdagdag ng hilera',
+      },
+      holdingDeposits: {
+        title: 'Mga depositong naka-hold',
+        none: 'Walang depositong naka-hold',
+        room: 'Kuwarto',
+        start: 'Petsa ng simula',
+        amount: 'Halaga ng deposito',
+        noTenant: 'Walang umuupa',
+      },
+      onboarding: {
+        skip: 'Laktawan',
+        next: 'Susunod',
+        start: 'Simulan',
+        steps: {
+          0: {
+            title: 'Maligayang pagdating!',
+            body: 'Tinutulungan ka ng app na ito na pamahalaan ang mga apartment/kuwarto: lease, billing cycle, invoice, gastos sa operasyon at mga ulat.',
+          },
+          1: {
+            title: 'Hakbang 1 — Gumawa ng apartment',
+            body: 'Pumunta sa "Apartment" → magdagdag ng apartment. Pagkatapos buksan para magdagdag ng mga kuwarto.',
+          },
+          2: {
+            title: 'Hakbang 2 — Gumawa ng lease',
+            body: 'Buksan ang isang kuwarto → "Gumawa ng lease". Piliin ang cycle, base rent at mga singil.',
+          },
+          3: {
+            title: 'Hakbang 3 — Isara ang mga cycle',
+            body: 'Bawat cycle: ilagay ang meter reading at dagdag na gastos → isara upang gumawa ng invoice.',
+          },
+          4: {
+            title: 'Mga gastos sa operasyon',
+            body: 'I-setup ang fixed/variable na gastos para sa apartment. Buksan bawat buwan para ilagay at i-save.',
+          },
+          5: {
+            title: 'Mga ulat',
+            body: 'Tingnan ang kita kada kuwarto at gastos ng apartment sa saklaw ng petsa → kunin ang balanse ng panahon.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'yunit',
+        month: 'buwan',
+      },
+      roomCreate: {
+        title: 'Magdagdag ng kuwarto',
+        missingApartmentId: 'Nawawala ang apartment ID',
+        enterRoomCode: 'Pakilagay ang code ng kuwarto',
+        createFail: 'Hindi ma-likha ang kuwarto',
+        codePlaceholder: 'Code ng kuwarto (hal. P201)',
+        floorPlaceholder: 'Palapag',
+        areaPlaceholder: 'Lawak (m²)',
+        save: 'I-save ang kuwarto',
+        duplicateCode:
+          'Umiiral na ang code ng kuwarto na ito sa apartment na ito.',
+      },
       brand: {
         nameslogan: 'Leasea - Matalinong pamamahala ng paupahan at silid',
         name: 'Leasea',
@@ -6557,6 +7249,68 @@ const resources = {
   },
   pt: {
     translation: {
+      variableFees: {
+        title: 'Inserir taxas variáveis',
+        quantityPlaceholder: 'Quantidade',
+        extraTitle: 'Adicionar custos extras',
+        extraNamePlaceholder: 'Nome do custo',
+        extraAmountPlaceholder: 'Valor',
+        addRow: 'Adicionar linha',
+      },
+      holdingDeposits: {
+        title: 'Depósitos retidos',
+        none: 'Sem depósitos retidos',
+        room: 'Quarto',
+        start: 'Data de início',
+        amount: 'Valor do depósito',
+        noTenant: 'Sem inquilino',
+      },
+      onboarding: {
+        skip: 'Ignorar',
+        next: 'Seguinte',
+        start: 'Começar',
+        steps: {
+          0: {
+            title: 'Bem-vindo!',
+            body: 'Esta app ajuda a gerir apartamentos/quartos: contratos de arrendamento, ciclos de faturação, faturas, custos operacionais e relatórios.',
+          },
+          1: {
+            title: 'Passo 1 — Criar um apartamento',
+            body: 'Ir a "Apartamentos" → adicionar um apartamento. Depois abra para adicionar quartos.',
+          },
+          2: {
+            title: 'Passo 2 — Criar arrendamento',
+            body: 'Abra um quarto → "Criar arrendamento". Escolha ciclo, renda base e encargos.',
+          },
+          3: {
+            title: 'Passo 3 — Liquidar ciclos',
+            body: 'Cada ciclo: introduza leituras de contadores e custos extra → liquidar para gerar uma fatura.',
+          },
+          4: {
+            title: 'Custos operacionais',
+            body: 'Defina custos fixos/variáveis do apartamento. Abra cada mês para introduzir e guardar.',
+          },
+          5: {
+            title: 'Relatórios',
+            body: 'Veja a receita por quarto e as despesas do apartamento num intervalo de datas → obtenha o saldo do período.',
+          },
+        },
+      },
+      units: {
+        unitShort: 'unidade',
+        month: 'mês',
+      },
+      roomCreate: {
+        title: 'Adicionar quarto',
+        missingApartmentId: 'ID do apartamento ausente',
+        enterRoomCode: 'Insira o código do quarto',
+        createFail: 'Não é possível criar o quarto',
+        codePlaceholder: 'Código do quarto (ex.: P201)',
+        floorPlaceholder: 'Andar',
+        areaPlaceholder: 'Área (m²)',
+        save: 'Guardar quarto',
+        duplicateCode: 'O código do quarto já existe neste apartamento.',
+      },
       brand: {
         nameslogan: 'Leasea - Gestão inteligente de aluguéis e quartos',
         name: 'Leasea',
@@ -6957,6 +7711,21 @@ const resources = {
   },
   hi: {
     translation: {
+      units: {
+        unitShort: 'इकाई',
+        month: 'महीना',
+      },
+      roomCreate: {
+        title: 'कमरा जोड़ें',
+        missingApartmentId: 'अपार्टमेंट ID अनुपस्थित है',
+        enterRoomCode: 'कृपया कमरे का कोड दर्ज करें',
+        createFail: 'कमरा बनाया नहीं जा सका',
+        codePlaceholder: 'कमरे का कोड (जैसे P201)',
+        floorPlaceholder: 'मंजिल',
+        areaPlaceholder: 'क्षेत्रफल (m²)',
+        save: 'कमरा सहेजें',
+        duplicateCode: 'इस अपार्टमेंट में यह कमरे का कोड पहले से मौजूद है।',
+      },
       brand: {
         nameslogan: 'Leasea - स्मार्ट किराया और कमरा प्रबंधन',
         name: 'Leasea',
@@ -7320,5 +8089,4 @@ i18n.use(initReactI18next).init({
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });
-
 export default i18n;
