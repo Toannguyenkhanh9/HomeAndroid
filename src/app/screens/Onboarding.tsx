@@ -124,9 +124,6 @@ export default function Onboarding({navigation}: Props) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onMomentumEnd}
-        contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
-       contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
       >
         {STEPS.map((s, i) => (
           <View key={i} style={{width, paddingHorizontal: 20}}>
