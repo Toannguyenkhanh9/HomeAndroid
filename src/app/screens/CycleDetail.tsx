@@ -103,20 +103,27 @@ export default function CycleDetail({ route, navigation }: Props) {
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
-  const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
+  const [period, setPeriod] = useState<{ s: string; e: string }>({
+    s: '',
+    e: '',
+  });
 
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
   const [settledItems, setSettledItems] = useState<any[]>([]);
-  const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
+  const [currentReadings, setCurrentReadings] = useState<
+    Record<string, number>
+  >({});
 
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
   const updateExtra = (i: number, patch: Partial<ExtraItem>) =>
-    setExtras(prev => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+    setExtras(prev =>
+      prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)),
+    );
   const removeExtra = (i: number) =>
     setExtras(prev => prev.filter((_, idx) => idx !== i));
 
@@ -125,7 +132,8 @@ export default function CycleDetail({ route, navigation }: Props) {
   const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
   const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
+  const delEndExtra = (i: number) =>
+    setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
     () => endExtras.reduce((s, it) => s + parseAmountInt(it.amount), 0),
     [endExtras],
@@ -177,7 +185,8 @@ export default function CycleDetail({ route, navigation }: Props) {
         if (it.charge_type_id && it.meta_json) {
           try {
             const m = JSON.parse(it.meta_json);
-            if (typeof m?.meter_end === 'number') map[it.charge_type_id] = m.meter_end;
+            if (typeof m?.meter_end === 'number')
+              map[it.charge_type_id] = m.meter_end;
           } catch {}
         }
       }
@@ -193,7 +202,9 @@ export default function CycleDetail({ route, navigation }: Props) {
         unit_price: Number(it.unit_price) || 0,
         meter_start: Number(it.meter_start) || 0,
         // ✅ khởi tạo đã có format VN
-        value: it.is_variable ? '' : formatVNMoneyTyping(String(it.unit_price ?? '')),
+        value: it.is_variable
+          ? ''
+          : formatVNMoneyTyping(String(it.unit_price ?? '')),
       }));
       setRows(normalized);
       setInvId(undefined);
@@ -236,7 +247,8 @@ export default function CycleDetail({ route, navigation }: Props) {
         for (const it of items) {
           const unit = (it.unit || '').toLowerCase();
           if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
-          if (unit.includes('m3') || unit.includes('m³')) _water += Number(it.amount) || 0;
+          if (unit.includes('m3') || unit.includes('m³'))
+            _water += Number(it.amount) || 0;
         }
       } else {
         for (const r of rows) {
@@ -248,12 +260,19 @@ export default function CycleDetail({ route, navigation }: Props) {
           if (isWater(r.unit)) _pWater += money;
         }
       }
-      return { elecTotal: _elec, waterTotal: _water, previewElecTotal: _pElec, previewWaterTotal: _pWater };
+      return {
+        elecTotal: _elec,
+        waterTotal: _water,
+        previewElecTotal: _pElec,
+        previewWaterTotal: _pWater,
+      };
     }, [rows, status, invId]);
 
   const onChangeVarValue = (id: string, text: string) => {
     setRows(prev =>
-      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r)),
+      prev.map(r =>
+        r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r,
+      ),
     );
   };
 
@@ -281,23 +300,36 @@ export default function CycleDetail({ route, navigation }: Props) {
       return;
     }
 
-    const variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }> = [];
+    const variableInputs: Array<{
+      charge_type_id: string;
+      quantity: number;
+      meter_end?: number;
+    }> = [];
     const adjustments: Array<{ name: string; amount: number }> = [];
 
     for (const r of rows) {
       if (r.is_variable === 1) {
         const current = parseAmountInt(r.value);
         const consumed = Math.max(0, current - (r.meter_start || 0));
-        variableInputs.push({ charge_type_id: r.charge_type_id, quantity: consumed, meter_end: current });
+        variableInputs.push({
+          charge_type_id: r.charge_type_id,
+          quantity: consumed,
+          meter_end: current,
+        });
       } else {
         const newPrice = parseDecimalCommaStrict(r.value);
         const delta = newPrice - (r.unit_price || 0);
-        if (delta !== 0) adjustments.push({ name: `${t('cycleDetail.adjust')} ${r.name}`, amount: delta });
+        if (delta !== 0)
+          adjustments.push({
+            name: `${t('cycleDetail.adjust')} ${r.name}`,
+            amount: delta,
+          });
       }
     }
     for (const ex of extras) {
       const amt = parseAmountInt(ex.amount);
-      if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
+      if (ex.name.trim() && amt > 0)
+        adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
     const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
@@ -311,7 +343,8 @@ export default function CycleDetail({ route, navigation }: Props) {
     try {
       const billing = String(leaseInfo?.billing_cycle);
       const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
-      const isOpenDaily = billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
+      const isOpenDaily =
+        billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
       if (isOpenMonthly || isOpenDaily) {
         extendLeaseAndAddCycles(leaseId, 1);
       }
@@ -329,15 +362,22 @@ export default function CycleDetail({ route, navigation }: Props) {
       scheduleReminder(
         `lease_${leaseId}_cycle_settle_${nextISO}`,
         t('notify.settleTitle') || 'Tất toán kỳ',
-        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        t('notify.settleMsg') ||
+          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
         nextISO,
       );
     } catch {}
 
     if (isFixedTerm && isLastCycle(cycleId)) {
       Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
-        { text: t('cycleDetail.endLease'), onPress: () => setShowEndModal(true) },
-        { text: t('cycleDetail.keepLease'), onPress: () => setShowExtendModal(true) },
+        {
+          text: t('cycleDetail.endLease'),
+          onPress: () => setShowEndModal(true),
+        },
+        {
+          text: t('cycleDetail.keepLease'),
+          onPress: () => setShowExtendModal(true),
+        },
         { text: t('common.close'), style: 'cancel' },
       ]);
     } else {
@@ -355,11 +395,21 @@ export default function CycleDetail({ route, navigation }: Props) {
         if (i.meta_json) {
           try {
             const m = JSON.parse(i.meta_json);
-            if (m && typeof m.meter_start === 'number' && typeof m.meter_end === 'number') {
-              extraInfo = `<div style="font-size:12px;color:#555">${t('cycleDetail.prevIndex')}: ${groupVN(String(m.meter_start))} • ${t('cycleDetail.currIndex')}: ${groupVN(String(m.meter_end))}</div>`;
+            if (
+              m &&
+              typeof m.meter_start === 'number' &&
+              typeof m.meter_end === 'number'
+            ) {
+              extraInfo = `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.prevIndex',
+              )}: ${groupVN(String(m.meter_start))} • ${t(
+                'cycleDetail.currIndex',
+              )}: ${groupVN(String(m.meter_end))}</div>`;
             }
             if (m?.for_period_start && m?.for_period_end) {
-              extraInfo += `<div style="font-size:12px;color:#555">${t('cycleDetail.forPeriod')}: ${m.for_period_start} → ${m.for_period_end}</div>`;
+              extraInfo += `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.forPeriod',
+              )}: ${m.for_period_start} → ${m.for_period_end}</div>`;
             }
           } catch {}
         }
@@ -369,38 +419,62 @@ export default function CycleDetail({ route, navigation }: Props) {
             ${i.description}
             ${extraInfo}
           </td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${i.quantity ?? 1} ${i.unit ?? ''}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.unit_price)}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(i.amount)}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${
+            i.quantity ?? 1
+          } ${i.unit ?? ''}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            i.unit_price,
+          )}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            i.amount,
+          )}</td>
         </tr>`;
       })
       .join('');
     const html = `
     <html><meta charSet="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
-    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${inv.period_end}</h2>
+    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${
+      inv.period_end
+    }</h2>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
-          <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t('cycleDetail.item')}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t('cycleDetail.qty')}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t('cycleDetail.unitPrice')}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t('cycleDetail.amount')}</th>
+          <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.item',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.qty',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.unitPrice',
+          )}</th>
+          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+            'cycleDetail.amount',
+          )}</th>
         </tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t('cycleDetail.total')}</b></td>
-          <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(inv.total)}</b></td>
+          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t(
+            'cycleDetail.total',
+          )}</b></td>
+          <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(
+            inv.total,
+          )}</b></td>
         </tr>
       </tfoot>
     </table>
     </body></html>`;
-    const res = await RNHTMLtoPDF.convert({ html, fileName: `invoice_${inv.id}`, base64: false });
+    const res = await RNHTMLtoPDF.convert({
+      html,
+      fileName: `invoice_${inv.id}`,
+      base64: false,
+    });
     Alert.alert(t('cycleDetail.pdfExported'), res.filePath || '—');
   }
 
-async function shareImage() {
+  async function shareImage() {
     try {
       if (!scrollRef.current) {
         Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
@@ -414,7 +488,9 @@ async function shareImage() {
       });
 
       // react-native-share yêu cầu dạng file://
-      const uri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      const uri = filePath.startsWith('file://')
+        ? filePath
+        : `file://${filePath}`;
 
       await Share.open({
         url: uri,
@@ -422,298 +498,677 @@ async function shareImage() {
         failOnCancel: false,
       });
     } catch (e: any) {
-      Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
+      Alert.alert(
+        t('cycleDetail.shareFail'),
+        e?.message || t('common.tryAgain'),
+      );
     }
   }
+  // 1) Giữ các import này (bạn đã có sẵn):
+  // import RNHTMLtoPDF from 'react-native-html-to-pdf';
+  // import Share from 'react-native-share';
+
+  // 2) Tách phần dựng HTML hóa đơn để tái sử dụng
+  function buildInvoiceHtml(
+    inv: any,
+    items: any[],
+    t: any,
+    format: (n: number) => string,
+  ) {
+    const rowsHtml = items
+      .map((i: any) => {
+        let extraInfo = '';
+        if (i.meta_json) {
+          try {
+            const m = JSON.parse(i.meta_json);
+            if (
+              m &&
+              typeof m.meter_start === 'number' &&
+              typeof m.meter_end === 'number'
+            ) {
+              extraInfo = `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.prevIndex',
+              )}: ${i?.meta_start ?? m.meter_start} • ${t(
+                'cycleDetail.currIndex',
+              )}: ${i?.meta_end ?? m.meter_end}</div>`;
+            }
+            if (m?.for_period_start && m?.for_period_end) {
+              extraInfo += `<div style="font-size:12px;color:#555">${t(
+                'cycleDetail.forPeriod',
+              )}: ${m.for_period_start} → ${m.for_period_end}</div>`;
+            }
+          } catch {}
+        }
+        return `
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;">
+            ${i.description}
+            ${extraInfo}
+          </td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${
+            i.quantity ?? 1
+          } ${i.unit ?? ''}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            Number(i.unit_price) || 0,
+          )}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
+            Number(i.amount) || 0,
+          )}</td>
+        </tr>`;
+      })
+      .join('');
+
+    return `
+  <html>
+    <meta charSet="utf-8"/>
+    <body style="font-family:-apple-system,Roboto,sans-serif;padding:12px;">
+      <h2 style="margin:0 0 12px 0">${t('cycleDetail.invoiceTitle')} ${
+      inv.period_start
+    } → ${inv.period_end}</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t(
+              'cycleDetail.item',
+            )}</th>
+            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+              'cycleDetail.qty',
+            )}</th>
+            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+              'cycleDetail.unitPrice',
+            )}</th>
+            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
+              'cycleDetail.amount',
+            )}</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr>
+            <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t(
+              'cycleDetail.total',
+            )}</b></td>
+            <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(
+              Number(inv.total) || 0,
+            )}</b></td>
+          </tr>
+        </tfoot>
+      </table>
+    </body>
+  </html>`;
+  }
+
+async function sharePdf() {
+  if (!invId) return;
+  if (!(RNHTMLtoPDF as any)?.convert) {
+    Alert.alert('Setup error', 'react-native-html-to-pdf chưa link. Rebuild app.');
+    return;
+  }
+
+  const inv = getInvoice(invId);
+  const items = getInvoiceItems(invId) || [];
+  const html = buildInvoiceHtml(inv, items, t, format);
+
+  const res = await RNHTMLtoPDF.convert({
+    html,
+    fileName: `invoice_${inv.id}`,
+    base64: false,        // trả về đường dẫn file
+  });
+
+  const filePath = res.filePath || '';
+  await Share.open({
+    url: filePath.startsWith('file://') ? filePath : `file://${filePath}`,
+    type: 'application/pdf',
+    failOnCancel: false,
+  });
+}
+
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
-        {!editMode ? (
-      <ScrollView
-        ref={scrollRef}
-        collapsable={false}
-        contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100, gap: 12 }}
-        showsVerticalScrollIndicator
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-      >
-            <Card>
-              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.roomInfo')}</Text>
-              <Text style={{ color: roomCode ? c.text : c.subtext }}>{t('common.room')}: {roomCode || '—'}</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      {!editMode ? (
+        <ScrollView
+          ref={scrollRef}
+          collapsable={false}
+          contentContainerStyle={{
+            padding: 12,
+            paddingBottom: insets.bottom + 100,
+            gap: 12,
+          }}
+          showsVerticalScrollIndicator
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+        >
+          <Card>
+            <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>
+              {t('cycleDetail.roomInfo')}
+            </Text>
+            <Text style={{ color: roomCode ? c.text : c.subtext }}>
+              {t('common.room')}: {roomCode || '—'}
+            </Text>
 
-              <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>{t('cycleDetail.tenant')}</Text>
-              {(tenantName || tenantPhone) ? (
-                <Text style={{ color: c.text }}>
-                  {tenantName || '—'}{tenantPhone ? ` — ${tenantPhone}` : ''}
-                </Text>
-              ) : (
-                <Text style={{ color: c.subtext }}>{t('cycleDetail.noTenant')}</Text>
-              )}
-            </Card>
-
-            <Card>
+            <Text
+              style={{
+                color: c.text,
+                fontWeight: '700',
+                marginTop: 10,
+                marginBottom: 6,
+              }}
+            >
+              {t('cycleDetail.tenant')}
+            </Text>
+            {tenantName || tenantPhone ? (
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)}  →  {formatDateISO(period.e, dateFormat, language)}
+                {tenantName || '—'}
+                {tenantPhone ? ` — ${tenantPhone}` : ''}
               </Text>
-              <Text style={{ color: c.text }}>{t('cycleDetail.status')}: {status === 'open' ? t('common.open') : t('common.close')} </Text>
-              {invId ? <Text style={{ color: c.text }}>{t('cycleDetail.invoiceTotal')}: {format(invTotal)}</Text> : null}
-            </Card>
-
-            <Card style={{ gap: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
-
-              {status === 'settled' && settledItems.length > 0 ? (
-                <>
-                  {settledItems.map(it => {
-                    let meterInfo: { start?: number; end?: number } = {};
-                    let forStart: string | undefined;
-                    let forEnd: string | undefined;
-                    if (it.meta_json) {
-                      try {
-                        const m = JSON.parse(it.meta_json);
-                        if (typeof m?.meter_start === 'number') meterInfo.start = m.meter_start;
-                        if (typeof m?.meter_end === 'number') meterInfo.end = m.meter_end;
-                        if (m?.for_period_start) forStart = m.for_period_start;
-                        if (m?.for_period_end)   forEnd   = m.for_period_end;
-                      } catch {}
-                    }
-                    return (
-                      <View key={it.id} style={{ borderRadius: 10, padding: 10 }}>
-                        <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:6}}>
-                          <Text style={{color:c.text, fontWeight:'700'}}>{it.description === 'rent.roomprice' ? t('leaseForm.baseRent') : it.description}</Text>
-                          <Text style={{color:c.subtext}}>
-                            {it.unit ? `(${it.unit === 'rent.month' ? t('rent.month') : it.unit ==='tháng' ? t('rent.month') : t('rent.unit')})` : t('cycleDetail.fixed')}
-                          </Text>
-                        </View>
-
-                        {forStart && forEnd ? (
-                          <Text style={{color:c.subtext, marginBottom:4}}>
-                            {t('cycleDetail.forPeriod')}: <Text style={{color:c.text}}>{formatDateISO(forStart, dateFormat, language)} → {formatDateISO(forEnd, dateFormat, language)}</Text>
-                          </Text>
-                        ) : null}
-
-                        {!!(meterInfo.start != null || meterInfo.end != null) && (
-                          <Text style={{color:c.subtext, marginBottom:4}}>
-                            {t('cycleDetail.prevIndex')}: <Text style={{color:c.text}}>{groupVN(String(meterInfo.start ?? 0))}</Text>{'  '}•{'  '}
-                            {t('cycleDetail.currIndex')}: <Text style={{color:c.text}}>{groupVN(String(meterInfo.end ?? 0))}</Text>
-                          </Text>
-                        )}
-
-                        <Text style={{color:c.subtext}}>
-                          {t('cycleDetail.qtyShort')}: <Text style={{color:c.text}}>{it.quantity ?? 1}</Text> •{' '}
-                          {t('cycleDetail.unitPrice')}: <Text style={{color:c.text}}>{format(it.unit_price)}</Text> •{' '}
-                          {t('cycleDetail.amount')}: <Text style={{color:c.text}}>{format(it.amount)}</Text>
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </>
-              ) : (
-                <>
-                  {rows.map(r => (
-                    <View key={r.charge_type_id} style={{  borderRadius: 10, padding: 10 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
-                        <Text style={{ color: c.subtext }}>
-                          {r.is_variable ? `${t('cycleDetail.variable')} (${r.unit || ''})` : t('cycleDetail.fixed')}
-                        </Text>
-                      </View>
-
-                      {r.is_variable === 1 ? (
-                        <>
-                          <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.unitPrice')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text> / {r.unit || t('cycleDetail.unitShort')}
-                          </Text>
-                          <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.startIndex')}: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
-                          </Text>
-
-                          <View style={{ flexDirection:'row', alignItems:'center', marginTop:8 }}>
-                            <Text style={{ color:c.subtext, flex:1 }}>{t('cycleDetail.currentIndex')}</Text>
-                            <Text style={{ color:r.value ? c.text : c.subtext, textAlign:'right' }}>
-                              {r.value ? groupVN(String(parseInt((r.value || '').replace(/\D/g,''),10)||0)) : t('cycleDetail.notEntered')}
-                            </Text>
-                          </View>
-                        </>
-                      ) : (
-                        <>
-                          <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
-                          </Text>
-                          <View style={{ flexDirection:'row', alignItems:'center', marginTop:8 }}>
-                            <Text style={{ color:c.subtext, flex:1 }}>{t('cycleDetail.priceThisCycle')}</Text>
-                            <Text style={{ color:c.text, textAlign:'right' }}>
-                              {format(parseDecimalCommaStrict(r.value || String(r.unit_price)))}
-                            </Text>
-                          </View>
-                        </>
-                      )}
-                    </View>
-                  ))}
-                </>
-              )}
-            </Card>
-
-            {status==='settled' ? (
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-                <Button title={t('cycleDetail.share')} onPress={shareImage}/>
-              </View>
             ) : (
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-                <Button title={t('cycleDetail.settleNow')} onPress={() => setEditMode(true)} />
-              </View>
+              <Text style={{ color: c.subtext }}>
+                {t('cycleDetail.noTenant')}
+              </Text>
             )}
-          </ScrollView>
-        ) : (
-      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
-       contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled">
-            <Card style={{ gap: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
+          </Card>
 
-              {rows.map(r => {
-                const isVar = r.is_variable === 1;
-                const current = parseAmountInt(r.value);
-                const consumed = isVar ? Math.max(0, current - (r.meter_start || 0)) : 0;
-                const partial = isVar ? consumed * (r.unit_price || 0) : parseDecimalCommaStrict(r.value);
+          <Card>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.period')}:{' '}
+              {formatDateISO(period.s, dateFormat, language)} →{' '}
+              {formatDateISO(period.e, dateFormat, language)}
+            </Text>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.status')}:{' '}
+              {status === 'open' ? t('common.open') : t('common.close')}{' '}
+            </Text>
+            {invId ? (
+              <Text style={{ color: c.text }}>
+                {t('cycleDetail.invoiceTotal')}: {format(invTotal)}
+              </Text>
+            ) : null}
+          </Card>
 
-                return (
-                  <View key={r.charge_type_id} style={{ borderRadius: 10, padding: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
+          <Card style={{ gap: 10 }}>
+            <Text style={{ color: c.text, fontWeight: '700' }}>
+              {t('cycleDetail.fees')}
+            </Text>
+
+            {status === 'settled' && settledItems.length > 0 ? (
+              <>
+                {settledItems.map(it => {
+                  let meterInfo: { start?: number; end?: number } = {};
+                  let forStart: string | undefined;
+                  let forEnd: string | undefined;
+                  if (it.meta_json) {
+                    try {
+                      const m = JSON.parse(it.meta_json);
+                      if (typeof m?.meter_start === 'number')
+                        meterInfo.start = m.meter_start;
+                      if (typeof m?.meter_end === 'number')
+                        meterInfo.end = m.meter_end;
+                      if (m?.for_period_start) forStart = m.for_period_start;
+                      if (m?.for_period_end) forEnd = m.for_period_end;
+                    } catch {}
+                  }
+                  return (
+                    <View key={it.id} style={{ borderRadius: 10, padding: 10 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text style={{ color: c.text, fontWeight: '700' }}>
+                          {it.description === 'rent.roomprice'
+                            ? t('leaseForm.baseRent')
+                            : it.description}
+                        </Text>
+                        <Text style={{ color: c.subtext }}>
+                          {it.unit
+                            ? `(${
+                                it.unit === 'rent.month'
+                                  ? t('rent.month')
+                                  : it.unit === 'tháng'
+                                  ? t('rent.month')
+                                  : t('rent.unit')
+                              })`
+                            : t('cycleDetail.fixed')}
+                        </Text>
+                      </View>
+
+                      {forStart && forEnd ? (
+                        <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                          {t('cycleDetail.forPeriod')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {formatDateISO(forStart, dateFormat, language)} →{' '}
+                            {formatDateISO(forEnd, dateFormat, language)}
+                          </Text>
+                        </Text>
+                      ) : null}
+
+                      {!!(meterInfo.start != null || meterInfo.end != null) && (
+                        <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                          {t('cycleDetail.prevIndex')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {groupVN(String(meterInfo.start ?? 0))}
+                          </Text>
+                          {'  '}•{'  '}
+                          {t('cycleDetail.currIndex')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {groupVN(String(meterInfo.end ?? 0))}
+                          </Text>
+                        </Text>
+                      )}
+
                       <Text style={{ color: c.subtext }}>
-                        {isVar ? `${t('cycleDetail.variable')} (${r.unit || ''})` : t('cycleDetail.fixed')}
+                        {t('cycleDetail.qtyShort')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {it.quantity ?? 1}
+                        </Text>{' '}
+                        • {t('cycleDetail.unitPrice')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(it.unit_price)}
+                        </Text>{' '}
+                        • {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(it.amount)}
+                        </Text>
+                      </Text>
+                    </View>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                {rows.map(r => (
+                  <View
+                    key={r.charge_type_id}
+                    style={{ borderRadius: 10, padding: 10 }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: c.text, fontWeight: '700' }}>
+                        {r.name}
+                      </Text>
+                      <Text style={{ color: c.subtext }}>
+                        {r.is_variable
+                          ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                          : t('cycleDetail.fixed')}
                       </Text>
                     </View>
 
-                    {isVar ? (
+                    {r.is_variable === 1 ? (
                       <>
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.unitPrice')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text> / {r.unit || t('cycleDetail.unitShort')}
+                          {t('cycleDetail.unitPrice')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(r.unit_price)}
+                          </Text>{' '}
+                          / {r.unit || t('cycleDetail.unitShort')}
                         </Text>
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.prevIndex')}: <Text style={{ color: c.text }}>{groupVN(String(r.meter_start || 0))}</Text>
+                          {t('cycleDetail.startIndex')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {groupVN(String(r.meter_start || 0))}
+                          </Text>
                         </Text>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                          <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
-                          <FormInput
-                            style={{ flex: 1 }}
-                            keyboardType="numeric"
-                            value={r.value}
-                            onChangeText={(t2) => onChangeVarValue(r.charge_type_id, t2)}
-                          />
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginTop: 8,
+                          }}
+                        >
+                          <Text style={{ color: c.subtext, flex: 1 }}>
+                            {t('cycleDetail.currentIndex')}
+                          </Text>
+                          <Text
+                            style={{
+                              color: r.value ? c.text : c.subtext,
+                              textAlign: 'right',
+                            }}
+                          >
+                            {r.value
+                              ? groupVN(
+                                  String(
+                                    parseInt(
+                                      (r.value || '').replace(/\D/g, ''),
+                                      10,
+                                    ) || 0,
+                                  ),
+                                )
+                              : t('cycleDetail.notEntered')}
+                          </Text>
                         </View>
-
-                        <Text style={{ color: c.subtext, marginTop: 6 }}>
-                          {t('cycleDetail.consumed')}: <Text style={{ color: c.text }}>{groupVN(String(consumed))}</Text> {r.unit || t('cycleDetail.unitShort')} — {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(partial)}</Text>
-                        </Text>
                       </>
                     ) : (
                       <>
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>
+                          {t('cycleDetail.contractBase')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(r.unit_price)}
+                          </Text>
                         </Text>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                          <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
-                          <FormInput
-                            style={{ flex: 1 }}
-                            keyboardType="decimal-pad"
-                            value={r.value}
-                            onChangeText={(t2) => onChangeFixedValue(r.charge_type_id, t2)}
-                          />
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginTop: 8,
+                          }}
+                        >
+                          <Text style={{ color: c.subtext, flex: 1 }}>
+                            {t('cycleDetail.priceThisCycle')}
+                          </Text>
+                          <Text style={{ color: c.text, textAlign: 'right' }}>
+                            {format(
+                              parseDecimalCommaStrict(
+                                r.value || String(r.unit_price),
+                              ),
+                            )}
+                          </Text>
                         </View>
-
-                        <Text style={{ color: c.subtext, marginTop: 6 }}>
-                          {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(partial)}</Text>
-                        </Text>
                       </>
                     )}
                   </View>
-                );
-              })}
-
-              {/* Phụ phí phát sinh của kỳ */}
-              <View style={{ marginTop: 4 }}>
-                <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.extraFees')}</Text>
-                {extras.map((ex, idx) => (
-                  <View key={idx} style={{ gap: 6, marginBottom: 8 }}>
-                    <TextInput
-                      placeholder={t('cycleDetail.feeName')}
-                      placeholderTextColor={c.subtext}
-                      value={ex.name}
-                      onChangeText={t2 => updateExtra(idx, { name: t2 })}
-                      style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
-                    />
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <FormInput
-                        style={{ flex: 1 }}
-                        placeholder={t('cycleDetail.amountPlaceholder')}
-                        keyboardType="decimal-pad"
-                        value={ex.amount}
-                        onChangeText={(t2) => updateExtra(idx, { amount: formatDecimalTypingVNStrict(t2) })}
-                      />
-                      <Button title={t('common.delete')} variant="ghost" onPress={() => removeExtra(idx)} />
-                    </View>
-                  </View>
                 ))}
-                <Button title={t('cycleDetail.addExtra')} variant="ghost" onPress={addExtra} />
-              </View>
+              </>
+            )}
+          </Card>
 
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ color: c.text, fontWeight: '700' }}>
-                  {t('cycleDetail.previewTotal')}: {format(previewTotal)}
-                </Text>
-                {invId ? (
-                  <Text style={{ color: c.subtext }}>
-                    ({t('cycleDetail.currentInvoice')}: {format(invTotal)})
-                  </Text>
-                ) : null}
-              </View>
-            </Card>
-
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-              <Button title={t('common.cancel')} variant="ghost" onPress={() => { setEditMode(false); setExtras([]); }} />
-              <Button title={t('cycleDetail.settleNow')} onPress={() => saveEdits('cycle')} />
+          {status === 'settled' ? (
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button title={t('cycleDetail.share')} onPress={sharePdf} />
             </View>
-          </ScrollView>
-        )}
-      </ViewShot>
+          ) : (
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button
+                title={t('cycleDetail.settleNow')}
+                onPress={() => setEditMode(true)}
+              />
+            </View>
+          )}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{
+            padding: 12,
+            paddingBottom: insets.bottom + 100,
+            gap: 12,
+          }}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+        >
+          <Card style={{ gap: 10 }}>
+            <Text style={{ color: c.text, fontWeight: '700' }}>
+              {t('cycleDetail.fees')}
+            </Text>
+
+            {rows.map(r => {
+              const isVar = r.is_variable === 1;
+              const current = parseAmountInt(r.value);
+              const consumed = isVar
+                ? Math.max(0, current - (r.meter_start || 0))
+                : 0;
+              const partial = isVar
+                ? consumed * (r.unit_price || 0)
+                : parseDecimalCommaStrict(r.value);
+
+              return (
+                <View
+                  key={r.charge_type_id}
+                  style={{ borderRadius: 10, padding: 10 }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ color: c.text, fontWeight: '700' }}>
+                      {r.name}
+                    </Text>
+                    <Text style={{ color: c.subtext }}>
+                      {isVar
+                        ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                        : t('cycleDetail.fixed')}
+                    </Text>
+                  </View>
+
+                  {isVar ? (
+                    <>
+                      <Text style={{ color: c.subtext }}>
+                        {t('cycleDetail.unitPrice')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(r.unit_price)}
+                        </Text>{' '}
+                        / {r.unit || t('cycleDetail.unitShort')}
+                      </Text>
+                      <Text style={{ color: c.subtext }}>
+                        {t('cycleDetail.prevIndex')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {groupVN(String(r.meter_start || 0))}
+                        </Text>
+                      </Text>
+
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text style={{ color: c.subtext, flex: 1 }}>
+                          {t('cycleDetail.currentIndex')}
+                        </Text>
+                        <FormInput
+                          style={{ flex: 1 }}
+                          keyboardType="numeric"
+                          value={r.value}
+                          onChangeText={t2 =>
+                            onChangeVarValue(r.charge_type_id, t2)
+                          }
+                        />
+                      </View>
+
+                      <Text style={{ color: c.subtext, marginTop: 6 }}>
+                        {t('cycleDetail.consumed')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {groupVN(String(consumed))}
+                        </Text>{' '}
+                        {r.unit || t('cycleDetail.unitShort')} —{' '}
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>{format(partial)}</Text>
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ color: c.subtext }}>
+                        {t('cycleDetail.contractBase')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(r.unit_price)}
+                        </Text>
+                      </Text>
+
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text style={{ color: c.subtext, flex: 1 }}>
+                          {t('cycleDetail.priceThisCycle')}
+                        </Text>
+                        <FormInput
+                          style={{ flex: 1 }}
+                          keyboardType="decimal-pad"
+                          value={r.value}
+                          onChangeText={t2 =>
+                            onChangeFixedValue(r.charge_type_id, t2)
+                          }
+                        />
+                      </View>
+
+                      <Text style={{ color: c.subtext, marginTop: 6 }}>
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>{format(partial)}</Text>
+                      </Text>
+                    </>
+                  )}
+                </View>
+              );
+            })}
+
+            {/* Phụ phí phát sinh của kỳ */}
+            <View style={{ marginTop: 4 }}>
+              <Text
+                style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+              >
+                {t('cycleDetail.extraFees')}
+              </Text>
+              {extras.map((ex, idx) => (
+                <View key={idx} style={{ gap: 6, marginBottom: 8 }}>
+                  <TextInput
+                    placeholder={t('cycleDetail.feeName')}
+                    placeholderTextColor={c.subtext}
+                    value={ex.name}
+                    onChangeText={t2 => updateExtra(idx, { name: t2 })}
+                    style={{
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <FormInput
+                      style={{ flex: 1 }}
+                      placeholder={t('cycleDetail.amountPlaceholder')}
+                      keyboardType="decimal-pad"
+                      value={ex.amount}
+                      onChangeText={t2 =>
+                        updateExtra(idx, {
+                          amount: formatDecimalTypingVNStrict(t2),
+                        })
+                      }
+                    />
+                    <Button
+                      title={t('common.delete')}
+                      variant="ghost"
+                      onPress={() => removeExtra(idx)}
+                    />
+                  </View>
+                </View>
+              ))}
+              <Button
+                title={t('cycleDetail.addExtra')}
+                variant="ghost"
+                onPress={addExtra}
+              />
+            </View>
+
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.previewTotal')}: {format(previewTotal)}
+              </Text>
+              {invId ? (
+                <Text style={{ color: c.subtext }}>
+                  ({t('cycleDetail.currentInvoice')}: {format(invTotal)})
+                </Text>
+              ) : null}
+            </View>
+          </Card>
+
+          <View
+            style={{
+              justifyContent: 'flex-end',
+              position: 'absolute',
+              left: 12,
+              right: 12,
+              bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+              flexDirection: 'row',
+              gap: 12,
+            }}
+          >
+            <Button
+              title={t('common.cancel')}
+              variant="ghost"
+              onPress={() => {
+                setEditMode(false);
+                setExtras([]);
+              }}
+            />
+            <Button
+              title={t('cycleDetail.settleNow')}
+              onPress={() => saveEdits('cycle')}
+            />
+          </View>
+        </ScrollView>
+      )}
 
       {/* Modal kết thúc hợp đồng */}
-      <Modal visible={showEndModal} transparent animationType="slide" onRequestClose={() => setShowEndModal(false)}>
-        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'flex-end'}}>
-          <View style={{backgroundColor:c.bg, padding:16, borderTopLeftRadius:16, borderTopRightRadius:16, gap:10}}>
-            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>{t('cycleDetail.endLeaseTitle')}</Text>
-            <Text style={{ color: c.text }}>{t('cycleDetail.deposit')}: {format(depositPreview)}</Text>
+      <Modal
+        visible={showEndModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEndModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              padding: 16,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('cycleDetail.endLeaseTitle')}
+            </Text>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.deposit')}: {format(depositPreview)}
+            </Text>
 
-            <Card style={{gap:8}}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.extraFees')}</Text>
+            <Card style={{ gap: 8 }}>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.extraFees')}
+              </Text>
               {endExtras.map((ex, idx) => (
                 <View key={idx} style={{ gap: 6 }}>
                   <TextInput
@@ -721,60 +1176,101 @@ async function shareImage() {
                     placeholderTextColor={c.subtext}
                     value={ex.name}
                     onChangeText={t2 => updEndExtra(idx, { name: t2 })}
-                    style={{borderRadius:10, padding:10, color:c.text, backgroundColor:c.card}}
+                    style={{
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
                   />
-                  <View style={{flexDirection:'row', gap:8}}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <FormInput
-                      style={{flex:1}}
+                      style={{ flex: 1 }}
                       placeholder={t('cycleDetail.amountWithHint')}
                       keyboardType="decimal-pad"
                       value={ex.amount}
-                      onChangeText={(t2) => updEndExtra(idx,{ amount: formatDecimalTypingVNStrict(t2) })}
+                      onChangeText={t2 =>
+                        updEndExtra(idx, {
+                          amount: formatDecimalTypingVNStrict(t2),
+                        })
+                      }
                     />
-                    <Button title={t('common.delete')} variant="ghost" onPress={() => delEndExtra(idx)} />
+                    <Button
+                      title={t('common.delete')}
+                      variant="ghost"
+                      onPress={() => delEndExtra(idx)}
+                    />
                   </View>
                 </View>
               ))}
-              <Button title={t('cycleDetail.addItem')} variant="ghost" onPress={addEndExtra} />
+              <Button
+                title={t('cycleDetail.addItem')}
+                variant="ghost"
+                onPress={addEndExtra}
+              />
             </Card>
 
-            <Text style={{ color: c.text }}>{t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}</Text>
-            <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.balanceAfter')}: {format(depositPreview - endExtrasTotal)}</Text>
-            <Text style={{color:c.subtext}}>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
+            </Text>
+            <Text style={{ color: c.text, fontWeight: '700' }}>
+              {t('cycleDetail.balanceAfter')}:{' '}
+              {format(depositPreview - endExtrasTotal)}
+            </Text>
+            <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
-                ? `→ ${t('cycleDetail.refundToTenant')}: ${format(depositPreview - endExtrasTotal)}`
+                ? `→ ${t('cycleDetail.refundToTenant')}: ${format(
+                    depositPreview - endExtrasTotal,
+                  )}`
                 : depositPreview - endExtrasTotal < 0
-                  ? `→ ${t('cycleDetail.collectFromTenant')}: ${format(Math.abs(depositPreview - endExtrasTotal))}`
-                  : `→ ${t('cycleDetail.noFurther')}`}
+                ? `→ ${t('cycleDetail.collectFromTenant')}: ${format(
+                    Math.abs(depositPreview - endExtrasTotal),
+                  )}`
+                : `→ ${t('cycleDetail.noFurther')}`}
             </Text>
 
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-              <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => setShowEndModal(false)}
+              />
               <Button
                 title={t('cycleDetail.finish')}
                 onPress={() => {
                   const payload = endExtras
                     .filter(it => it.name.trim())
-                    .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount || '') }));
+                    .map(it => ({
+                      name: it.name.trim(),
+                      amount: parseAmountInt(it.amount || ''),
+                    }));
                   const res = endLeaseWithSettlement(leaseId, payload);
-                  try { cancelReminder(`lease_end_${leaseId}`); } catch {}
+                  try {
+                    cancelReminder(`lease_end_${leaseId}`);
+                  } catch {}
                   setShowEndModal(false);
                   Alert.alert(
                     t('cycleDetail.ended'),
                     res.finalBalance > 0
-                      ? `${t('cycleDetail.refundToTenant')} ${format(res.finalBalance)}`
+                      ? `${t('cycleDetail.refundToTenant')} ${format(
+                          res.finalBalance,
+                        )}`
                       : res.finalBalance < 0
-                        ? `${t('cycleDetail.collectFromTenant')} ${format(Math.abs(res.finalBalance))}`
-                        : t('cycleDetail.noFurther'),
-                    [{text:'OK', onPress: () => navigation.goBack()}]
+                      ? `${t('cycleDetail.collectFromTenant')} ${format(
+                          Math.abs(res.finalBalance),
+                        )}`
+                      : t('cycleDetail.noFurther'),
+                    [{ text: 'OK', onPress: () => navigation.goBack() }],
                   );
                 }}
               />
@@ -784,57 +1280,118 @@ async function shareImage() {
       </Modal>
 
       {/* Modal gia hạn hợp đồng */}
-      <Modal visible={showExtendModal} transparent animationType="fade" onRequestClose={() => setShowExtendModal(false)}>
-        <View style={{flex:1, backgroundColor:'rgba(0,0,0,0.35)', justifyContent:'center', padding:16}}>
-          <View style={{backgroundColor:c.bg, borderRadius:12, padding:16, gap:10}}>
-            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>{t('cycleDetail.extendLease')}</Text>
+      <Modal
+        visible={showExtendModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowExtendModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('cycleDetail.extendLease')}
+            </Text>
             <Text style={{ color: c.subtext }}>
-              {t('cycleDetail.extendHint', { unit: leaseInfo?.billing_cycle === 'daily' ? t('common.days') : t('common.months') })}
+              {t('cycleDetail.extendHint', {
+                unit:
+                  leaseInfo?.billing_cycle === 'daily'
+                    ? t('common.days')
+                    : t('common.months'),
+              })}
             </Text>
             <TextInput
               keyboardType="numeric"
               value={extendCount}
               onChangeText={setExtendCount}
-              placeholder={leaseInfo?.billing_cycle === 'daily' ? t('cycleDetail.daysExample') : t('cycleDetail.monthsExample')}
+              placeholder={
+                leaseInfo?.billing_cycle === 'daily'
+                  ? t('cycleDetail.daysExample')
+                  : t('cycleDetail.monthsExample')
+              }
               placeholderTextColor={c.subtext}
-              style={{ borderRadius:10, padding:10, color:c.text, backgroundColor:c.card }}
+              style={{
+                borderRadius: 10,
+                padding: 10,
+                color: c.text,
+                backgroundColor: c.card,
+              }}
             />
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-              <Button title={t('common.cancel')} variant="ghost" onPress={()=>{ setShowExtendModal(false); setExtendCount(''); }} />
-              <Button title={t('common.confirm')} onPress={()=>{
-                const n = Number(extendCount);
-                if (!n || n<=0) { Alert.alert(t('common.error'), t('cycleDetail.enterValidNumber')); return; }
-                try {
-                  extendLeaseAndAddCycles(leaseId, n);
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => {
                   setShowExtendModal(false);
                   setExtendCount('');
-                  reload();
-                  Alert.alert(t('common.success'), t('cycleDetail.extendedOk'));
-                  try {
-                    const isMonthly = String(leaseInfo?.billing_cycle) === 'monthly';
-                    const next = new Date(period.e);
-                    if (isMonthly) next.setMonth(next.getMonth() + 1);
-                    else next.setDate(next.getDate() + 1);
-                    const nextISO = next.toISOString().slice(0,10);
-                    scheduleReminder(
-                      `lease_${leaseId}_cycle_settle_${nextISO}`,
-                      t('notify.settleTitle') || 'Tất toán kỳ',
-                      t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
-                      nextISO
+                }}
+              />
+              <Button
+                title={t('common.confirm')}
+                onPress={() => {
+                  const n = Number(extendCount);
+                  if (!n || n <= 0) {
+                    Alert.alert(
+                      t('common.error'),
+                      t('cycleDetail.enterValidNumber'),
                     );
-                  } catch {}
-                } catch(e:any) {
-                  Alert.alert(t('common.error'), e?.message || t('cycleDetail.extendFail'));
-                }
-              }}/>
+                    return;
+                  }
+                  try {
+                    extendLeaseAndAddCycles(leaseId, n);
+                    setShowExtendModal(false);
+                    setExtendCount('');
+                    reload();
+                    Alert.alert(
+                      t('common.success'),
+                      t('cycleDetail.extendedOk'),
+                    );
+                    try {
+                      const isMonthly =
+                        String(leaseInfo?.billing_cycle) === 'monthly';
+                      const next = new Date(period.e);
+                      if (isMonthly) next.setMonth(next.getMonth() + 1);
+                      else next.setDate(next.getDate() + 1);
+                      const nextISO = next.toISOString().slice(0, 10);
+                      scheduleReminder(
+                        `lease_${leaseId}_cycle_settle_${nextISO}`,
+                        t('notify.settleTitle') || 'Tất toán kỳ',
+                        t('notify.settleMsg') ||
+                          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+                        nextISO,
+                      );
+                    } catch {}
+                  } catch (e: any) {
+                    Alert.alert(
+                      t('common.error'),
+                      e?.message || t('cycleDetail.extendFail'),
+                    );
+                  }
+                }}
+              />
             </View>
           </View>
         </View>
