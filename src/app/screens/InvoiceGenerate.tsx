@@ -317,7 +317,7 @@ export default function CycleDetail({route, navigation}: Props) {
         </tr>`;
     }).join('');
     const html = `
-    <html><meta charSet="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
+    <html><meta charSet="utf-8"/><body style="font-family:-apple-system,sans-serif;">
     <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${inv.period_end}</h2>
     <table style="width:100%;border-collapse:collapse;">
       <thead>

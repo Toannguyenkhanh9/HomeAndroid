@@ -48,7 +48,21 @@ import Share from 'react-native-share';
 // 🔔 notifications
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import RNPrint from 'react-native-print';
+import pdfMake from 'pdfmake/build/pdfmake';
+import vfsFonts from 'pdfmake/build/vfs_fonts';
+(pdfMake as any).vfs = (vfsFonts as any).vfs ?? (vfsFonts as any).pdfMake?.vfs;
 
+import RNBlob from 'react-native-blob-util';
+
+(pdfMake as any).fonts = {
+   Helvetica: {
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique',
+  },
+};
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
 };
@@ -385,95 +399,6 @@ export default function CycleDetail({ route, navigation }: Props) {
     }
   }
 
-  async function exportPdf() {
-    if (!invId) return;
-    const inv = getInvoice(invId);
-    const items = getInvoiceItems(invId);
-    const rowsHtml = items
-      .map((i: any) => {
-        let extraInfo = '';
-        if (i.meta_json) {
-          try {
-            const m = JSON.parse(i.meta_json);
-            if (
-              m &&
-              typeof m.meter_start === 'number' &&
-              typeof m.meter_end === 'number'
-            ) {
-              extraInfo = `<div style="font-size:12px;color:#555">${t(
-                'cycleDetail.prevIndex',
-              )}: ${groupVN(String(m.meter_start))} • ${t(
-                'cycleDetail.currIndex',
-              )}: ${groupVN(String(m.meter_end))}</div>`;
-            }
-            if (m?.for_period_start && m?.for_period_end) {
-              extraInfo += `<div style="font-size:12px;color:#555">${t(
-                'cycleDetail.forPeriod',
-              )}: ${m.for_period_start} → ${m.for_period_end}</div>`;
-            }
-          } catch {}
-        }
-        return `
-        <tr>
-          <td style="padding:8px;border:1px solid #ddd;">
-            ${i.description}
-            ${extraInfo}
-          </td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${
-            i.quantity ?? 1
-          } ${i.unit ?? ''}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
-            i.unit_price,
-          )}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
-            i.amount,
-          )}</td>
-        </tr>`;
-      })
-      .join('');
-    const html = `
-    <html><meta charSet="utf-8"/><body style="font-family:-apple-system,Roboto,sans-serif;">
-    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${
-      inv.period_end
-    }</h2>
-    <table style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t(
-            'cycleDetail.item',
-          )}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-            'cycleDetail.qty',
-          )}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-            'cycleDetail.unitPrice',
-          )}</th>
-          <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-            'cycleDetail.amount',
-          )}</th>
-        </tr>
-      </thead>
-      <tbody>${rowsHtml}</tbody>
-      <tfoot>
-        <tr>
-          <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t(
-            'cycleDetail.total',
-          )}</b></td>
-          <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(
-            inv.total,
-          )}</b></td>
-        </tr>
-      </tfoot>
-    </table>
-    </body></html>`;
-    const res = await RNHTMLtoPDF.convert({
-      html,
-      fileName: `invoice_${inv.id}`,
-      base64: false,
-    });
-    Alert.alert(t('cycleDetail.pdfExported'), res.filePath || '—');
-  }
-
   async function shareImage() {
     try {
       if (!scrollRef.current) {
@@ -504,125 +429,97 @@ export default function CycleDetail({ route, navigation }: Props) {
       );
     }
   }
-  // 1) Giữ các import này (bạn đã có sẵn):
-  // import RNHTMLtoPDF from 'react-native-html-to-pdf';
-  // import Share from 'react-native-share';
+function buildInvoiceDocDefinition(inv: any, items: any[], t: any, format: (n:number)=>string) {
+  const bodyRows = [
+    [
+      { text: t('cycleDetail.item'), style: 'th', alignment: 'left' },
+      { text: t('cycleDetail.qty'), style: 'th', alignment: 'right' },
+      { text: t('cycleDetail.unitPrice'), style: 'th', alignment: 'right' },
+      { text: t('cycleDetail.amount'), style: 'th', alignment: 'right' },
+    ],
+    ...items.map((i: any) => {
+      let lines: string[] = [];
+      if (i.meta_json) {
+        try {
+          const m = JSON.parse(i.meta_json);
+          if (typeof m?.meter_start === 'number' && typeof m?.meter_end === 'number') {
+            lines.push(`${t('cycleDetail.prevIndex')}: ${m.meter_start} • ${t('cycleDetail.currIndex')}: ${m.meter_end}`);
+          }
+          if (m?.for_period_start && m?.for_period_end) {
+            lines.push(`${t('cycleDetail.forPeriod')}: ${m.for_period_start} → ${m.for_period_end}`);
+          }
+        } catch {}
+      }
+      const descr = {
+        text: [ { text: (i.description === 'rent.roomprice' ? t('leaseForm.baseRent') : i.description) + '\n', bold: true }, ...lines.map(s => ({ text: s+'\n', color: '#666', fontSize: 9 })) ]
+      };
 
-  // 2) Tách phần dựng HTML hóa đơn để tái sử dụng
-  function buildInvoiceHtml(
-    inv: any,
-    items: any[],
-    t: any,
-    format: (n: number) => string,
-  ) {
-    const rowsHtml = items
-      .map((i: any) => {
-        let extraInfo = '';
-        if (i.meta_json) {
-          try {
-            const m = JSON.parse(i.meta_json);
-            if (
-              m &&
-              typeof m.meter_start === 'number' &&
-              typeof m.meter_end === 'number'
-            ) {
-              extraInfo = `<div style="font-size:12px;color:#555">${t(
-                'cycleDetail.prevIndex',
-              )}: ${i?.meta_start ?? m.meter_start} • ${t(
-                'cycleDetail.currIndex',
-              )}: ${i?.meta_end ?? m.meter_end}</div>`;
-            }
-            if (m?.for_period_start && m?.for_period_end) {
-              extraInfo += `<div style="font-size:12px;color:#555">${t(
-                'cycleDetail.forPeriod',
-              )}: ${m.for_period_start} → ${m.for_period_end}</div>`;
-            }
-          } catch {}
-        }
-        return `
-        <tr>
-          <td style="padding:8px;border:1px solid #ddd;">
-            ${i.description}
-            ${extraInfo}
-          </td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${
-            i.quantity ?? 1
-          } ${i.unit ?? ''}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
-            Number(i.unit_price) || 0,
-          )}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right;">${format(
-            Number(i.amount) || 0,
-          )}</td>
-        </tr>`;
-      })
-      .join('');
+      return [
+        descr,
+        { text: `${i.quantity ?? 1} ${i.unit ?? ''}`, alignment: 'right' },
+        { text: format(Number(i.unit_price) || 0), alignment: 'right' },
+        { text: format(Number(i.amount) || 0), alignment: 'right' },
+      ];
+    }),
+    [
+      { text: t('cycleDetail.total'), colSpan: 3, alignment: 'right', bold: true }, {}, {},
+      { text: format(Number(inv.total) || 0), alignment: 'right', bold: true },
+    ],
+  ];
 
-    return `
-  <html>
-    <meta charSet="utf-8"/>
-    <body style="font-family:-apple-system,Roboto,sans-serif;padding:12px;">
-      <h2 style="margin:0 0 12px 0">${t('cycleDetail.invoiceTitle')} ${
-      inv.period_start
-    } → ${inv.period_end}</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr>
-            <th style="text-align:left;border:1px solid #ddd;padding:8px;">${t(
-              'cycleDetail.item',
-            )}</th>
-            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-              'cycleDetail.qty',
-            )}</th>
-            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-              'cycleDetail.unitPrice',
-            )}</th>
-            <th style="text-align:right;border:1px solid #ddd;padding:8px;">${t(
-              'cycleDetail.amount',
-            )}</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-        <tfoot>
-          <tr>
-            <td colSpan="3" style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${t(
-              'cycleDetail.total',
-            )}</b></td>
-            <td style="text-align:right;padding:8px;border:1px solid #ddd;"><b>${format(
-              Number(inv.total) || 0,
-            )}</b></td>
-          </tr>
-        </tfoot>
-      </table>
-    </body>
-  </html>`;
-  }
-
-async function sharePdf() {
-  if (!invId) return;
-  if (!(RNHTMLtoPDF as any)?.convert) {
-    Alert.alert('Setup error', 'react-native-html-to-pdf chưa link. Rebuild app.');
-    return;
-  }
-
-  const inv = getInvoice(invId);
-  const items = getInvoiceItems(invId) || [];
-  const html = buildInvoiceHtml(inv, items, t, format);
-
-  const res = await RNHTMLtoPDF.convert({
-    html,
-    fileName: `invoice_${inv.id}`,
-    base64: false,        // trả về đường dẫn file
-  });
-
-  const filePath = res.filePath || '';
-  await Share.open({
-    url: filePath.startsWith('file://') ? filePath : `file://${filePath}`,
-    type: 'application/pdf',
-    failOnCancel: false,
-  });
+  return {
+    pageMargins: [20, 24, 20, 28],
+    content: [
+      {
+        text: `${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${inv.period_end}`,
+        style: 'title',
+        margin: [0, 0, 0, 10],
+      },
+      {
+        table: { headerRows: 1, widths: ['*', 70, 80, 90], body: bodyRows },
+        layout: {
+          fillColor: (rowIndex: number) => (rowIndex === 0 ? '#f0f0f0' : null),
+          hLineColor: () => '#ddd',
+          vLineColor: () => '#ddd',
+        },
+      },
+    ],
+    styles: {
+      title: { fontSize: 16, bold: true },
+      th: { bold: true }
+    },
+    defaultStyle: { fontSize: 11 }
+  };
 }
 
+async function sharePdf() {
+  try {
+    if (!invId) return;
+    const inv = getInvoice(invId);
+    const items = getInvoiceItems(invId) || [];
+
+    const docDefinition = buildInvoiceDocDefinition(inv, items, t, format);
+
+    // Lấy base64 từ pdfmake
+    const base64: string = await new Promise((resolve, reject) => {
+      pdfMake.createPdf(docDefinition).getBase64((data: string) => resolve(data));
+    });
+
+    // Ghi base64 ra file tạm
+    const cacheDir = RNBlob.fs.dirs.CacheDir;
+    const filePath = `${cacheDir}/invoice_${inv.id}.pdf`;
+    await RNBlob.fs.writeFile(filePath, base64, 'base64');
+
+    // Mở share sheet
+    await Share.open({
+      url: Platform.OS === 'android' ? `file://${filePath}` : filePath,
+      type: 'application/pdf',
+      failOnCancel: false,
+    });
+  } catch (e: any) {
+    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+  }
+}
 
   return (
     <KeyboardAvoidingView
