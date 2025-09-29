@@ -48,21 +48,8 @@ import Share from 'react-native-share';
 // 🔔 notifications
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RNPrint from 'react-native-print';
-import pdfMake from 'pdfmake/build/pdfmake';
-import vfsFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = (vfsFonts as any).vfs ?? (vfsFonts as any).pdfMake?.vfs;
+import { createInvoicePdfFile } from '../../services/invoicePdf';
 
-import RNBlob from 'react-native-blob-util';
-
-(pdfMake as any).fonts = {
-   Helvetica: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
 };
@@ -429,95 +416,19 @@ export default function CycleDetail({ route, navigation }: Props) {
       );
     }
   }
-function buildInvoiceDocDefinition(inv: any, items: any[], t: any, format: (n:number)=>string) {
-  const bodyRows = [
-    [
-      { text: t('cycleDetail.item'), style: 'th', alignment: 'left' },
-      { text: t('cycleDetail.qty'), style: 'th', alignment: 'right' },
-      { text: t('cycleDetail.unitPrice'), style: 'th', alignment: 'right' },
-      { text: t('cycleDetail.amount'), style: 'th', alignment: 'right' },
-    ],
-    ...items.map((i: any) => {
-      let lines: string[] = [];
-      if (i.meta_json) {
-        try {
-          const m = JSON.parse(i.meta_json);
-          if (typeof m?.meter_start === 'number' && typeof m?.meter_end === 'number') {
-            lines.push(`${t('cycleDetail.prevIndex')}: ${m.meter_start} • ${t('cycleDetail.currIndex')}: ${m.meter_end}`);
-          }
-          if (m?.for_period_start && m?.for_period_end) {
-            lines.push(`${t('cycleDetail.forPeriod')}: ${m.for_period_start} → ${m.for_period_end}`);
-          }
-        } catch {}
-      }
-      const descr = {
-        text: [ { text: (i.description === 'rent.roomprice' ? t('leaseForm.baseRent') : i.description) + '\n', bold: true }, ...lines.map(s => ({ text: s+'\n', color: '#666', fontSize: 9 })) ]
-      };
-
-      return [
-        descr,
-        { text: `${i.quantity ?? 1} ${i.unit ?? ''}`, alignment: 'right' },
-        { text: format(Number(i.unit_price) || 0), alignment: 'right' },
-        { text: format(Number(i.amount) || 0), alignment: 'right' },
-      ];
-    }),
-    [
-      { text: t('cycleDetail.total'), colSpan: 3, alignment: 'right', bold: true }, {}, {},
-      { text: format(Number(inv.total) || 0), alignment: 'right', bold: true },
-    ],
-  ];
-
-  return {
-    pageMargins: [20, 24, 20, 28],
-    content: [
-      {
-        text: `${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${inv.period_end}`,
-        style: 'title',
-        margin: [0, 0, 0, 10],
-      },
-      {
-        table: { headerRows: 1, widths: ['*', 70, 80, 90], body: bodyRows },
-        layout: {
-          fillColor: (rowIndex: number) => (rowIndex === 0 ? '#f0f0f0' : null),
-          hLineColor: () => '#ddd',
-          vLineColor: () => '#ddd',
-        },
-      },
-    ],
-    styles: {
-      title: { fontSize: 16, bold: true },
-      th: { bold: true }
-    },
-    defaultStyle: { fontSize: 11 }
-  };
-}
-
-async function sharePdf() {
+async function sharePdfNew() {
+  if (!invId) return;
+  const inv = getInvoice(invId);
+  const items = getInvoiceItems(invId) || [];
   try {
-    if (!invId) return;
-    const inv = getInvoice(invId);
-    const items = getInvoiceItems(invId) || [];
-
-    const docDefinition = buildInvoiceDocDefinition(inv, items, t, format);
-
-    // Lấy base64 từ pdfmake
-    const base64: string = await new Promise((resolve, reject) => {
-      pdfMake.createPdf(docDefinition).getBase64((data: string) => resolve(data));
-    });
-
-    // Ghi base64 ra file tạm
-    const cacheDir = RNBlob.fs.dirs.CacheDir;
-    const filePath = `${cacheDir}/invoice_${inv.id}.pdf`;
-    await RNBlob.fs.writeFile(filePath, base64, 'base64');
-
-    // Mở share sheet
+    const path = await createInvoicePdfFile(inv, items, t, format);
     await Share.open({
-      url: Platform.OS === 'android' ? `file://${filePath}` : filePath,
+      url: `file://${path}`,
       type: 'application/pdf',
       failOnCancel: false,
     });
-  } catch (e: any) {
-    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+  } catch (e:any) {
+    Alert.alert('Error', e?.message || 'Failed to create PDF');
   }
 }
 
@@ -792,7 +703,7 @@ async function sharePdf() {
                 gap: 12,
               }}
             >
-              <Button title={t('cycleDetail.share')} onPress={sharePdf} />
+              <Button title={t('cycleDetail.share')} onPress={shareImage} />
             </View>
           ) : (
             <View
