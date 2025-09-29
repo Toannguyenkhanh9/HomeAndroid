@@ -6,7 +6,7 @@ try {
   // kỳ vọng có export t() từ src/i18n
   // ví dụ: export const t = (k:string, params?:any)=> i18next.t(k, params)
   // hoặc module tương đương.
-  __i18nMod = require('../i18n');
+  __i18nMod = require('../app/i18n');
 } catch {}
 const t = (key: string, params?: any) => {
   try {
