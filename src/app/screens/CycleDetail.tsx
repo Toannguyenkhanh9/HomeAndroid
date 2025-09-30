@@ -48,7 +48,8 @@ import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoicePdfFile } from '../../services/invoicePdf';
 import { Dimensions } from 'react-native';
-
+import { createInvoiceHtmlFile, createInvoiceDocFile } from '../../services/invoiceHtml';
+import { createPdfFromImageFile } from '../../services/pdfFromImage';
 
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
@@ -412,7 +413,7 @@ async function shareImage() {
     Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
   }
 }
-async function sharePdfNew() {
+async function shareInvoiceHtml() {
   if (!invId) {
     Alert.alert(t('common.error'), t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn');
     return;
@@ -420,8 +421,7 @@ async function sharePdfNew() {
   const rawInv = getInvoice(invId);
   const items = (getInvoiceItems(invId) || []) as any[];
 
-  // Bổ sung thông tin còn thiếu cho PDF
-  const invForPdf = {
+  const invForDoc = {
     ...rawInv,
     id: rawInv?.id || invId,
     code: rawInv?.code || invId,
@@ -431,31 +431,52 @@ async function sharePdfNew() {
     issue_date: rawInv?.issue_date || new Date().toISOString().slice(0, 10),
     period_start: period.s,
     period_end: period.e,
-    subtotal: rawInv?.subtotal,   // nếu không có, invoicePdf.ts sẽ tự tính từ items
+    subtotal: rawInv?.subtotal,
     discount: rawInv?.discount || 0,
     tax: rawInv?.tax || 0,
-    total: rawInv?.total,         // nếu không có, invoicePdf.ts sẽ tự tính
+    total: rawInv?.total,
     notes: rawInv?.notes || '',
   };
 
   try {
-    const path = await createInvoicePdfFile(
-      invForPdf,
-      items,
-      t,
-      format,
-      { lang: language, dir: language === 'ar' ? 'rtl' : 'ltr' } // RTL cho Arabic
-    );
+    // HTML (mặc định)
+    const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
+      lang: language, dir: language === 'ar' ? 'rtl' : 'ltr'
+    });
 
     await Share.open({
       url: `file://${path}`,
-      type: 'application/pdf',
+      type: 'text/html',
       failOnCancel: false,
     });
-  } catch (e: any) {
+
+    // Nếu bạn muốn chia sẻ DOC thay vì HTML:
+    // const docPath = await createInvoiceDocFile(invForDoc, items, t, format, { lang: language, dir: language === 'ar' ? 'rtl' : 'ltr' });
+    // await Share.open({ url: `file://${docPath}`, type: 'application/msword', failOnCancel: false });
+
+  } catch (e:any) {
+    Alert.alert('Error', e?.message || 'Failed to create document');
+  }
+}
+async function sharePdfFromCapture() {
+  try {
+    if (!shotRef.current) return Alert.alert('Lỗi', 'Không thấy nội dung');
+    setCapturing(true);
+    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+    // Ảnh dài FULL nội dung
+    const pngPath = await shotRef.current.capture?.({ result: 'tmpfile', quality: 1 });
+    setCapturing(false);
+
+    if (!pngPath) throw new Error('Capture failed');
+    const pdfPath = await createPdfFromImageFile(pngPath, { page: 'A4', margin: 24 });
+    await Share.open({ url: `file://${pdfPath}`, type: 'application/pdf', failOnCancel: false });
+  } catch (e:any) {
+    setCapturing(false);
     Alert.alert('Error', e?.message || 'Failed to create PDF');
   }
 }
+
 
   return (
     <KeyboardAvoidingView
@@ -750,7 +771,7 @@ async function sharePdfNew() {
                   gap: 12,
                 }}
               >
-                <Button title={t('cycleDetail.share')} onPress={sharePdfNew} />
+                <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
               </View>
             ) : (
               <View
