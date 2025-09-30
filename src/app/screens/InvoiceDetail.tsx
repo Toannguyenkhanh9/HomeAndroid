@@ -40,7 +40,7 @@ export default function InvoiceDetail({route}: NativeStackScreenProps<RootStackP
       <Header title={t('invoiceDetail.title')} />
       <Card>
         <Text style={{color: c.text, fontWeight: '700'}}>
-          {t('invoiceDetail.period')}: {inv.period_start} → {inv.period_end}
+          {t('invoiceDetail.period')}: {inv.period_start} - {inv.period_end}
         </Text>
         <Text style={{color: c.text}}>
           {t('invoiceDetail.total')}: {formatMoney(inv.total, currency)} — {t('invoiceDetail.status')}: {inv.status}

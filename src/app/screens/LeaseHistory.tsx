@@ -46,7 +46,7 @@ export default function LeaseHistory({ route, navigation }: Props) {
             >
               <Card>
                 <Text style={{ color: c.text, fontWeight: '700' }}>
-                  {formatDateISO(l.start_date, dateFormat, language)} →{' '}
+                  {formatDateISO(l.start_date, dateFormat, language)} -{' '}
                   {l.end_date
                     ? formatDateISO(l.end_date, dateFormat, language)
                     : '—'}

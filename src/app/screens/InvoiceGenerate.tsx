@@ -301,7 +301,7 @@ export default function CycleDetail({route, navigation}: Props) {
             extraInfo = `<div style="font-size:12px;color:#555">${t('cycleDetail.prevIndex')}: ${groupVN(String(m.meter_start))} • ${t('cycleDetail.currIndex')}: ${groupVN(String(m.meter_end))}</div>`;
           }
           if (m?.for_period_start && m?.for_period_end) {
-            extraInfo += `<div style="font-size:12px;color:#555">${t('cycleDetail.forPeriod')}: ${m.for_period_start} → ${m.for_period_end}</div>`;
+            extraInfo += `<div style="font-size:12px;color:#555">${t('cycleDetail.forPeriod')}: ${m.for_period_start} - ${m.for_period_end}</div>`;
           }
         } catch {}
       }
@@ -318,7 +318,7 @@ export default function CycleDetail({route, navigation}: Props) {
     }).join('');
     const html = `
     <html><meta charSet="utf-8"/><body style="font-family:-apple-system,sans-serif;">
-    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} → ${inv.period_end}</h2>
+    <h2>${t('cycleDetail.invoiceTitle')} ${inv.period_start} - ${inv.period_end}</h2>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
@@ -381,7 +381,7 @@ export default function CycleDetail({route, navigation}: Props) {
             </Card>
 
             <Card>
-              <Text style={{ color: c.text }}>{t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)}  →  {formatDateISO(period.e, dateFormat, language)}</Text>
+              <Text style={{ color: c.text }}>{t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)}  -  {formatDateISO(period.e, dateFormat, language)}</Text>
               <Text style={{ color: c.text }}>{t('cycleDetail.status')}: {status}</Text>
               {invId ? <Text style={{ color: c.text }}>{t('cycleDetail.invoiceTotal')}: {format(invTotal)}</Text> : null}
             </Card>
@@ -413,7 +413,7 @@ export default function CycleDetail({route, navigation}: Props) {
 
                         {forStart && forEnd ? (
                           <Text style={{color:c.subtext, marginBottom:4}}>
-                            {t('cycleDetail.forPeriod')}: <Text style={{color:c.text}}>{formatDateISO(forStart, dateFormat, language)} → {formatDateISO(forEnd, dateFormat, language)}</Text>
+                            {t('cycleDetail.forPeriod')}: <Text style={{color:c.text}}>{formatDateISO(forStart, dateFormat, language)} - {formatDateISO(forEnd, dateFormat, language)}</Text>
                           </Text>
                         ) : null}
 
@@ -657,10 +657,10 @@ export default function CycleDetail({route, navigation}: Props) {
             </Text>
             <Text style={{color:c.subtext}}>
               {depositPreview - endExtrasTotal > 0
-                ? `→ ${t('cycleDetail.refundToTenant')}: ${format(depositPreview - endExtrasTotal)}`
+                ? `- ${t('cycleDetail.refundToTenant')}: ${format(depositPreview - endExtrasTotal)}`
                 : depositPreview - endExtrasTotal < 0
-                  ? `→ ${t('cycleDetail.collectFromTenant')}: ${format(Math.abs(depositPreview - endExtrasTotal))}`
-                  : `→ ${t('cycleDetail.noFurther')}`}
+                  ? `- ${t('cycleDetail.collectFromTenant')}: ${format(Math.abs(depositPreview - endExtrasTotal))}`
+                  : `- ${t('cycleDetail.noFurther')}`}
             </Text>
 
             <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>

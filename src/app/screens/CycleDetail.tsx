@@ -37,8 +37,6 @@ import {
   formatDecimalTypingVNStrict,
   parseDecimalCommaStrict,
 } from '../../utils/number';
-
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
@@ -49,6 +47,9 @@ import Share from 'react-native-share';
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoicePdfFile } from '../../services/invoicePdf';
+import { Dimensions } from 'react-native';
+
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
@@ -95,7 +96,10 @@ export default function CycleDetail({ route, navigation }: Props) {
   const c = useThemeColors();
   const { format } = useCurrency();
 
-  const viewShotRef = useRef<ViewShot>(null);
+  const shotRef = useRef<ViewShot>(null);
+  const [h, setH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+  const [capturing, setCapturing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const [leaseId, setLeaseId] = useState<string>('');
@@ -386,48 +390,69 @@ export default function CycleDetail({ route, navigation }: Props) {
     }
   }
 
-  async function shareImage() {
-    try {
-      if (!scrollRef.current) {
-        Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
-        return;
-      }
-      const filePath = await captureRef(scrollRef.current, {
-        format: 'png',
-        quality: 1,
-        result: 'tmpfile',
-        snapshotContentContainer: true,
-      });
-
-      // react-native-share yêu cầu dạng file://
-      const uri = filePath.startsWith('file://')
-        ? filePath
-        : `file://${filePath}`;
-
-      await Share.open({
-        url: uri,
-        type: 'image/png',
-        failOnCancel: false,
-      });
-    } catch (e: any) {
-      Alert.alert(
-        t('cycleDetail.shareFail'),
-        e?.message || t('common.tryAgain'),
-      );
-    }
-  }
-async function sharePdfNew() {
-  if (!invId) return;
-  const inv = getInvoice(invId);
-  const items = getInvoiceItems(invId) || [];
+async function shareImage() {
   try {
-    const path = await createInvoicePdfFile(inv, items, t, format);
+    if (!shotRef.current) {
+      Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
+      return;
+    }
+    setCapturing(true);
+    // chờ 1 frame để layout cập nhật chiều cao mới
+    await new Promise(res => requestAnimationFrame(() => setTimeout(res, 0)));
+
+    const path = await shotRef.current.capture?.({ result: 'tmpfile' });
+    setCapturing(false);
+
+    if (!path) throw new Error('Capture failed');
+    const uri = path.startsWith('file://') ? path : `file://${path}`;
+
+    await Share.open({ url: uri, type: 'image/png', failOnCancel: false });
+  } catch (e: any) {
+    setCapturing(false);
+    Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
+  }
+}
+async function sharePdfNew() {
+  if (!invId) {
+    Alert.alert(t('common.error'), t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn');
+    return;
+  }
+  const rawInv = getInvoice(invId);
+  const items = (getInvoiceItems(invId) || []) as any[];
+
+  // Bổ sung thông tin còn thiếu cho PDF
+  const invForPdf = {
+    ...rawInv,
+    id: rawInv?.id || invId,
+    code: rawInv?.code || invId,
+    room_code: roomCode || rawInv?.room_code,
+    tenant_name: tenantName || rawInv?.tenant_name,
+    tenant_phone: tenantPhone || rawInv?.tenant_phone,
+    issue_date: rawInv?.issue_date || new Date().toISOString().slice(0, 10),
+    period_start: period.s,
+    period_end: period.e,
+    subtotal: rawInv?.subtotal,   // nếu không có, invoicePdf.ts sẽ tự tính từ items
+    discount: rawInv?.discount || 0,
+    tax: rawInv?.tax || 0,
+    total: rawInv?.total,         // nếu không có, invoicePdf.ts sẽ tự tính
+    notes: rawInv?.notes || '',
+  };
+
+  try {
+    const path = await createInvoicePdfFile(
+      invForPdf,
+      items,
+      t,
+      format,
+      { lang: language, dir: language === 'ar' ? 'rtl' : 'ltr' } // RTL cho Arabic
+    );
+
     await Share.open({
       url: `file://${path}`,
       type: 'application/pdf',
       failOnCancel: false,
     });
-  } catch (e:any) {
+  } catch (e: any) {
     Alert.alert('Error', e?.message || 'Failed to create PDF');
   }
 }
@@ -438,89 +463,185 @@ async function sharePdfNew() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {!editMode ? (
-        <ScrollView
-          ref={scrollRef}
+        <ViewShot
+          ref={shotRef}
+          options={{ format: 'png', quality: 1 }}
           collapsable={false}
-          contentContainerStyle={{
-            padding: 12,
-            paddingBottom: insets.bottom + 100,
-            gap: 12,
-          }}
-          showsVerticalScrollIndicator
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
+          style={{ flex: 1 }}
         >
-          <Card>
-            <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>
-              {t('cycleDetail.roomInfo')}
-            </Text>
-            <Text style={{ color: roomCode ? c.text : c.subtext }}>
-              {t('common.room')}: {roomCode || '—'}
-            </Text>
-
-            <Text
-              style={{
-                color: c.text,
-                fontWeight: '700',
-                marginTop: 10,
-                marginBottom: 6,
-              }}
-            >
-              {t('cycleDetail.tenant')}
-            </Text>
-            {tenantName || tenantPhone ? (
-              <Text style={{ color: c.text }}>
-                {tenantName || '—'}
-                {tenantPhone ? ` — ${tenantPhone}` : ''}
-              </Text>
-            ) : (
-              <Text style={{ color: c.subtext }}>
-                {t('cycleDetail.noTenant')}
-              </Text>
-            )}
-          </Card>
-
-          <Card>
-            <Text style={{ color: c.text }}>
-              {t('cycleDetail.period')}:{' '}
-              {formatDateISO(period.s, dateFormat, language)} →{' '}
-              {formatDateISO(period.e, dateFormat, language)}
-            </Text>
-            <Text style={{ color: c.text }}>
-              {t('cycleDetail.status')}:{' '}
-              {status === 'open' ? t('common.open') : t('common.close')}{' '}
-            </Text>
-            {invId ? (
-              <Text style={{ color: c.text }}>
-                {t('cycleDetail.invoiceTotal')}: {format(invTotal)}
-              </Text>
-            ) : null}
-          </Card>
-
-          <Card style={{ gap: 10 }}>
-            <Text style={{ color: c.text, fontWeight: '700' }}>
-              {t('cycleDetail.fees')}
-            </Text>
-
-            {status === 'settled' && settledItems.length > 0 ? (
-              <>
-                {settledItems.map(it => {
-                  let meterInfo: { start?: number; end?: number } = {};
-                  let forStart: string | undefined;
-                  let forEnd: string | undefined;
-                  if (it.meta_json) {
-                    try {
-                      const m = JSON.parse(it.meta_json);
-                      if (typeof m?.meter_start === 'number')
-                        meterInfo.start = m.meter_start;
-                      if (typeof m?.meter_end === 'number')
-                        meterInfo.end = m.meter_end;
-                      if (m?.for_period_start) forStart = m.for_period_start;
-                      if (m?.for_period_end) forEnd = m.for_period_end;
-                    } catch {}
+          <ScrollView
+            ref={scrollRef}
+            onContentSizeChange={(_, h) => setContentH(h)}
+            // Chỉ khóa scroll & ép chiều cao trong lúc CHỤP
+            scrollEnabled={!capturing}
+            style={
+              capturing
+                ? {
+                    height: Math.max(contentH, Dimensions.get('window').height),
                   }
-                  return (
-                    <View key={it.id} style={{ borderRadius: 10, padding: 10 }}>
+                : undefined
+            }
+            contentContainerStyle={{
+              padding: 12,
+              paddingBottom: insets.bottom + 100,
+              gap: 12,
+            }}
+            showsVerticalScrollIndicator
+            contentInsetAdjustmentBehavior="automatic"
+            keyboardShouldPersistTaps="handled"
+          >
+            <Card>
+              <Text
+                style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+              >
+                {t('cycleDetail.roomInfo')}
+              </Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>
+                {t('common.room')}: {roomCode || '—'}
+              </Text>
+
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: '700',
+                  marginTop: 10,
+                  marginBottom: 6,
+                }}
+              >
+                {t('cycleDetail.tenant')}
+              </Text>
+              {tenantName || tenantPhone ? (
+                <Text style={{ color: c.text }}>
+                  {tenantName || '—'}
+                  {tenantPhone ? ` — ${tenantPhone}` : ''}
+                </Text>
+              ) : (
+                <Text style={{ color: c.subtext }}>
+                  {t('cycleDetail.noTenant')}
+                </Text>
+              )}
+            </Card>
+
+            <Card>
+              <Text style={{ color: c.text }}>
+                {t('cycleDetail.period')}:{' '}
+                {formatDateISO(period.s, dateFormat, language)} -{' '}
+                {formatDateISO(period.e, dateFormat, language)}
+              </Text>
+              <Text style={{ color: c.text }}>
+                {t('cycleDetail.status')}:{' '}
+                {status === 'open' ? t('common.open') : t('common.close')}{' '}
+              </Text>
+              {invId ? (
+                <Text style={{ color: c.text }}>
+                  {t('cycleDetail.invoiceTotal')}: {format(invTotal)}
+                </Text>
+              ) : null}
+            </Card>
+
+            <Card style={{ gap: 10 }}>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.fees')}
+              </Text>
+
+              {status === 'settled' && settledItems.length > 0 ? (
+                <>
+                  {settledItems.map(it => {
+                    let meterInfo: { start?: number; end?: number } = {};
+                    let forStart: string | undefined;
+                    let forEnd: string | undefined;
+                    if (it.meta_json) {
+                      try {
+                        const m = JSON.parse(it.meta_json);
+                        if (typeof m?.meter_start === 'number')
+                          meterInfo.start = m.meter_start;
+                        if (typeof m?.meter_end === 'number')
+                          meterInfo.end = m.meter_end;
+                        if (m?.for_period_start) forStart = m.for_period_start;
+                        if (m?.for_period_end) forEnd = m.for_period_end;
+                      } catch {}
+                    }
+                    return (
+                      <View
+                        key={it.id}
+                        style={{ borderRadius: 10, padding: 10 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            marginBottom: 6,
+                          }}
+                        >
+                          <Text style={{ color: c.text, fontWeight: '700' }}>
+                            {it.description === 'rent.roomprice'
+                              ? t('leaseForm.baseRent')
+                              : it.description}
+                          </Text>
+                          <Text style={{ color: c.subtext }}>
+                            {it.unit
+                              ? `(${
+                                  it.unit === 'rent.month'
+                                    ? t('rent.month')
+                                    : it.unit === 'tháng'
+                                    ? t('rent.month')
+                                    : t('rent.unit')
+                                })`
+                              : t('cycleDetail.fixed')}
+                          </Text>
+                        </View>
+
+                        {forStart && forEnd ? (
+                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                            {t('cycleDetail.forPeriod')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {formatDateISO(forStart, dateFormat, language)} -{' '}
+                              {formatDateISO(forEnd, dateFormat, language)}
+                            </Text>
+                          </Text>
+                        ) : null}
+
+                        {!!(
+                          meterInfo.start != null || meterInfo.end != null
+                        ) && (
+                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                            {t('cycleDetail.prevIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(meterInfo.start ?? 0))}
+                            </Text>
+                            {'  '}•{'  '}
+                            {t('cycleDetail.currIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(meterInfo.end ?? 0))}
+                            </Text>
+                          </Text>
+                        )}
+
+                        <Text style={{ color: c.subtext }}>
+                          {t('cycleDetail.qtyShort')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {it.quantity ?? 1}
+                          </Text>{' '}
+                          • {t('cycleDetail.unitPrice')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.unit_price)}
+                          </Text>{' '}
+                          • {t('cycleDetail.amount')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.amount)}
+                          </Text>
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  {rows.map(r => (
+                    <View
+                      key={r.charge_type_id}
+                      style={{ borderRadius: 10, padding: 10 }}
+                    >
                       <View
                         style={{
                           flexDirection: 'row',
@@ -529,201 +650,128 @@ async function sharePdfNew() {
                         }}
                       >
                         <Text style={{ color: c.text, fontWeight: '700' }}>
-                          {it.description === 'rent.roomprice'
-                            ? t('leaseForm.baseRent')
-                            : it.description}
+                          {r.name}
                         </Text>
                         <Text style={{ color: c.subtext }}>
-                          {it.unit
-                            ? `(${
-                                it.unit === 'rent.month'
-                                  ? t('rent.month')
-                                  : it.unit === 'tháng'
-                                  ? t('rent.month')
-                                  : t('rent.unit')
-                              })`
+                          {r.is_variable
+                            ? `${t('cycleDetail.variable')} (${r.unit || ''})`
                             : t('cycleDetail.fixed')}
                         </Text>
                       </View>
 
-                      {forStart && forEnd ? (
-                        <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.forPeriod')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {formatDateISO(forStart, dateFormat, language)} →{' '}
-                            {formatDateISO(forEnd, dateFormat, language)}
+                      {r.is_variable === 1 ? (
+                        <>
+                          <Text style={{ color: c.subtext }}>
+                            {t('cycleDetail.unitPrice')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(r.unit_price)}
+                            </Text>{' '}
+                            / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
-                        </Text>
-                      ) : null}
+                          <Text style={{ color: c.subtext }}>
+                            {t('cycleDetail.startIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {groupVN(String(r.meter_start || 0))}
+                            </Text>
+                          </Text>
 
-                      {!!(meterInfo.start != null || meterInfo.end != null) && (
-                        <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.prevIndex')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {groupVN(String(meterInfo.start ?? 0))}
-                          </Text>
-                          {'  '}•{'  '}
-                          {t('cycleDetail.currIndex')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {groupVN(String(meterInfo.end ?? 0))}
-                          </Text>
-                        </Text>
-                      )}
-
-                      <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.qtyShort')}:{' '}
-                        <Text style={{ color: c.text }}>
-                          {it.quantity ?? 1}
-                        </Text>{' '}
-                        • {t('cycleDetail.unitPrice')}:{' '}
-                        <Text style={{ color: c.text }}>
-                          {format(it.unit_price)}
-                        </Text>{' '}
-                        • {t('cycleDetail.amount')}:{' '}
-                        <Text style={{ color: c.text }}>
-                          {format(it.amount)}
-                        </Text>
-                      </Text>
-                    </View>
-                  );
-                })}
-              </>
-            ) : (
-              <>
-                {rows.map(r => (
-                  <View
-                    key={r.charge_type_id}
-                    style={{ borderRadius: 10, padding: 10 }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        marginBottom: 6,
-                      }}
-                    >
-                      <Text style={{ color: c.text, fontWeight: '700' }}>
-                        {r.name}
-                      </Text>
-                      <Text style={{ color: c.subtext }}>
-                        {r.is_variable
-                          ? `${t('cycleDetail.variable')} (${r.unit || ''})`
-                          : t('cycleDetail.fixed')}
-                      </Text>
-                    </View>
-
-                    {r.is_variable === 1 ? (
-                      <>
-                        <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.unitPrice')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {format(r.unit_price)}
-                          </Text>{' '}
-                          / {r.unit || t('cycleDetail.unitShort')}
-                        </Text>
-                        <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.startIndex')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {groupVN(String(r.meter_start || 0))}
-                          </Text>
-                        </Text>
-
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            marginTop: 8,
-                          }}
-                        >
-                          <Text style={{ color: c.subtext, flex: 1 }}>
-                            {t('cycleDetail.currentIndex')}
-                          </Text>
-                          <Text
+                          <View
                             style={{
-                              color: r.value ? c.text : c.subtext,
-                              textAlign: 'right',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginTop: 8,
                             }}
                           >
-                            {r.value
-                              ? groupVN(
-                                  String(
-                                    parseInt(
-                                      (r.value || '').replace(/\D/g, ''),
-                                      10,
-                                    ) || 0,
-                                  ),
-                                )
-                              : t('cycleDetail.notEntered')}
+                            <Text style={{ color: c.subtext, flex: 1 }}>
+                              {t('cycleDetail.currentIndex')}
+                            </Text>
+                            <Text
+                              style={{
+                                color: r.value ? c.text : c.subtext,
+                                textAlign: 'right',
+                              }}
+                            >
+                              {r.value
+                                ? groupVN(
+                                    String(
+                                      parseInt(
+                                        (r.value || '').replace(/\D/g, ''),
+                                        10,
+                                      ) || 0,
+                                    ),
+                                  )
+                                : t('cycleDetail.notEntered')}
+                            </Text>
+                          </View>
+                        </>
+                      ) : (
+                        <>
+                          <Text style={{ color: c.subtext }}>
+                            {t('cycleDetail.contractBase')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(r.unit_price)}
+                            </Text>
                           </Text>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.contractBase')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {format(r.unit_price)}
-                          </Text>
-                        </Text>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            marginTop: 8,
-                          }}
-                        >
-                          <Text style={{ color: c.subtext, flex: 1 }}>
-                            {t('cycleDetail.priceThisCycle')}
-                          </Text>
-                          <Text style={{ color: c.text, textAlign: 'right' }}>
-                            {format(
-                              parseDecimalCommaStrict(
-                                r.value || String(r.unit_price),
-                              ),
-                            )}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                ))}
-              </>
-            )}
-          </Card>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginTop: 8,
+                            }}
+                          >
+                            <Text style={{ color: c.subtext, flex: 1 }}>
+                              {t('cycleDetail.priceThisCycle')}
+                            </Text>
+                            <Text style={{ color: c.text, textAlign: 'right' }}>
+                              {format(
+                                parseDecimalCommaStrict(
+                                  r.value || String(r.unit_price),
+                                ),
+                              )}
+                            </Text>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  ))}
+                </>
+              )}
+            </Card>
 
-          {status === 'settled' ? (
-            <View
-              style={{
-                justifyContent: 'flex-end',
-                position: 'absolute',
-                left: 12,
-                right: 12,
-                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-                flexDirection: 'row',
-                gap: 12,
-              }}
-            >
-              <Button title={t('cycleDetail.share')} onPress={shareImage} />
-            </View>
-          ) : (
-            <View
-              style={{
-                justifyContent: 'flex-end',
-                position: 'absolute',
-                left: 12,
-                right: 12,
-                bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-                flexDirection: 'row',
-                gap: 12,
-              }}
-            >
-              <Button
-                title={t('cycleDetail.settleNow')}
-                onPress={() => setEditMode(true)}
-              />
-            </View>
-          )}
-        </ScrollView>
+            {status === 'settled' ? (
+              <View
+                style={{
+                  justifyContent: 'flex-end',
+                  position: 'absolute',
+                  left: 12,
+                  right: 12,
+                  bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                  flexDirection: 'row',
+                  gap: 12,
+                }}
+              >
+                <Button title={t('cycleDetail.share')} onPress={sharePdfNew} />
+              </View>
+            ) : (
+              <View
+                style={{
+                  justifyContent: 'flex-end',
+                  position: 'absolute',
+                  left: 12,
+                  right: 12,
+                  bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+                  flexDirection: 'row',
+                  gap: 12,
+                }}
+              >
+                <Button
+                  title={t('cycleDetail.settleNow')}
+                  onPress={() => setEditMode(true)}
+                />
+              </View>
+            )}
+          </ScrollView>
+        </ViewShot>
       ) : (
         <ScrollView
           contentContainerStyle={{
@@ -1027,14 +1075,14 @@ async function sharePdfNew() {
             </Text>
             <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
-                ? `→ ${t('cycleDetail.refundToTenant')}: ${format(
+                ? `- ${t('cycleDetail.refundToTenant')}: ${format(
                     depositPreview - endExtrasTotal,
                   )}`
                 : depositPreview - endExtrasTotal < 0
-                ? `→ ${t('cycleDetail.collectFromTenant')}: ${format(
+                ? `- ${t('cycleDetail.collectFromTenant')}: ${format(
                     Math.abs(depositPreview - endExtrasTotal),
                   )}`
-                : `→ ${t('cycleDetail.noFurther')}`}
+                : `- ${t('cycleDetail.noFurther')}`}
             </Text>
 
             <View
