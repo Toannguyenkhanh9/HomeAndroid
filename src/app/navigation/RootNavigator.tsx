@@ -43,6 +43,7 @@ import HoldingDepositList from '../screens/HoldingDepositList';
 import ReportsMonthly from '../screens/ReportsMonthly';
 import ReportMonthDetail from '../screens/ReportMonthDetail';
 import PricingPlans from  '../screens/PricingPlans';
+import PaymentProfile from  '../screens/PaymentProfile';
 import { useTranslation } from 'react-i18next';
 import { bootstrapRentModule } from '../../services/rent';
 
@@ -74,6 +75,7 @@ export type RootStackParamList = {
   ReportsMonthly: undefined;
   ReportMonthDetail: { year: number; month: number };
   PricingPlans: undefined;
+  PaymentProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -300,6 +302,11 @@ function AppInner() {
           name="PricingPlans"
           component={PricingPlans}
           options={{ title: t('nav.reportmonthdetail') }}
+        />
+        <Stack.Screen
+          name="PaymentProfile"
+          component={PaymentProfile}
+          options={{ title: t('payment.title') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

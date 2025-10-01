@@ -50,6 +50,7 @@ import { createInvoicePdfFile } from '../../services/invoicePdf';
 import { Dimensions } from 'react-native';
 import { createInvoiceHtmlFile, createInvoiceDocFile } from '../../services/invoiceHtml';
 import { createPdfFromImageFile } from '../../services/pdfFromImage';
+import { loadPaymentProfile } from '../../services/paymentProfile';
 
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
@@ -98,7 +99,6 @@ export default function CycleDetail({ route, navigation }: Props) {
   const { format } = useCurrency();
 
   const shotRef = useRef<ViewShot>(null);
-  const [h, setH] = useState(0);
   const [contentH, setContentH] = useState(0);
   const [capturing, setCapturing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -420,7 +420,7 @@ async function shareInvoiceHtml() {
   }
   const rawInv = getInvoice(invId);
   const items = (getInvoiceItems(invId) || []) as any[];
-
+  const branding = await loadPaymentProfile();   // ⬅️ lấy thông tin đã lưu
   const invForDoc = {
     ...rawInv,
     id: rawInv?.id || invId,
@@ -440,9 +440,11 @@ async function shareInvoiceHtml() {
 
   try {
     // HTML (mặc định)
-    const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
-      lang: language, dir: language === 'ar' ? 'rtl' : 'ltr'
-    });
+const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
+  lang: language,                    // i18n.language của bạn
+  dir: language === 'ar' ? 'rtl' : 'ltr',
+  branding,                          // brand/bank/qr/logo (nếu có)
+});
 
     await Share.open({
       url: `file://${path}`,

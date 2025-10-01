@@ -201,18 +201,21 @@ function BigIcon({
   label,
   icon,
   onPress,
+  size = 56,          // <— mặc định nhỏ hơn: 64px
 }: {
   label: string;
   icon: string;
   onPress: () => void;
+  size?: number;
 }) {
   const c = useThemeColors();
+  const radius = size / 2;
   return (
     <View
       style={{
         width: '33.33%',
         paddingHorizontal: 8,
-        paddingVertical: 12,
+        paddingVertical: 8, // giảm padding
         alignItems: 'center',
       }}
     >
@@ -220,30 +223,34 @@ function BigIcon({
         onPress={onPress}
         activeOpacity={0.85}
         style={{
-          width: 78,
-          height: 78,
-          borderRadius: 39,
+          width: size,
+          height: size,
+          borderRadius: radius,
           backgroundColor: '#fff',
           borderWidth: 1,
           borderColor: c.border,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000',
-          shadowOpacity: 0.06,
-          shadowRadius: 6,
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
           shadowOffset: { width: 0, height: 2 },
-          elevation: 2,
+          elevation: 1,
         }}
       >
-        <Text style={{ fontSize: 34 }}>{icon}</Text>
+        <Text style={{ fontSize: Math.round(size * 0.4) /* ~26 khi size=64 */ }}>
+          {icon}
+        </Text>
       </TouchableOpacity>
       <Text
         style={{
-          marginTop: 8,
+          marginTop: 6,              // nhỏ hơn
           textAlign: 'center',
           color: c.text,
           fontWeight: '600',
+          fontSize: 13,             // nhỏ hơn
         }}
+        numberOfLines={2}
       >
         {label}
       </Text>
@@ -545,16 +552,21 @@ export default function ApartmentsList({
                   icon="📊"
                   onPress={() => navigation.navigate('ReportsMonthly')}
                 />
+              <BigIcon
+                  label={t('payment.title')}
+                  icon="🏦"
+                  onPress={() => navigation.navigate('PaymentProfile')}
+                />
                 <BigIcon
                   label={t('helpmain')}
                   icon="❓"
                   onPress={() => navigation.navigate('HelpScreen')}
                 />
-                <BigIcon
+                {/* <BigIcon
                   label={t('pricing.menuTitle')}
                   icon="💳"
                   onPress={() => navigation.navigate('PricingPlans')}
-                />
+                /> */}
               </View>
             </View>
           </Container>

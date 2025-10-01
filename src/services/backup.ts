@@ -1,6 +1,6 @@
 // src/services/backup.ts
 import { query, exec } from '../db';
-
+import { t } from '../utils/i18nProxy';
 const TABLES = [
   'apartments',
   'rooms',
@@ -61,13 +61,13 @@ export function importFromJson(s: string) {
   const result: Record<string, { inserted: number; skipped: number }> = {};
   let data: Record<string, any[]>;
   if (!s || !s.trim()) {
-    throw new Error('Input Json to Import');
+    throw new Error(t('InputJson'));
   }
 
   try {
     data = JSON.parse(s);
   } catch {
-    throw new Error('Invalid JSON');
+    throw new Error(t('InvalidJson'));
   }
 
   // Transaction + tắt/bật foreign_keys để tránh thứ tự phụ thuộc

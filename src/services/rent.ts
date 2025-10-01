@@ -1,19 +1,20 @@
 // src/services/rent.ts
 import {exec, query} from '../db';
 import {v4 as uuidv4} from 'uuid';
+import { t } from '../utils/i18nProxy';
 let __i18nMod: any;
 try {
   // kỳ vọng có export t() từ src/i18n
   // ví dụ: export const t = (k:string, params?:any)=> i18next.t(k, params)
   // hoặc module tương đương.
-  __i18nMod = require('../app/i18n');
+  __i18nMod = require('../i18n');
 } catch {}
-const t = (key: string, params?: any) => {
-  try {
-    if (__i18nMod && typeof __i18nMod.t === 'function') return __i18nMod.t(key, params);
-  } catch {}
-  return key; // fallback không làm app crash
-};
+// const t = (key: string, params?: any) => {
+//   try {
+//     if (__i18nMod && typeof __i18nMod.t === 'function') return __i18nMod.t(key, params);
+//   } catch {}
+//   return key; // fallback không làm app crash
+// };
 type LeaseType = 'short_term' | 'long_term';
 type Billing = 'daily' | 'monthly' | 'yearly';
 type CollectWhen = 'start' | 'end';
@@ -90,7 +91,7 @@ export function createRoom(apartmentId: string, code: string, floor?: number, ar
 }
 export function deleteRoom(roomId: string) {
   const leases = query<{c:number}>(`SELECT COUNT(*) c FROM leases WHERE room_id = ? AND status = 'active'`, [roomId])[0]?.c ?? 0;
-  if (leases > 0) throw new Error('Phòng còn hợp đồng, không thể xoá.');
+  if (leases > 0) throw new Error(t('rent.roomexistcontact'));
   exec(`DELETE FROM rooms WHERE id = ?`, [roomId]);
 }
 export function getRoom(roomId: string) {
