@@ -48,10 +48,12 @@ import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoicePdfFile } from '../../services/invoicePdf';
 import { Dimensions } from 'react-native';
-import { createInvoiceHtmlFile, createInvoiceDocFile } from '../../services/invoiceHtml';
+import {
+  createInvoiceHtmlFile,
+  createInvoiceDocFile,
+} from '../../services/invoiceHtml';
 import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
-
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
@@ -91,6 +93,7 @@ function formatVNMoneyTyping(input: string) {
 }
 
 export default function CycleDetail({ route, navigation }: Props) {
+  const [showConfirmSettle, setShowConfirmSettle] = useState(false);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { dateFormat, language } = useSettings();
@@ -387,98 +390,116 @@ export default function CycleDetail({ route, navigation }: Props) {
         { text: t('common.close'), style: 'cancel' },
       ]);
     } else {
-      Alert.alert(t('common.done'), t('cycleDetail.settledOk'));
+      Alert.alert(
+        t('common.done'),
+        t('cycleDetail.settledOkLocked') ||
+          'Đã tất toán. Dữ liệu đã bị khóa và không thể thay đổi.',
+      );
     }
   }
 
-async function shareImage() {
-  try {
-    if (!shotRef.current) {
-      Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
+  async function shareImage() {
+    try {
+      if (!shotRef.current) {
+        Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
+        return;
+      }
+      setCapturing(true);
+      // chờ 1 frame để layout cập nhật chiều cao mới
+      await new Promise(res => requestAnimationFrame(() => setTimeout(res, 0)));
+
+      const path = await shotRef.current.capture?.({ result: 'tmpfile' });
+      setCapturing(false);
+
+      if (!path) throw new Error('Capture failed');
+      const uri = path.startsWith('file://') ? path : `file://${path}`;
+
+      await Share.open({ url: uri, type: 'image/png', failOnCancel: false });
+    } catch (e: any) {
+      setCapturing(false);
+      Alert.alert(
+        t('cycleDetail.shareFail'),
+        e?.message || t('common.tryAgain'),
+      );
+    }
+  }
+  async function shareInvoiceHtml() {
+    if (!invId) {
+      Alert.alert(
+        t('common.error'),
+        t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn',
+      );
       return;
     }
-    setCapturing(true);
-    // chờ 1 frame để layout cập nhật chiều cao mới
-    await new Promise(res => requestAnimationFrame(() => setTimeout(res, 0)));
+    const rawInv = getInvoice(invId);
+    const items = (getInvoiceItems(invId) || []) as any[];
+    const branding = await loadPaymentProfile(); // ⬅️ lấy thông tin đã lưu
+    const invForDoc = {
+      ...rawInv,
+      id: rawInv?.id || invId,
+      code: rawInv?.code || invId,
+      room_code: roomCode || rawInv?.room_code,
+      tenant_name: tenantName || rawInv?.tenant_name,
+      tenant_phone: tenantPhone || rawInv?.tenant_phone,
+      issue_date: rawInv?.issue_date || new Date().toISOString().slice(0, 10),
+      period_start: period.s,
+      period_end: period.e,
+      subtotal: rawInv?.subtotal,
+      discount: rawInv?.discount || 0,
+      tax: rawInv?.tax || 0,
+      total: rawInv?.total,
+      notes: rawInv?.notes || '',
+    };
 
-    const path = await shotRef.current.capture?.({ result: 'tmpfile' });
-    setCapturing(false);
+    try {
+      // HTML (mặc định)
+      const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
+        lang: language, // i18n.language của bạn
+        dir: language === 'ar' ? 'rtl' : 'ltr',
+        branding, // brand/bank/qr/logo (nếu có)
+      });
 
-    if (!path) throw new Error('Capture failed');
-    const uri = path.startsWith('file://') ? path : `file://${path}`;
+      await Share.open({
+        url: `file://${path}`,
+        type: 'text/html',
+        failOnCancel: false,
+      });
 
-    await Share.open({ url: uri, type: 'image/png', failOnCancel: false });
-  } catch (e: any) {
-    setCapturing(false);
-    Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
+      // Nếu bạn muốn chia sẻ DOC thay vì HTML:
+      // const docPath = await createInvoiceDocFile(invForDoc, items, t, format, { lang: language, dir: language === 'ar' ? 'rtl' : 'ltr' });
+      // await Share.open({ url: `file://${docPath}`, type: 'application/msword', failOnCancel: false });
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to create document');
+    }
   }
-}
-async function shareInvoiceHtml() {
-  if (!invId) {
-    Alert.alert(t('common.error'), t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn');
-    return;
+  async function sharePdfFromCapture() {
+    try {
+      if (!shotRef.current) return Alert.alert('Lỗi', 'Không thấy nội dung');
+      setCapturing(true);
+      await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+      // Ảnh dài FULL nội dung
+      const pngPath = await shotRef.current.capture?.({
+        result: 'tmpfile',
+        quality: 1,
+      });
+      setCapturing(false);
+
+      if (!pngPath) throw new Error('Capture failed');
+      const pdfPath = await createPdfFromImageFile(pngPath, {
+        page: 'A4',
+        margin: 24,
+      });
+      await Share.open({
+        url: `file://${pdfPath}`,
+        type: 'application/pdf',
+        failOnCancel: false,
+      });
+    } catch (e: any) {
+      setCapturing(false);
+      Alert.alert('Error', e?.message || 'Failed to create PDF');
+    }
   }
-  const rawInv = getInvoice(invId);
-  const items = (getInvoiceItems(invId) || []) as any[];
-  const branding = await loadPaymentProfile();   // ⬅️ lấy thông tin đã lưu
-  const invForDoc = {
-    ...rawInv,
-    id: rawInv?.id || invId,
-    code: rawInv?.code || invId,
-    room_code: roomCode || rawInv?.room_code,
-    tenant_name: tenantName || rawInv?.tenant_name,
-    tenant_phone: tenantPhone || rawInv?.tenant_phone,
-    issue_date: rawInv?.issue_date || new Date().toISOString().slice(0, 10),
-    period_start: period.s,
-    period_end: period.e,
-    subtotal: rawInv?.subtotal,
-    discount: rawInv?.discount || 0,
-    tax: rawInv?.tax || 0,
-    total: rawInv?.total,
-    notes: rawInv?.notes || '',
-  };
-
-  try {
-    // HTML (mặc định)
-const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
-  lang: language,                    // i18n.language của bạn
-  dir: language === 'ar' ? 'rtl' : 'ltr',
-  branding,                          // brand/bank/qr/logo (nếu có)
-});
-
-    await Share.open({
-      url: `file://${path}`,
-      type: 'text/html',
-      failOnCancel: false,
-    });
-
-    // Nếu bạn muốn chia sẻ DOC thay vì HTML:
-    // const docPath = await createInvoiceDocFile(invForDoc, items, t, format, { lang: language, dir: language === 'ar' ? 'rtl' : 'ltr' });
-    // await Share.open({ url: `file://${docPath}`, type: 'application/msword', failOnCancel: false });
-
-  } catch (e:any) {
-    Alert.alert('Error', e?.message || 'Failed to create document');
-  }
-}
-async function sharePdfFromCapture() {
-  try {
-    if (!shotRef.current) return Alert.alert('Lỗi', 'Không thấy nội dung');
-    setCapturing(true);
-    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
-
-    // Ảnh dài FULL nội dung
-    const pngPath = await shotRef.current.capture?.({ result: 'tmpfile', quality: 1 });
-    setCapturing(false);
-
-    if (!pngPath) throw new Error('Capture failed');
-    const pdfPath = await createPdfFromImageFile(pngPath, { page: 'A4', margin: 24 });
-    await Share.open({ url: `file://${pdfPath}`, type: 'application/pdf', failOnCancel: false });
-  } catch (e:any) {
-    setCapturing(false);
-    Alert.alert('Error', e?.message || 'Failed to create PDF');
-  }
-}
-
 
   return (
     <KeyboardAvoidingView
@@ -773,7 +794,10 @@ async function sharePdfFromCapture() {
                   gap: 12,
                 }}
               >
-                <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
+                <Button
+                  title={t('cycleDetail.share')}
+                  onPress={shareInvoiceHtml}
+                />
               </View>
             ) : (
               <View
@@ -1008,7 +1032,7 @@ async function sharePdfFromCapture() {
             />
             <Button
               title={t('cycleDetail.settleNow')}
-              onPress={() => saveEdits('cycle')}
+              onPress={() => setShowConfirmSettle(true)}
             />
           </View>
         </ScrollView>
@@ -1269,6 +1293,60 @@ async function sharePdfFromCapture() {
                       e?.message || t('cycleDetail.extendFail'),
                     );
                   }
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={showConfirmSettle}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmSettle(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('cycleDetail.confirmSettleTitle') || 'Xác nhận tất toán'}
+            </Text>
+            <Text style={{ color: c.text }}>
+              {t('cycleDetail.confirmSettleMessage') ||
+                'Sau khi tất toán, dữ liệu sẽ bị khóa và KHÔNG thể chỉnh sửa.'}
+            </Text>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 12,
+                marginTop: 8,
+              }}
+            >
+              <Button
+                title={t('common.cancel') || 'Hủy'}
+                variant="ghost"
+                onPress={() => setShowConfirmSettle(false)}
+              />
+              <Button
+                title={t('common.confirm') || 'Xác nhận'}
+                onPress={() => {
+                  setShowConfirmSettle(false);
+                  saveEdits('cycle');
                 }}
               />
             </View>

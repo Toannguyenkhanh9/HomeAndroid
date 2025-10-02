@@ -108,29 +108,35 @@ export default function LeaseForm({ route, navigation }: Props) {
     return m > 0 ? `${m} ${t('leaseForm.months')}` : '—';
   }, [term, mode, days, months, t]);
 
-  function validate(): string | null {
-    if (!roomId) return t('leaseForm.errorMissingRoomId');
-    if (!startISO) return t('leaseForm.errorMissingStart');
+function validate(): string | null {
+  if (!roomId) return t('leaseForm.errorMissingRoomId');
+  if (!startISO) return t('leaseForm.errorMissingStart');
 
-    if (term === 'fixed') {
-      if (mode === 'monthly') {
-        const m = parseAmount(months);
-        if (m <= 0) return t('leaseForm.errorMonths');
-      } else {
-        const d = parseAmount(days);
-        if (d <= 0) return t('leaseForm.errorDays');
-      }
-    }
+  // ✅ Bắt buộc tên người thuê
+  if (!fullName.trim()) return t('leaseForm.errorTenantName') || 'Vui lòng nhập tên người thuê';
 
-    if (allInclusive) {
-      const pack = parseAmount(allInclusiveAmount);
-      if (pack <= 0) return t('leaseForm.errorAllInclusive');
-      return null;
+  if (term === 'fixed') {
+    if (mode === 'monthly') {
+      const m = parseAmount(months);
+      if (m <= 0) return t('leaseForm.errorMonths');
+    } else {
+      const d = parseAmount(days);
+      if (d <= 0) return t('leaseForm.errorDays');
     }
-    const base = parseAmount(baseRentText);
-    if (base <= 0) return t('leaseForm.errorBaseRent');
+  }
+
+  // ✅ Nếu bật trọn gói: bắt buộc nhập số tiền trọn gói
+  if (allInclusive) {
+    const pack = parseAmount(allInclusiveAmount);
+    if (pack <= 0) return t('leaseForm.errorAllInclusive') || 'Vui lòng nhập số tiền trọn gói';
     return null;
   }
+
+  // ✅ Nếu KHÔNG trọn gói: bắt buộc giá thuê cơ bản
+  const base = parseAmount(baseRentText);
+  if (base <= 0) return t('leaseForm.errorBaseRent') || 'Vui lòng nhập giá thuê cơ bản';
+  return null;
+}
 
   function submit() {
     const err = validate();
@@ -170,22 +176,25 @@ export default function LeaseForm({ route, navigation }: Props) {
 
     const durationDays = term === 'fixed' && mode === 'daily' ? parseAmount(days) || 1 : undefined;
 
-    const payload = {
-      roomId,
-      leaseType: 'long_term' as const,
-      billing: mode,
-      startDateISO: startISO,
-      baseRent,
-      baseRentCollect: collect,
-      deposit,
-      durationDays,
-      endDateISO,
-      tenant: fullName
-        ? { full_name: fullName.trim(), id_number: idNumber.trim(), phone: phone.trim() }
-        : undefined,
-      charges: outCharges,
-      isAllInclusive: allInclusive,
-    };
+const payload = {
+  roomId,
+  leaseType: 'long_term' as const,
+  billing: mode,
+  startDateISO: startISO,
+  baseRent,
+  baseRentCollect: collect,
+  deposit,
+  durationDays,
+  endDateISO,
+  // ✅ luôn có tenant vì fullName đã bắt buộc
+  tenant: {
+    full_name: fullName.trim(),
+    id_number: idNumber.trim(),
+    phone: phone.trim(),
+  },
+  charges: outCharges,
+  isAllInclusive: allInclusive,
+};
 
     try {
       const leaseId = startLeaseAdvanced(payload as any);

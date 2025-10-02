@@ -69,6 +69,7 @@ const resources = {
         help: 'Hướng dẫn',
         reportmonthdetail: 'Báo cáo chi tiết theo tháng',
       },
+      overdueCycles: 'Chu kỳ quá hạn (chưa tất toán)',
       InputJson: 'Nhập Json to phục hồi dữ liệu',
       InvalidJson: 'Json không đúng',
       importedOk: 'Nhập dữ liệu thành công',
@@ -169,6 +170,8 @@ const resources = {
         emptyHint: 'Chưa có dữ liệu. Hãy tạo hóa đơn hoặc thêm chi phí.',
       },
       apartmentReport: {
+        from: 'Từ ngày',
+        to: 'Đến ngày',
         range: 'Khoảng thời gian',
         viewReport: 'Xem báo cáo',
         incomeByRoom: 'Thu theo phòng',
@@ -180,6 +183,11 @@ const resources = {
         finalBalance: 'Số dư cuối cùng',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Xác nhận tất toán',
+        confirmSettleMessage:
+          'Sau khi tất toán, các khoản và chỉ số sẽ bị khóa và KHÔNG thể chỉnh sửa.',
+        settledOkLocked:
+          'Đã tất toán. Dữ liệu đã bị khóa và không thể thay đổi.',
         roomInfo: 'Thông tin phòng',
         tenant: 'Người thuê',
         noTenant: 'Chưa có người thuê',
@@ -289,6 +297,9 @@ const resources = {
         pdfSharedPrefix: 'Hóa đơn PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Vui lòng nhập tên người thuê',
+        errorAllInclusive: 'Vui lòng nhập số tiền trọn gói',
+        errorBaseRent: 'Vui lòng nhập giá thuê cơ bản',
         tenantName: 'Tên người thuê',
         idNumber: 'Số CCCD/CMND',
         phone: 'Số điện thoại',
@@ -332,8 +343,6 @@ const resources = {
         errorMissingStart: 'Chưa nhập ngày bắt đầu',
         errorMonths: 'Số tháng phải > 0',
         errorDays: 'Số ngày phải > 0',
-        errorAllInclusive: 'Nhập số tiền trọn gói hợp lệ',
-        errorBaseRent: 'Nhập giá thuê cơ bản hợp lệ',
         collectNow: 'Số tiền cần thu',
         firstPeriodRent: 'Tiền nhà ký đầu',
         total: 'Tổng',
@@ -410,6 +419,8 @@ const resources = {
         tagFixed: '• (cố định)',
       },
       operatingCosts: {
+        chooseMonthToAdd: 'Chọn tháng để thêm',
+        tapToAdd: 'Nhấn để thêm',
         setupCosts: 'Cài đặt chi phí',
         noSetup: 'Bạn chưa cài đặt danh mục chi phí cho căn hộ này.',
         monthList: 'Danh sách tháng (YYYY-MM)',
@@ -457,6 +468,9 @@ const resources = {
         save: 'Lưu',
       },
       tenantsList: {
+        editTenant: 'Sửa thông tin người thuê',
+        note: 'Ghi chú',
+        updatedOk: 'Đã cập nhật',
         title: 'Người thuê',
         active: 'Đang thuê',
         ended: 'Đã ngừng thuê',
@@ -872,6 +886,7 @@ const resources = {
         help: 'Help',
         reportmonthdetail: 'Report Month Detail',
       },
+      overdueCycles: 'Overdue cycles (not settled)',
       InputJson: 'Input Json to Import',
       InvalidJson: 'Invalid Json',
       importedOk: 'Import done!',
@@ -972,6 +987,8 @@ const resources = {
         emptyHint: 'No data yet. Create an invoice or add an expense.',
       },
       apartmentReport: {
+        from: 'From Date',
+        to: 'To Date',
         range: 'Date range',
         viewReport: 'View report',
         incomeByRoom: 'Income by room',
@@ -983,6 +1000,11 @@ const resources = {
         finalBalance: 'Final balance',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Confirm settlement',
+        confirmSettleMessage:
+          'After settlement, all items and meter indexes will be locked and CANNOT be edited.',
+        settledOkLocked:
+          'Settled. The data has been locked and can no longer be changed.',
         roomInfo: 'Room info',
         tenant: 'Tenant',
         noTenant: 'No tenant',
@@ -1095,6 +1117,9 @@ const resources = {
         pdfSharedPrefix: 'Invoice PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Please enter tenant name',
+        errorAllInclusive: 'Please enter the all-inclusive amount',
+        errorBaseRent: 'Please enter the base rent',
         tenantName: 'Tenant name',
         idNumber: 'ID number',
         phone: 'Phone number',
@@ -1138,8 +1163,6 @@ const resources = {
         errorMissingStart: 'Start date is required',
         errorMonths: 'Months must be > 0',
         errorDays: 'Days must be > 0',
-        errorAllInclusive: 'Enter a valid all-inclusive amount',
-        errorBaseRent: 'Enter a valid base rent amount',
         collectNow: 'Amount to collect',
         firstPeriodRent: 'Initial rent',
         total: 'Total',
@@ -1216,6 +1239,8 @@ const resources = {
         tagFixed: '• (fixed)',
       },
       operatingCosts: {
+        chooseMonthToAdd: 'Choose a month to add',
+        tapToAdd: 'Tap to add',
         setupCosts: 'Setup costs',
         noSetup:
           'You have not set up the expense categories for this apartment.',
@@ -1264,6 +1289,9 @@ const resources = {
         save: 'Save',
       },
       tenantsList: {
+        editTenant: 'Edit tenant information',
+        note: 'Note',
+        updatedOk: 'Updated',
         title: 'Tenants',
         active: 'Active',
         ended: 'Ended',
@@ -1616,6 +1644,33 @@ const resources = {
 
   es: {
     translation: {
+      tenantForm: {
+        addTenant: 'Agregar inquilino',
+        fullName: 'Nombre completo',
+        phone: 'Teléfono',
+        idNumber: 'Número de identificación',
+        note: 'Nota',
+        save: 'Guardar',
+      },
+      tenantsList: {
+        editTenant: 'Editar información del inquilino',
+        note: 'Nota',
+        updatedOk: 'Actualizado',
+        title: 'Inquilinos',
+        active: 'Activos',
+        ended: 'Finalizados',
+        room: 'Habitación',
+        phone: 'Teléfono',
+        noTenant: 'Aún no hay inquilino',
+        delete: 'Eliminar',
+        deleteConfirm: '¿Seguro que deseas eliminar a este inquilino?',
+        deleteSuccess: 'Inquilino eliminado correctamente',
+        deleteFail: 'No se pudo eliminar al inquilino',
+        all: 'Todos',
+        viewLease: 'Ver contrato',
+        deleteConfirmTitle: 'Eliminar este inquilino',
+        searchPh: 'Buscar por habitación',
+      },
       payment: {
         invoiceInfoTitle: 'Aviso de factura',
         invoiceInfo:
@@ -1698,6 +1753,59 @@ const resources = {
         unitShort: 'unidad',
         month: 'mes',
       },
+      leaseDetail: {
+        saved: 'Guardado',
+        appliedNextCycles:
+          'Los cambios se aplicarán a los próximos ciclos de facturación.',
+        cannotEnd: 'No se puede finalizar',
+        mustSettleCurrent: 'Primero debe liquidarse el ciclo actual.',
+        confirm: 'Confirmar',
+        endNowConfirm: '¿Deseas finalizar el contrato y liquidar el depósito?',
+
+        tenant: 'Inquilino',
+        name: 'Nombre',
+        idNumber: 'Número de identificación',
+        phone: 'Teléfono',
+
+        start: 'Inicio',
+        end: 'Fin',
+        cycle: 'Ciclo',
+        baseRent: 'Alquiler base',
+        deposit: 'Depósito',
+        status: 'Estado',
+
+        activeCharges: 'Cargos activos',
+        fixed: 'Fijo',
+        variable: 'Variable',
+        unitPrice: 'Precio unitario',
+        meterStart: 'Lectura inicial del medidor',
+
+        endEarly: 'Finalizar contrato anticipadamente',
+
+        baseRentNext: 'Alquiler base (aplica al próximo ciclo)',
+        fixedCharges: 'Cargos fijos',
+        perCycle: 'ciclo',
+        variableCharges: 'Cargos variables',
+
+        addOtherCharge: 'Agregar otro cargo',
+        chargeNamePh: 'Nombre del cargo',
+        unitPh: 'Unidad (p. ej., mes, kWh, m³...)',
+        pricePerUnitPh: 'Precio / unidad',
+        pricePerCyclePh: 'Precio / ciclo',
+        meterStartPh: 'Lectura inicial del medidor',
+
+        depositNow: 'Depósito actual',
+        arisingCharges: 'Cargos incurridos',
+        itemNamePh: 'Nombre del ítem',
+        amountPlusPh: 'Importe (+ descontar del depósito)',
+
+        totalArising: 'Total incurrido',
+        refundToTenant: 'Reembolsar al inquilino',
+        collectMore: 'Cobrar más al inquilino',
+        noFurther: 'No hay importe adicional.',
+        finish: 'Finalizar',
+        ended: 'Contrato finalizado',
+      },
       roomCreate: {
         title: 'Agregar habitación',
         missingApartmentId: 'Falta el ID del apartamento',
@@ -1741,6 +1849,7 @@ const resources = {
         help: 'Ayuda',
         reportmonthdetail: 'Detalle mensual del informe',
       },
+      overdueCycles: 'Ciclos vencidos (no liquidados)',
       InputJson: 'Introducir JSON para importar',
       InvalidJson: 'JSON no válido',
       importedOk: 'Importación completada',
@@ -1842,6 +1951,8 @@ const resources = {
         emptyHint: 'Aún no hay datos. Crea una factura o agrega un gasto.',
       },
       apartmentReport: {
+        from: 'Fecha de inicio',
+        to: 'Fecha de fin',
         range: 'Rango de fechas',
         viewReport: 'Ver informe',
         incomeByRoom: 'Ingresos por habitación',
@@ -1853,6 +1964,14 @@ const resources = {
         finalBalance: 'Balance final',
       },
       cycleDetail: {
+        es: {
+          confirmSettleTitle: 'Confirmar liquidación',
+          confirmSettleMessage:
+            'Después de la liquidación, todos los ítems y las lecturas del medidor quedarán bloqueados y NO podrán editarse.',
+          settledOkLocked:
+            'Liquidado. Los datos han sido bloqueados y ya no se pueden cambiar.',
+        },
+
         roomInfo: 'Información de la habitación',
         tenant: 'Inquilino',
         noTenant: 'Sin inquilino',
@@ -1962,6 +2081,9 @@ const resources = {
         pdfSharedPrefix: 'Factura PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Por favor, ingresa el nombre del inquilino',
+        errorAllInclusive: 'Por favor, ingresa el importe todo incluido',
+        errorBaseRent: 'Por favor, ingresa el alquiler base',
         tenantName: 'Nombre del inquilino',
         idNumber: 'Número de identificación',
         phone: 'Número de teléfono',
@@ -1997,8 +2119,6 @@ const resources = {
         errorMissingStart: 'La fecha de inicio es obligatoria',
         errorMonths: 'Los meses deben ser > 0',
         errorDays: 'Los días deben ser > 0',
-        errorAllInclusive: 'Ingresa un monto válido todo incluido',
-        errorBaseRent: 'Ingresa un monto válido de renta base',
         collectNow: 'Monto a cobrar',
         firstPeriodRent: 'Renta inicial',
         total: 'Total',
@@ -2074,6 +2194,8 @@ const resources = {
         tagFixed: '• (fijo)',
       },
       operatingCosts: {
+        chooseMonthToAdd: 'Elige un mes para agregar',
+        tapToAdd: 'Toca para agregar',
         setupCosts: 'Configurar costos',
         noSetup:
           'Aún no configuraste categorías de gastos para este apartamento.',
@@ -2288,6 +2410,34 @@ const resources = {
   },
   fr: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: 'Choisissez un mois à ajouter',
+        tapToAdd: 'Appuyez pour ajouter',
+        setupCosts: 'Configuration des dépenses',
+        noSetup:
+          'Vous n’avez pas configuré les catégories de dépenses pour cet appartement.',
+        monthList: 'Liste des mois (YYYY-MM)',
+        noData: 'Aucune donnée pour l’instant. Appuyez sur "+ Mois en cours".',
+        tapToView: 'Appuyez pour afficher/saisir les dépenses',
+        addCurrentMonth: '+ Mois en cours',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'Coûts FIXES',
+        variableCosts: 'Coûts NON fixes',
+        addFixed: '+ Ajouter un coût fixe',
+        addVariable: '+ Ajouter un coût non fixe',
+        save: 'Enregistrer',
+        defaultAmount: 'Montant par défaut',
+        namePlaceholder: 'Nom du coût',
+        variableNamePlaceholder: 'Nom du coût (non fixe)',
+        delete: 'Supprimer',
+        saved: 'Enregistré',
+        savedMsg: 'La configuration des dépenses a été mise à jour.',
+        houserent: 'Loyer',
+        employeecost: 'Salaires des employés',
+        internet: 'Internet',
+        garbage: 'Collecte des ordures',
+      },
       payment: {
         invoiceInfoTitle: 'Note de facture',
         invoiceInfo:
@@ -2370,6 +2520,60 @@ const resources = {
         unitShort: 'unité',
         month: 'mois',
       },
+      leaseDetail: {
+        saved: 'Enregistré',
+        appliedNextCycles:
+          'Les modifications s’appliqueront aux prochains cycles de facturation.',
+        cannotEnd: 'Impossible de terminer',
+        mustSettleCurrent: 'Le cycle en cours doit d’abord être clôturé.',
+        confirm: 'Confirmer',
+        endNowConfirm:
+          'Voulez-vous mettre fin au bail et régulariser le dépôt ?',
+
+        tenant: 'Locataire',
+        name: 'Nom',
+        idNumber: 'Numéro d’identification',
+        phone: 'Téléphone',
+
+        start: 'Début',
+        end: 'Fin',
+        cycle: 'Cycle',
+        baseRent: 'Loyer de base',
+        deposit: 'Dépôt',
+        status: 'Statut',
+
+        activeCharges: 'Frais actifs',
+        fixed: 'Fixe',
+        variable: 'Variable',
+        unitPrice: 'Prix unitaire',
+        meterStart: 'Index de départ',
+
+        endEarly: 'Mettre fin au bail plus tôt',
+
+        baseRentNext: 'Loyer de base (s’applique au prochain cycle)',
+        fixedCharges: 'Frais fixes',
+        perCycle: 'cycle',
+        variableCharges: 'Frais variables',
+
+        addOtherCharge: 'Ajouter un autre frais',
+        chargeNamePh: 'Nom du frais',
+        unitPh: 'Unité (p. ex. mois, kWh, m³...)',
+        pricePerUnitPh: 'Prix / unité',
+        pricePerCyclePh: 'Prix / cycle',
+        meterStartPh: 'Index de départ',
+
+        depositNow: 'Dépôt actuel',
+        arisingCharges: 'Frais supplémentaires',
+        itemNamePh: 'Nom de l’élément',
+        amountPlusPh: 'Montant (+ déduire du dépôt)',
+
+        totalArising: 'Total des frais supplémentaires',
+        refundToTenant: 'Rembourser le locataire',
+        collectMore: 'Encaisser davantage auprès du locataire',
+        noFurther: 'Aucun montant supplémentaire.',
+        finish: 'Terminer',
+        ended: 'Bail terminé',
+      },
       roomCreate: {
         title: 'Ajouter une chambre',
         missingApartmentId: 'ID d’appartement manquant',
@@ -2412,6 +2616,7 @@ const resources = {
         help: 'Aide',
         reportmonthdetail: 'Détail du rapport mensuel',
       },
+      overdueCycles: 'Cycles en retard (non réglés)',
       InputJson: 'Saisir le JSON à importer',
       InvalidJson: 'JSON invalide',
       importedOk: 'Importation terminée',
@@ -2513,6 +2718,8 @@ const resources = {
         emptyHint: 'Aucune donnée. Créez une facture ou ajoutez une dépense.',
       },
       apartmentReport: {
+        from: 'Date de début',
+        to: 'Date de fin',
         range: 'Période',
         viewReport: 'Voir rapport',
         incomeByRoom: 'Revenus par chambre',
@@ -2524,6 +2731,11 @@ const resources = {
         finalBalance: 'Solde final',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Confirmer le règlement',
+        confirmSettleMessage:
+          'Après le règlement, tous les éléments et les index de compteur seront verrouillés et NE pourront PAS être modifiés.',
+        settledOkLocked:
+          'Règlement effectué. Les données ont été verrouillées et ne peuvent plus être modifiées.',
         roomInfo: 'Infos chambre',
         tenant: 'Locataire',
         noTenant: 'Aucun locataire',
@@ -2603,6 +2815,9 @@ const resources = {
         pdfSharedPrefix: 'Facture PDF :',
       },
       leaseForm: {
+        errorTenantName: 'Veuillez saisir le nom du locataire',
+        errorAllInclusive: 'Veuillez saisir le montant tout compris',
+        errorBaseRent: 'Veuillez saisir le loyer de base',
         tenantName: 'Nom locataire',
         idNumber: 'N° identifiant',
         phone: 'Téléphone',
@@ -2657,6 +2872,9 @@ const resources = {
         save: 'Enregistrer',
       },
       tenantsList: {
+        editTenant: 'Modifier les informations du locataire',
+        note: 'Note',
+        updatedOk: 'Mis à jour',
         title: 'Locataires',
         active: 'Actif',
         ended: 'Terminé',
@@ -2768,6 +2986,34 @@ const resources = {
 
   de: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: 'Monat zum Hinzufügen auswählen',
+        tapToAdd: 'Zum Hinzufügen tippen',
+        setupCosts: 'Ausgabeneinstellungen',
+        noSetup:
+          'Sie haben die Ausgabenkategorien für diese Wohnung noch nicht eingerichtet.',
+        monthList: 'Monatsliste (YYYY-MM)',
+        noData: 'Noch keine Daten. Tippen Sie auf "+ Aktueller Monat".',
+        tapToView: 'Tippen, um Ausgaben anzusehen/einzugeben',
+        addCurrentMonth: '+ Aktueller Monat',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'FIXE Kosten',
+        variableCosts: 'NICHT feste Kosten',
+        addFixed: '+ Feste Kosten hinzufügen',
+        addVariable: '+ Nicht feste Kosten hinzufügen',
+        save: 'Speichern',
+        defaultAmount: 'Standardbetrag',
+        namePlaceholder: 'Kostenname',
+        variableNamePlaceholder: 'Kostenname (nicht fest)',
+        delete: 'Löschen',
+        saved: 'Gespeichert',
+        savedMsg: 'Ausgabenkonfiguration wurde aktualisiert.',
+        houserent: 'Miete',
+        employeecost: 'Mitarbeitergehälter',
+        internet: 'Internet',
+        garbage: 'Müllabfuhr',
+      },
       payment: {
         invoiceInfoTitle: 'Rechnungshinweis',
         invoiceInfo:
@@ -2850,6 +3096,61 @@ const resources = {
         unitShort: 'Einheit',
         month: 'Monat',
       },
+      leaseDetail: {
+        saved: 'Gespeichert',
+        appliedNextCycles:
+          'Änderungen gelten für die nächsten Abrechnungszyklen.',
+        cannotEnd: 'Beenden nicht möglich',
+        mustSettleCurrent:
+          'Der aktuelle Zyklus muss zuerst abgerechnet werden.',
+        confirm: 'Bestätigen',
+        endNowConfirm:
+          'Möchten Sie den Mietvertrag beenden und die Kaution abrechnen?',
+
+        tenant: 'Mieter',
+        name: 'Name',
+        idNumber: 'Ausweisnummer',
+        phone: 'Telefon',
+
+        start: 'Start',
+        end: 'Ende',
+        cycle: 'Zyklus',
+        baseRent: 'Grundmiete',
+        deposit: 'Kaution',
+        status: 'Status',
+
+        activeCharges: 'Aktive Gebühren',
+        fixed: 'Fest',
+        variable: 'Variabel',
+        unitPrice: 'Einheitspreis',
+        meterStart: 'Start-Zählerstand',
+
+        endEarly: 'Mietvertrag vorzeitig beenden',
+
+        baseRentNext: 'Grundmiete (gilt ab nächstem Zyklus)',
+        fixedCharges: 'Feste Gebühren',
+        perCycle: 'Zyklus',
+        variableCharges: 'Variable Gebühren',
+
+        addOtherCharge: 'Weitere Gebühr hinzufügen',
+        chargeNamePh: 'Gebührenname',
+        unitPh: 'Einheit (z. B. Monat, kWh, m³...)',
+        pricePerUnitPh: 'Preis / Einheit',
+        pricePerCyclePh: 'Preis / Zyklus',
+        meterStartPh: 'Start-Zählerstand',
+
+        depositNow: 'Aktuelle Kaution',
+        arisingCharges: 'Anfallende Gebühren',
+        itemNamePh: 'Positionsname',
+        amountPlusPh: 'Betrag (+ von Kaution abziehen)',
+
+        totalArising: 'Summe anfallend',
+        refundToTenant: 'An Mieter erstatten',
+        collectMore: 'Mehr vom Mieter einziehen',
+        noFurther: 'Kein weiterer Betrag.',
+        finish: 'Fertigstellen',
+        ended: 'Mietvertrag beendet',
+      },
       roomCreate: {
         title: 'Zimmer hinzufügen',
         missingApartmentId: 'Wohnungs-ID fehlt',
@@ -2893,6 +3194,7 @@ const resources = {
         help: 'Hilfe',
         reportmonthdetail: 'Monatsbericht',
       },
+      overdueCycles: 'Überfällige Zyklen (nicht abgerechnet)',
       InputJson: 'JSON zum Import eingeben',
       InvalidJson: 'Ungültiges JSON',
       importedOk: 'Import abgeschlossen',
@@ -2994,6 +3296,8 @@ const resources = {
         emptyHint: 'Keine Daten. Rechnung erstellen oder Ausgabe hinzufügen.',
       },
       apartmentReport: {
+        from: 'Anfangsdatum',
+        to: 'Enddatum',
         range: 'Zeitraum',
         viewReport: 'Bericht anzeigen',
         incomeByRoom: 'Einnahmen nach Zimmer',
@@ -3005,6 +3309,11 @@ const resources = {
         finalBalance: 'Endsaldo',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Abrechnung bestätigen',
+        confirmSettleMessage:
+          'Nach der Abrechnung werden alle Positionen und Zählerstände gesperrt und können NICHT mehr bearbeitet werden.',
+        settledOkLocked:
+          'Abgerechnet. Die Daten wurden gesperrt und können nicht mehr geändert werden.',
         roomInfo: 'Zimmerinfo',
         tenant: 'Mieter',
         noTenant: 'Kein Mieter',
@@ -3084,6 +3393,9 @@ const resources = {
         pdfSharedPrefix: 'Rechnung PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Bitte den Namen des Mieters eingeben',
+        errorAllInclusive: 'Bitte den Pauschalbetrag eingeben',
+        errorBaseRent: 'Bitte die Grundmiete eingeben',
         tenantName: 'Mietername',
         idNumber: 'Ausweisnummer',
         phone: 'Telefonnummer',
@@ -3138,6 +3450,9 @@ const resources = {
         save: 'Speichern',
       },
       tenantsList: {
+        editTenant: 'Informationen zum Mieter bearbeiten',
+        note: 'Notiz',
+        updatedOk: 'Aktualisiert',
         title: 'Mieter',
         active: 'Aktiv',
         ended: 'Beendet',
@@ -3248,6 +3563,33 @@ const resources = {
 
   zh: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: '选择要添加的月份',
+        tapToAdd: '点击添加',
+        setupCosts: '费用设置',
+        noSetup: '您尚未为此公寓设置支出类别。',
+        monthList: '月份列表（YYYY-MM）',
+        noData: '暂无数据。点击“+ 本月”。',
+        tapToView: '点击查看/录入费用',
+        addCurrentMonth: '+ 本月',
+      },
+      operatingCostSettings: {
+        fixedCosts: '固定费用',
+        variableCosts: '非固定费用',
+        addFixed: '+ 添加固定费用',
+        addVariable: '+ 添加非固定费用',
+        save: '保存',
+        defaultAmount: '默认金额',
+        namePlaceholder: '费用名称',
+        variableNamePlaceholder: '费用名称（非固定）',
+        delete: '删除',
+        saved: '已保存',
+        savedMsg: '支出配置已更新。',
+        houserent: '房租',
+        employeecost: '员工薪资',
+        internet: '互联网',
+        garbage: '垃圾处理',
+      },
       payment: {
         invoiceInfoTitle: '发票提示',
         invoiceInfo: '付款信息将显示在发送给租户的发票上。',
@@ -3329,6 +3671,58 @@ const resources = {
         unitShort: '单位',
         month: '月',
       },
+      leaseDetail: {
+        saved: '已保存',
+        appliedNextCycles: '更改将应用于后续账单周期。',
+        cannotEnd: '无法结束',
+        mustSettleCurrent: '必须先结清当前周期。',
+        confirm: '确认',
+        endNowConfirm: '你要结束租约并结算押金吗？',
+
+        tenant: '租客',
+        name: '姓名',
+        idNumber: '证件号码',
+        phone: '电话',
+
+        start: '开始',
+        end: '结束',
+        cycle: '周期',
+        baseRent: '基础房租',
+        deposit: '押金',
+        status: '状态',
+
+        activeCharges: '生效费用',
+        fixed: '固定',
+        variable: '变动',
+        unitPrice: '单价',
+        meterStart: '表起始读数',
+
+        endEarly: '提前终止租约',
+
+        baseRentNext: '基础房租（下个周期生效）',
+        fixedCharges: '固定费用',
+        perCycle: '周期',
+        variableCharges: '变动费用',
+
+        addOtherCharge: '添加其他费用',
+        chargeNamePh: '费用名称',
+        unitPh: '单位（例如：月、kWh、m³…）',
+        pricePerUnitPh: '价格 / 单位',
+        pricePerCyclePh: '价格 / 周期',
+        meterStartPh: '表起始读数',
+
+        depositNow: '当前押金',
+        arisingCharges: '发生费用',
+        itemNamePh: '项目名称',
+        amountPlusPh: '金额（+ 从押金扣减）',
+
+        totalArising: '发生合计',
+        refundToTenant: '退还给租客',
+        collectMore: '向租客补收',
+        noFurther: '无其他金额。',
+        finish: '完成',
+        ended: '租约已结束',
+      },
       roomCreate: {
         title: '添加房间',
         missingApartmentId: '缺少公寓ID',
@@ -3371,6 +3765,7 @@ const resources = {
         help: '帮助',
         reportmonthdetail: '月度报表详情',
       },
+      overdueCycles: '逾期周期（未结算）',
       InputJson: '输入要导入的 JSON',
       InvalidJson: '无效的 JSON',
       importedOk: '导入完成',
@@ -3471,6 +3866,8 @@ const resources = {
         emptyHint: '暂无数据，请创建发票或添加支出。',
       },
       apartmentReport: {
+        from: '开始日期',
+        to: '结束日期',
         range: '日期范围',
         viewReport: '查看报表',
         incomeByRoom: '按房间收入',
@@ -3482,6 +3879,9 @@ const resources = {
         finalBalance: '期末余额',
       },
       cycleDetail: {
+        confirmSettleTitle: '确认结算',
+        confirmSettleMessage: '结算后，所有项目和表计读数将被锁定，无法编辑。',
+        settledOkLocked: '已结算。数据已锁定，无法再更改。',
         roomInfo: '房间信息',
         tenant: '租客',
         noTenant: '无租客',
@@ -3561,6 +3961,9 @@ const resources = {
         pdfSharedPrefix: '发票 PDF:',
       },
       leaseForm: {
+        errorTenantName: '请输入租客姓名',
+        errorAllInclusive: '请输入全包金额',
+        errorBaseRent: '请输入基础房租',
         tenantName: '租客姓名',
         idNumber: '身份证号',
         phone: '电话',
@@ -3615,6 +4018,9 @@ const resources = {
         save: '保存',
       },
       tenantsList: {
+        editTenant: '编辑租客信息',
+        note: '备注',
+        updatedOk: '已更新',
         title: '租客',
         active: '进行中',
         ended: '已结束',
@@ -3716,6 +4122,33 @@ const resources = {
 
   ja: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: '追加する月を選択',
+        tapToAdd: 'タップして追加',
+        setupCosts: '経費の設定',
+        noSetup: 'このアパートの経費カテゴリは未設定です。',
+        monthList: '月一覧（YYYY-MM）',
+        noData: 'データがありません。"+ 当月" をタップしてください。',
+        tapToView: 'タップして経費を表示/入力',
+        addCurrentMonth: '+ 当月',
+      },
+      operatingCostSettings: {
+        fixedCosts: '固定費用',
+        variableCosts: '非固定費用',
+        addFixed: '＋ 固定費用を追加',
+        addVariable: '＋ 非固定費用を追加',
+        save: '保存',
+        defaultAmount: 'デフォルト金額',
+        namePlaceholder: '費用名',
+        variableNamePlaceholder: '費用名（非固定）',
+        delete: '削除',
+        saved: '保存しました',
+        savedMsg: '経費の設定を更新しました。',
+        houserent: '家賃',
+        employeecost: '従業員給与',
+        internet: 'インターネット',
+        garbage: 'ごみ収集',
+      },
       payment: {
         invoiceInfoTitle: '請求書に関する注意',
         invoiceInfo: '支払い情報は、入居者に送付される請求書に表示されます。',
@@ -3797,6 +4230,58 @@ const resources = {
         unitShort: '単位',
         month: '月',
       },
+      leaseDetail: {
+        saved: '保存しました',
+        appliedNextCycles: '変更は次回の請求サイクルから適用されます。',
+        cannotEnd: '終了できません',
+        mustSettleCurrent: 'まず現在のサイクルを精算してください。',
+        confirm: '確認',
+        endNowConfirm: '契約を終了して保証金を精算しますか？',
+
+        tenant: '入居者',
+        name: '氏名',
+        idNumber: 'ID番号',
+        phone: '電話',
+
+        start: '開始',
+        end: '終了',
+        cycle: 'サイクル',
+        baseRent: '基本家賃',
+        deposit: '保証金',
+        status: 'ステータス',
+
+        activeCharges: '有効な料金',
+        fixed: '固定',
+        variable: '変動',
+        unitPrice: '単価',
+        meterStart: 'メーター初期値',
+
+        endEarly: '契約を早期終了',
+
+        baseRentNext: '基本家賃（次回サイクルから適用）',
+        fixedCharges: '固定料金',
+        perCycle: 'サイクル',
+        variableCharges: '変動料金',
+
+        addOtherCharge: 'その他の料金を追加',
+        chargeNamePh: '料金名',
+        unitPh: '単位（例：月、kWh、m³ など）',
+        pricePerUnitPh: '価格 / 単位',
+        pricePerCyclePh: '価格 / サイクル',
+        meterStartPh: 'メーター初期値',
+
+        depositNow: '現在の保証金',
+        arisingCharges: '発生料金',
+        itemNamePh: '項目名',
+        amountPlusPh: '金額（+ 保証金から控除）',
+
+        totalArising: '発生合計',
+        refundToTenant: '入居者に返金',
+        collectMore: '入居者から追徴',
+        noFurther: '追加の金額はありません。',
+        finish: '完了',
+        ended: '契約終了',
+      },
       roomCreate: {
         title: '部屋を追加',
         missingApartmentId: 'アパートIDがありません',
@@ -3839,6 +4324,7 @@ const resources = {
         help: 'ヘルプ',
         reportmonthdetail: '月次レポート詳細',
       },
+      overdueCycles: '延滞サイクル（未精算）',
       InputJson: 'インポートするJSONを入力',
       InvalidJson: '無効なJSON',
       importedOk: 'インポート完了',
@@ -3941,6 +4427,8 @@ const resources = {
           'データがありません。請求書を作成するか費用を追加してください。',
       },
       apartmentReport: {
+        from: '開始日',
+        to: '終了日',
         range: '期間',
         viewReport: 'レポートを見る',
         incomeByRoom: '部屋ごとの収入',
@@ -3952,6 +4440,11 @@ const resources = {
         finalBalance: '最終残高',
       },
       cycleDetail: {
+        confirmSettleTitle: '精算の確認',
+        confirmSettleMessage:
+          '精算後は、すべての項目とメーターの指示値がロックされ、編集できません。',
+        settledOkLocked:
+          '精算済み。データはロックされ、変更できなくなりました。',
         roomInfo: '部屋情報',
         tenant: '入居者',
         noTenant: '入居者なし',
@@ -4031,6 +4524,9 @@ const resources = {
         pdfSharedPrefix: '請求書 PDF:',
       },
       leaseForm: {
+        errorTenantName: '入居者名を入力してください',
+        errorAllInclusive: '一括金額を入力してください',
+        errorBaseRent: '基本家賃を入力してください',
         tenantName: '入居者名',
         idNumber: 'ID番号',
         phone: '電話番号',
@@ -4085,6 +4581,9 @@ const resources = {
         save: '保存',
       },
       tenantsList: {
+        editTenant: '入居者情報を編集',
+        note: 'メモ',
+        updatedOk: '更新しました',
         title: '入居者',
         active: '有効',
         ended: '終了',
@@ -4191,6 +4690,33 @@ const resources = {
 
   ko: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: '추가할 월을 선택',
+        tapToAdd: '탭하여 추가',
+        setupCosts: '비용 설정',
+        noSetup: '이 아파트의 비용 분류가 아직 설정되지 않았습니다.',
+        monthList: '월 목록(YYYY-MM)',
+        noData: '데이터가 없습니다. "+ 이번 달"을 탭하세요.',
+        tapToView: '탭하여 비용 보기/입력',
+        addCurrentMonth: '+ 이번 달',
+      },
+      operatingCostSettings: {
+        fixedCosts: '고정 비용',
+        variableCosts: '비고정 비용',
+        addFixed: '+ 고정 비용 추가',
+        addVariable: '+ 비고정 비용 추가',
+        save: '저장',
+        defaultAmount: '기본 금액',
+        namePlaceholder: '비용 이름',
+        variableNamePlaceholder: '비용 이름(비고정)',
+        delete: '삭제',
+        saved: '저장됨',
+        savedMsg: '지출 설정이 업데이트되었습니다.',
+        houserent: '집세',
+        employeecost: '직원 급여',
+        internet: '인터넷',
+        garbage: '쓰레기 수거',
+      },
       payment: {
         invoiceInfoTitle: '청구서 안내',
         invoiceInfo: '결제 정보는 세입자에게 발송되는 청구서에 표시됩니다.',
@@ -4272,6 +4798,58 @@ const resources = {
         unitShort: '단위',
         month: '월',
       },
+      leaseDetail: {
+        saved: '저장되었습니다',
+        appliedNextCycles: '변경 사항은 다음 청구 주기부터 적용됩니다.',
+        cannotEnd: '종료할 수 없습니다',
+        mustSettleCurrent: '현재 주기를 먼저 정산해야 합니다.',
+        confirm: '확인',
+        endNowConfirm: '임대 계약을 종료하고 보증금을 정산하시겠습니까?',
+
+        tenant: '세입자',
+        name: '이름',
+        idNumber: '신분증 번호',
+        phone: '전화',
+
+        start: '시작',
+        end: '종료',
+        cycle: '주기',
+        baseRent: '기본 임대료',
+        deposit: '보증금',
+        status: '상태',
+
+        activeCharges: '활성 요금',
+        fixed: '고정',
+        variable: '변동',
+        unitPrice: '단가',
+        meterStart: '계량기 시작값',
+
+        endEarly: '임대 조기 종료',
+
+        baseRentNext: '기본 임대료(다음 주기부터 적용)',
+        fixedCharges: '고정 요금',
+        perCycle: '주기',
+        variableCharges: '변동 요금',
+
+        addOtherCharge: '기타 요금 추가',
+        chargeNamePh: '요금 이름',
+        unitPh: '단위(예: 월, kWh, m³ 등)',
+        pricePerUnitPh: '가격 / 단위',
+        pricePerCyclePh: '가격 / 주기',
+        meterStartPh: '계량기 시작값',
+
+        depositNow: '현재 보증금',
+        arisingCharges: '발생 요금',
+        itemNamePh: '항목 이름',
+        amountPlusPh: '금액(+ 보증금에서 차감)',
+
+        totalArising: '발생 합계',
+        refundToTenant: '세입자에게 환불',
+        collectMore: '세입자에게 추가 징수',
+        noFurther: '추가 금액 없음.',
+        finish: '완료',
+        ended: '임대 종료',
+      },
       roomCreate: {
         title: '방 추가',
         missingApartmentId: '아파트 ID가 없습니다',
@@ -4314,6 +4892,7 @@ const resources = {
         help: '도움말',
         reportmonthdetail: '월간 보고서 상세',
       },
+      overdueCycles: '연체 주기(미정산)',
       InputJson: '가져올 JSON 입력',
       InvalidJson: '잘못된 JSON',
       importedOk: '가져오기 완료',
@@ -4414,6 +4993,8 @@ const resources = {
         emptyHint: '데이터가 없습니다. 청구서를 생성하거나 비용을 추가하세요.',
       },
       apartmentReport: {
+        from: '시작일',
+        to: '종료일',
         range: '기간',
         viewReport: '보고서 보기',
         incomeByRoom: '방별 수입',
@@ -4425,6 +5006,10 @@ const resources = {
         finalBalance: '최종 잔액',
       },
       cycleDetail: {
+        confirmSettleTitle: '정산 확인',
+        confirmSettleMessage:
+          '정산 후 모든 항목과 계량기 검침값이 잠기며 편집할 수 없습니다.',
+        settledOkLocked: '정산 완료. 데이터가 잠겨 더 이상 변경할 수 없습니다.',
         roomInfo: '방 정보',
         tenant: '세입자',
         noTenant: '세입자 없음',
@@ -4504,6 +5089,9 @@ const resources = {
         pdfSharedPrefix: '청구서 PDF:',
       },
       leaseForm: {
+        errorTenantName: '세입자 이름을 입력하세요',
+        errorAllInclusive: '포괄 금액을 입력하세요',
+        errorBaseRent: '기본 임대료를 입력하세요',
         tenantName: '세입자 이름',
         idNumber: 'ID 번호',
         phone: '전화번호',
@@ -4558,6 +5146,9 @@ const resources = {
         save: '저장',
       },
       tenantsList: {
+        editTenant: '세입자 정보 수정',
+        note: '메모',
+        updatedOk: '업데이트되었습니다',
         title: '세입자',
         active: '활성',
         ended: '종료됨',
@@ -4659,6 +5250,33 @@ const resources = {
 
   ru: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: 'Выберите месяц для добавления',
+        tapToAdd: 'Нажмите, чтобы добавить',
+        setupCosts: 'Настройки расходов',
+        noSetup: 'Вы не настроили категории расходов для этой квартиры.',
+        monthList: 'Список месяцев (YYYY-MM)',
+        noData: 'Пока нет данных. Нажмите "+ Текущий месяц".',
+        tapToView: 'Нажмите, чтобы просмотреть/ввести расходы',
+        addCurrentMonth: '+ Текущий месяц',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'ФИКСИРОВАННЫЕ расходы',
+        variableCosts: 'НЕ фиксированные расходы',
+        addFixed: '+ Добавить фиксированные расходы',
+        addVariable: '+ Добавить нефиксированные расходы',
+        save: 'Сохранить',
+        defaultAmount: 'Сумма по умолчанию',
+        namePlaceholder: 'Название расхода',
+        variableNamePlaceholder: 'Название расхода (нефикс.)',
+        delete: 'Удалить',
+        saved: 'Сохранено',
+        savedMsg: 'Настройки расходов обновлены.',
+        houserent: 'Арендная плата',
+        employeecost: 'Заработная плата сотрудников',
+        internet: 'Интернет',
+        garbage: 'Вывоз мусора',
+      },
       payment: {
         invoiceInfoTitle: 'Примечание к счёту',
         invoiceInfo:
@@ -4741,6 +5359,59 @@ const resources = {
         unitShort: 'единица',
         month: 'месяц',
       },
+      leaseDetail: {
+        saved: 'Сохранено',
+        appliedNextCycles:
+          'Изменения будут применены к следующим расчетным периодам.',
+        cannotEnd: 'Невозможно завершить',
+        mustSettleCurrent: 'Сначала необходимо закрыть текущий цикл.',
+        confirm: 'Подтвердить',
+        endNowConfirm: 'Завершить договор и произвести расчёт по залогу?',
+
+        tenant: 'Арендатор',
+        name: 'Имя',
+        idNumber: 'Номер удостоверения',
+        phone: 'Телефон',
+
+        start: 'Начало',
+        end: 'Окончание',
+        cycle: 'Цикл',
+        baseRent: 'Базовая аренда',
+        deposit: 'Залог',
+        status: 'Статус',
+
+        activeCharges: 'Действующие начисления',
+        fixed: 'Фиксированная',
+        variable: 'Переменная',
+        unitPrice: 'Цена за единицу',
+        meterStart: 'Начальные показания счетчика',
+
+        endEarly: 'Досрочно завершить договор',
+
+        baseRentNext: 'Базовая аренда (применится со следующего цикла)',
+        fixedCharges: 'Фиксированные начисления',
+        perCycle: 'цикл',
+        variableCharges: 'Переменные начисления',
+
+        addOtherCharge: 'Добавить другое начисление',
+        chargeNamePh: 'Название начисления',
+        unitPh: 'Ед. изм. (например, месяц, кВт·ч, м³...)',
+        pricePerUnitPh: 'Цена / единица',
+        pricePerCyclePh: 'Цена / цикл',
+        meterStartPh: 'Начальные показания счетчика',
+
+        depositNow: 'Текущий залог',
+        arisingCharges: 'Возникшие начисления',
+        itemNamePh: 'Название позиции',
+        amountPlusPh: 'Сумма (+ удержать из залога)',
+
+        totalArising: 'Итого по возникшим',
+        refundToTenant: 'Возврат арендатору',
+        collectMore: 'Взыскать дополнительно с арендатора',
+        noFurther: 'Дополнительных сумм нет.',
+        finish: 'Готово',
+        ended: 'Договор завершён',
+      },
       roomCreate: {
         title: 'Добавить комнату',
         missingApartmentId: 'Отсутствует ID квартиры',
@@ -4783,6 +5454,7 @@ const resources = {
         help: 'Помощь',
         reportmonthdetail: 'Детали месячного отчёта',
       },
+      overdueCycles: 'Просроченные циклы (не рассчитаны)',
       InputJson: 'Введите JSON для импорта',
       InvalidJson: 'Недопустимый JSON',
       importedOk: 'Импорт завершен',
@@ -4884,6 +5556,8 @@ const resources = {
         emptyHint: 'Данных нет. Создайте счёт или добавьте расход.',
       },
       apartmentReport: {
+        from: 'Дата начала',
+        to: 'Дата окончания',
         range: 'Период',
         viewReport: 'Посмотреть отчёт',
         incomeByRoom: 'Доход по комнатам',
@@ -4895,6 +5569,11 @@ const resources = {
         finalBalance: 'Финальный баланс',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Подтвердить расчёт',
+        confirmSettleMessage:
+          'После расчёта все позиции и показания счётчиков будут заблокированы и НЕ подлежат редактированию.',
+        settledOkLocked:
+          'Расчёт выполнен. Данные заблокированы и больше не могут быть изменены.',
         roomInfo: 'Информация о комнате',
         tenant: 'Арендатор',
         noTenant: 'Нет арендатора',
@@ -4974,6 +5653,9 @@ const resources = {
         pdfSharedPrefix: 'Счёт PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Введите имя арендатора',
+        errorAllInclusive: 'Введите сумму «всё включено»',
+        errorBaseRent: 'Введите размер базовой аренды',
         tenantName: 'Имя арендатора',
         idNumber: 'Номер удостоверения',
         phone: 'Телефон',
@@ -5028,6 +5710,9 @@ const resources = {
         save: 'Сохранить',
       },
       tenantsList: {
+        editTenant: 'Редактировать данные арендатора',
+        note: 'Примечание',
+        updatedOk: 'Обновлено',
         title: 'Арендаторы',
         active: 'Активные',
         ended: 'Завершённые',
@@ -5138,6 +5823,74 @@ const resources = {
 
   ar: {
     translation: {
+      tenantForm: {
+        addTenant: 'إضافة مستأجر',
+        fullName: 'الاسم الكامل',
+        phone: 'الهاتف',
+        idNumber: 'رقم الهوية',
+        note: 'ملاحظة',
+        save: 'حفظ',
+      },
+      tenantsList: {
+        editTenant: 'تعديل معلومات المستأجر',
+        note: 'ملاحظة',
+        updatedOk: 'تم التحديث',
+        title: 'المستأجرون',
+        active: 'نشط',
+        ended: 'منتهي',
+        room: 'غرفة',
+        phone: 'الهاتف',
+        noTenant: 'لا يوجد مستأجر بعد',
+        delete: 'حذف',
+        deleteConfirm: 'هل أنت متأكد أنك تريد حذف هذا المستأجر؟',
+        deleteSuccess: 'تم حذف المستأجر بنجاح',
+        deleteFail: 'فشل حذف المستأجر',
+        all: 'الكل',
+        viewLease: 'عرض العقد',
+        deleteConfirmTitle: 'حذف هذا المستأجر',
+        searchPh: 'ابحث حسب الغرفة',
+      },
+      operatingCosts: {
+        chooseMonthToAdd: 'اختر شهراً لإضافته',
+        tapToAdd: 'اضغط للإضافة',
+        setupCosts: 'إعدادات المصروفات',
+        noSetup: 'لم تقم بإعداد فئات المصروفات لهذه الشقة.',
+        monthList: 'قائمة الأشهر (YYYY-MM)',
+        noData: 'لا توجد بيانات بعد. اضغط على "+ الشهر الحالي".',
+        tapToView: 'اضغط للعرض/إدخال المصروفات',
+        addCurrentMonth: '+ الشهر الحالي',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'التكاليف الثابتة',
+        variableCosts: 'التكاليف غير الثابتة',
+        addFixed: '+ إضافة تكلفة ثابتة',
+        addVariable: '+ إضافة تكلفة غير ثابتة',
+        save: 'حفظ',
+        defaultAmount: 'المبلغ الافتراضي',
+        namePlaceholder: 'اسم التكلفة',
+        variableNamePlaceholder: 'اسم التكلفة (غير ثابتة)',
+        delete: 'حذف',
+        saved: 'تم الحفظ',
+        savedMsg: 'تم تحديث إعدادات المصروفات.',
+        houserent: 'إيجار المنزل',
+        employeecost: 'رواتب الموظفين',
+        internet: 'إنترنت',
+        garbage: 'جمع القمامة',
+      },
+      roomForm: {
+        missingApartmentId: 'مُعرّف الشقة مفقود',
+        total: 'إجمالي الغرف',
+        occupied: 'مشغولة',
+        available: 'متاحة',
+        operatingCosts: 'تكاليف التشغيل',
+        report: 'تقرير',
+        searchPlaceholder: 'ابحث عن الغرفة حسب الرمز/الحالة...',
+        noRooms: 'لا توجد غرف بعد. اضغط على + للإضافة.',
+        deleteRoom: 'حذف الغرفة',
+        confirmDelete: 'حذف الغرفة {{code}}؟',
+        deleteFailed: 'فشل الحذف',
+        room: 'غرفة',
+      },
       payment: {
         invoiceInfoTitle: 'ملاحظة على الفاتورة',
         invoiceInfo: 'ستظهر معلومات الدفع على الفاتورة المُرسلة إلى المستأجر.',
@@ -5219,6 +5972,58 @@ const resources = {
         unitShort: 'وحدة',
         month: 'شهر',
       },
+      leaseDetail: {
+        saved: 'تم الحفظ',
+        appliedNextCycles: 'سيتم تطبيق التغييرات على دورات الفوترة القادمة.',
+        cannotEnd: 'لا يمكن الإنهاء',
+        mustSettleCurrent: 'يجب تسوية الدورة الحالية أولاً.',
+        confirm: 'تأكيد',
+        endNowConfirm: 'هل تريد إنهاء العقد وتسوية مبلغ التأمين؟',
+
+        tenant: 'المستأجر',
+        name: 'الاسم',
+        idNumber: 'رقم الهوية',
+        phone: 'الهاتف',
+
+        start: 'البدء',
+        end: 'الانتهاء',
+        cycle: 'الدورة',
+        baseRent: 'الإيجار الأساسي',
+        deposit: 'التأمين',
+        status: 'الحالة',
+
+        activeCharges: 'الرسوم النشطة',
+        fixed: 'ثابت',
+        variable: 'متغير',
+        unitPrice: 'سعر الوحدة',
+        meterStart: 'قراءة العداد الابتدائية',
+
+        endEarly: 'إنهاء العقد مبكراً',
+
+        baseRentNext: 'الإيجار الأساسي (يسري في الدورة التالية)',
+        fixedCharges: 'رسوم ثابتة',
+        perCycle: 'دورة',
+        variableCharges: 'رسوم متغيرة',
+
+        addOtherCharge: 'إضافة رسوم أخرى',
+        chargeNamePh: 'اسم الرسوم',
+        unitPh: 'الوحدة (مثلاً: شهر، kWh، m³...)',
+        pricePerUnitPh: 'السعر / الوحدة',
+        pricePerCyclePh: 'السعر / الدورة',
+        meterStartPh: 'قراءة العداد الابتدائية',
+
+        depositNow: 'التأمين الحالي',
+        arisingCharges: 'الرسوم الناشئة',
+        itemNamePh: 'اسم البند',
+        amountPlusPh: 'المبلغ (+ يُخصم من التأمين)',
+
+        totalArising: 'إجمالي الرسوم الناشئة',
+        refundToTenant: 'إرجاع للمستأجر',
+        collectMore: 'تحصيل إضافي من المستأجر',
+        noFurther: 'لا توجد مبالغ إضافية.',
+        finish: 'إنهاء',
+        ended: 'تم إنهاء العقد',
+      },
       roomCreate: {
         title: 'إضافة غرفة',
         missingApartmentId: 'معرّف الشقة مفقود',
@@ -5261,6 +6066,7 @@ const resources = {
         help: 'مساعدة',
         reportmonthdetail: 'تفاصيل التقرير الشهري',
       },
+      overdueCycles: 'دورات متأخرة (غير مُسوّاة)',
       InputJson: 'أدخل JSON المراد استيراده',
       InvalidJson: 'JSON غير صالح',
       importedOk: 'اكتمل الاستيراد',
@@ -5361,6 +6167,8 @@ const resources = {
         emptyHint: 'لا توجد بيانات بعد. أنشئ فاتورة أو أضف مصروف.',
       },
       apartmentReport: {
+        from: 'تاريخ البدء',
+        to: 'تاريخ الانتهاء',
         range: 'الفترة الزمنية',
         viewReport: 'عرض التقرير',
         incomeByRoom: 'الدخل حسب الغرفة',
@@ -5372,6 +6180,11 @@ const resources = {
         finalBalance: 'الرصيد النهائي',
       },
       cycleDetail: {
+        confirmSettleTitle: 'تأكيد التسوية',
+        confirmSettleMessage:
+          'بعد إتمام التسوية، سيتم قفل جميع العناصر وقراءات العداد ولن يمكن تعديلها.',
+        settledOkLocked:
+          'تمت التسوية. تم قفل البيانات ولا يمكن تغييرها بعد الآن.',
         roomInfo: 'معلومات الغرفة',
         tenant: 'المستأجر',
         noTenant: 'لا يوجد مستأجر',
@@ -5458,6 +6271,9 @@ const resources = {
         pdfSharedPrefix: 'ملف PDF للفاتورة:',
       },
       leaseForm: {
+        errorTenantName: 'يرجى إدخال اسم المستأجر',
+        errorAllInclusive: 'يرجى إدخال المبلغ الشامل',
+        errorBaseRent: 'يرجى إدخال قيمة الإيجار الأساسي',
         tenantName: 'اسم المستأجر',
         idNumber: 'رقم الهوية',
         phone: 'رقم الهاتف',
@@ -5493,8 +6309,6 @@ const resources = {
         errorMissingStart: 'تاريخ البدء مطلوب',
         errorMonths: 'الأشهر يجب أن تكون > 0',
         errorDays: 'الأيام يجب أن تكون > 0',
-        errorAllInclusive: 'أدخل مبلغ شامل صحيح',
-        errorBaseRent: 'أدخل إيجار أساسي صحيح',
         collectNow: 'المبلغ للتحصيل',
         firstPeriodRent: 'الإيجار الأولي',
         total: 'المجموع',
@@ -5507,30 +6321,6 @@ const resources = {
         empty: 'لا توجد عقود بعد.',
         status: 'الحالة',
         billing: 'دورة الفوترة',
-      },
-      leaseDetail: {
-        saved: 'تم الحفظ',
-        appliedNextCycles: 'سيتم تطبيق التغييرات على الدورات القادمة.',
-        cannotEnd: 'لا يمكن الإنهاء',
-        mustSettleCurrent: 'يجب تسوية الدورة الحالية أولاً.',
-        confirm: 'تأكيد',
-        endNowConfirm: 'هل تريد إنهاء العقد وتسوية الوديعة؟',
-        tenant: 'المستأجر',
-        name: 'الاسم',
-        idNumber: 'رقم الهوية',
-        phone: 'الهاتف',
-        start: 'البدء',
-        end: 'الانتهاء',
-        cycle: 'دورة',
-        baseRent: 'الإيجار الأساسي',
-        deposit: 'الوديعة',
-        status: 'الحالة',
-        activeCharges: 'الرسوم النشطة',
-        fixed: 'ثابت',
-        variable: 'متغير',
-        unitPrice: 'سعر الوحدة',
-        meterStart: 'قراءة البداية',
-        endEarly: 'إنهاء العقد مبكرًا',
       },
       help: {
         title: 'دليل المستخدم',
@@ -5714,6 +6504,58 @@ const resources = {
         unitShort: 'หน่วย',
         month: 'เดือน',
       },
+      leaseDetail: {
+        saved: 'บันทึกแล้ว',
+        appliedNextCycles: 'การเปลี่ยนแปลงจะมีผลในรอบบิลถัดไป',
+        cannotEnd: 'ไม่สามารถยุติได้',
+        mustSettleCurrent: 'ต้องปิดรอบปัจจุบันก่อน',
+        confirm: 'ยืนยัน',
+        endNowConfirm: 'ต้องการยุติสัญญาและเคลียร์เงินมัดจำหรือไม่?',
+
+        tenant: 'ผู้เช่า',
+        name: 'ชื่อ',
+        idNumber: 'หมายเลขบัตร',
+        phone: 'โทรศัพท์',
+
+        start: 'เริ่ม',
+        end: 'สิ้นสุด',
+        cycle: 'รอบ',
+        baseRent: 'ค่าเช่าพื้นฐาน',
+        deposit: 'เงินมัดจำ',
+        status: 'สถานะ',
+
+        activeCharges: 'ค่าบริการที่ใช้งาน',
+        fixed: 'คงที่',
+        variable: 'ผันแปร',
+        unitPrice: 'ราคาต่อหน่วย',
+        meterStart: 'เลขมิเตอร์เริ่มต้น',
+
+        endEarly: 'ยุติสัญญาก่อนกำหนด',
+
+        baseRentNext: 'ค่าเช่าพื้นฐาน (มีผลรอบถัดไป)',
+        fixedCharges: 'ค่าบริการคงที่',
+        perCycle: 'รอบ',
+        variableCharges: 'ค่าบริการผันแปร',
+
+        addOtherCharge: 'เพิ่มค่าบริการอื่น',
+        chargeNamePh: 'ชื่อค่าบริการ',
+        unitPh: 'หน่วย (เช่น เดือน, kWh, m³...)',
+        pricePerUnitPh: 'ราคา / หน่วย',
+        pricePerCyclePh: 'ราคา / รอบ',
+        meterStartPh: 'เลขมิเตอร์เริ่มต้น',
+
+        depositNow: 'เงินมัดจำปัจจุบัน',
+        arisingCharges: 'ค่าใช้จ่ายที่เกิดขึ้น',
+        itemNamePh: 'ชื่อรายการ',
+        amountPlusPh: 'จำนวนเงิน (+ หักจากเงินมัดจำ)',
+
+        totalArising: 'ยอดรวมที่เกิดขึ้น',
+        refundToTenant: 'คืนเงินให้ผู้เช่า',
+        collectMore: 'เก็บเงินเพิ่มจากผู้เช่า',
+        noFurther: 'ไม่มีจำนวนเงินเพิ่มเติม',
+        finish: 'เสร็จสิ้น',
+        ended: 'สัญญาสิ้นสุด',
+      },
       roomCreate: {
         title: 'เพิ่มห้อง',
         missingApartmentId: 'ไม่มีรหัสอพาร์ตเมนต์',
@@ -5756,6 +6598,7 @@ const resources = {
         help: 'ช่วยเหลือ',
         reportmonthdetail: 'รายละเอียดรายงานรายเดือน',
       },
+      overdueCycles: 'รอบเกินกำหนด (ยังไม่ปิดยอด)',
       InputJson: 'ป้อน JSON ที่ต้องการนำเข้า',
       InvalidJson: 'JSON ไม่ถูกต้อง',
       importedOk: 'นำเข้าเสร็จสิ้น',
@@ -5856,6 +6699,8 @@ const resources = {
         emptyHint: 'ยังไม่มีข้อมูล สร้างใบแจ้งหนี้หรือเพิ่มค่าใช้จ่าย',
       },
       apartmentReport: {
+        from: 'วันที่เริ่มต้น',
+        to: 'วันที่สิ้นสุด',
         range: 'ช่วงเวลา',
         viewReport: 'ดูรายงาน',
         incomeByRoom: 'รายได้ตามห้อง',
@@ -5867,6 +6712,11 @@ const resources = {
         finalBalance: 'ยอดสุทธิ',
       },
       cycleDetail: {
+        confirmSettleTitle: 'ยืนยันการปิดยอด',
+        confirmSettleMessage:
+          'หลังจากปิดยอดแล้ว รายการทั้งหมดและเลขมิเตอร์จะถูกล็อกและไม่สามารถแก้ไขได้',
+        settledOkLocked:
+          'ปิดยอดแล้ว ข้อมูลถูกล็อกและไม่สามารถเปลี่ยนแปลงได้อีก',
         roomInfo: 'ข้อมูลห้อง',
         tenant: 'ผู้เช่า',
         noTenant: 'ไม่มีผู้เช่า',
@@ -5975,6 +6825,9 @@ const resources = {
         pdfSharedPrefix: 'ใบแจ้งหนี้ PDF:',
       },
       leaseForm: {
+        errorTenantName: 'โปรดกรอกชื่อผู้เช่า',
+        errorAllInclusive: 'โปรดกรอกจำนวนเงินแบบเหมาจ่าย',
+        errorBaseRent: 'โปรดกรอกราคาเช่าพื้นฐาน',
         tenantName: 'ชื่อผู้เช่า',
         idNumber: 'หมายเลขบัตร',
         phone: 'เบอร์โทร',
@@ -6030,6 +6883,8 @@ const resources = {
         total: 'รวมรายเดือน',
       },
       operatingCosts: {
+        chooseMonthToAdd: 'เลือกเดือนที่จะเพิ่ม',
+        tapToAdd: 'แตะเพื่อเพิ่ม',
         setupCosts: 'ตั้งค่าค่าใช้จ่าย',
         noSetup: 'ยังไม่ได้ตั้งค่าหมวดค่าใช้จ่ายสำหรับอพาร์ทเมนท์นี้',
         monthList: 'รายการเดือน (YYYY-MM)',
@@ -6070,6 +6925,9 @@ const resources = {
         save: 'บันทึก',
       },
       tenantsList: {
+        editTenant: 'แก้ไขข้อมูลผู้เช่า',
+        note: 'หมายเหตุ',
+        updatedOk: 'อัปเดตแล้ว',
         title: 'ผู้เช่า',
         active: 'ใช้งาน',
         ended: 'สิ้นสุด',
@@ -6200,6 +7058,17 @@ const resources = {
   },
   id: {
     translation: {
+      operatingCosts: {
+        chooseMonthToAdd: 'Pilih bulan untuk ditambahkan',
+        tapToAdd: 'Ketuk untuk menambahkan',
+        setupCosts: 'Pengaturan biaya',
+        noSetup:
+          'Anda belum mengatur kategori pengeluaran untuk apartemen ini.',
+        monthList: 'Daftar bulan (YYYY-MM)',
+        noData: 'Belum ada data. Ketuk "+ Bulan ini".',
+        tapToView: 'Ketuk untuk melihat/memasukkan pengeluaran',
+        addCurrentMonth: '+ Bulan ini',
+      },
       payment: {
         invoiceInfoTitle: 'Catatan pada faktur',
         invoiceInfo:
@@ -6282,6 +7151,60 @@ const resources = {
         unitShort: 'satuan',
         month: 'bulan',
       },
+      leaseDetail: {
+        saved: 'Tersimpan',
+        appliedNextCycles:
+          'Perubahan akan berlaku pada siklus penagihan berikutnya.',
+        cannotEnd: 'Tidak dapat diakhiri',
+        mustSettleCurrent:
+          'Siklus saat ini harus diselesaikan terlebih dahulu.',
+        confirm: 'Konfirmasi',
+        endNowConfirm: 'Ingin mengakhiri sewa dan menyelesaikan deposit?',
+
+        tenant: 'Penyewa',
+        name: 'Nama',
+        idNumber: 'Nomor ID',
+        phone: 'Telepon',
+
+        start: 'Mulai',
+        end: 'Selesai',
+        cycle: 'Siklus',
+        baseRent: 'Sewa dasar',
+        deposit: 'Deposit',
+        status: 'Status',
+
+        activeCharges: 'Biaya aktif',
+        fixed: 'Tetap',
+        variable: 'Variabel',
+        unitPrice: 'Harga per unit',
+        meterStart: 'Angka meter awal',
+
+        endEarly: 'Akhiri sewa lebih awal',
+
+        baseRentNext: 'Sewa dasar (berlaku siklus berikutnya)',
+        fixedCharges: 'Biaya tetap',
+        perCycle: 'siklus',
+        variableCharges: 'Biaya variabel',
+
+        addOtherCharge: 'Tambah biaya lain',
+        chargeNamePh: 'Nama biaya',
+        unitPh: 'Unit (mis.: bulan, kWh, m³...)',
+        pricePerUnitPh: 'Harga / unit',
+        pricePerCyclePh: 'Harga / siklus',
+        meterStartPh: 'Angka meter awal',
+
+        depositNow: 'Deposit saat ini',
+        arisingCharges: 'Biaya yang timbul',
+        itemNamePh: 'Nama item',
+        amountPlusPh: 'Jumlah (+ potong dari deposit)',
+
+        totalArising: 'Total yang timbul',
+        refundToTenant: 'Kembalikan ke penyewa',
+        collectMore: 'Tagih tambahan ke penyewa',
+        noFurther: 'Tidak ada jumlah tambahan.',
+        finish: 'Selesai',
+        ended: 'Sewa berakhir',
+      },
       roomCreate: {
         title: 'Tambah kamar',
         missingApartmentId: 'ID apartemen hilang',
@@ -6324,6 +7247,7 @@ const resources = {
         help: 'Bantuan',
         reportmonthdetail: 'Detail Laporan Bulanan',
       },
+      overdueCycles: 'Siklus tertunggak (belum diselesaikan)',
       InputJson: 'Masukkan JSON untuk diimpor',
       InvalidJson: 'JSON tidak valid',
       importedOk: 'Impor selesai',
@@ -6424,6 +7348,8 @@ const resources = {
         emptyHint: 'Belum ada data. Buat faktur atau tambah biaya.',
       },
       apartmentReport: {
+        from: 'Tanggal Mulai',
+        to: 'Tanggal Selesai',
         range: 'Rentang tanggal',
         viewReport: 'Lihat laporan',
         incomeByRoom: 'Pendapatan per kamar',
@@ -6435,6 +7361,11 @@ const resources = {
         finalBalance: 'Saldo akhir',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Konfirmasi penyelesaian',
+        confirmSettleMessage:
+          'Setelah penyelesaian, semua item dan angka meter akan dikunci dan TIDAK dapat diedit.',
+        settledOkLocked:
+          'Diselesaikan. Data telah dikunci dan tidak dapat diubah lagi.',
         roomInfo: 'Info kamar',
         tenant: 'Penyewa',
         noTenant: 'Tidak ada penyewa',
@@ -6543,6 +7474,9 @@ const resources = {
         pdfSharedPrefix: 'Faktur PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Harap masukkan nama penyewa',
+        errorAllInclusive: 'Harap masukkan jumlah paket (all-in)',
+        errorBaseRent: 'Harap masukkan sewa dasar',
         tenantName: 'Nama penyewa',
         idNumber: 'Nomor ID',
         phone: 'Nomor telepon',
@@ -6597,14 +7531,6 @@ const resources = {
         addExpense: '+ Tambah biaya',
         total: 'Total bulanan',
       },
-      operatingCosts: {
-        setupCosts: 'Atur biaya',
-        noSetup: 'Belum ada kategori biaya untuk apartemen ini',
-        monthList: 'Daftar bulan (YYYY-MM)',
-        noData: 'Belum ada data. Ketuk “+ Bulan ini”',
-        tapToView: 'Ketuk untuk lihat/isi biaya',
-        addCurrentMonth: '+ Bulan ini',
-      },
       operatingCostSettings: {
         fixedCosts: 'Biaya tetap',
         variableCosts: 'Biaya variabel',
@@ -6638,6 +7564,9 @@ const resources = {
         save: 'Simpan',
       },
       tenantsList: {
+        editTenant: 'Edit informasi penyewa',
+        note: 'Catatan',
+        updatedOk: 'Diperbarui',
         title: 'Penyewa',
         active: 'Aktif',
         ended: 'Berakhir',
@@ -6768,6 +7697,56 @@ const resources = {
   },
   ms: {
     translation: {
+      tenantForm: {
+        addTenant: 'Tambah penyewa',
+        fullName: 'Nama penuh',
+        phone: 'Telefon',
+        idNumber: 'Nombor ID',
+        note: 'Nota',
+        save: 'Simpan',
+      },
+      operatingCosts: {
+        chooseMonthToAdd: 'Pilih bulan untuk ditambah',
+        tapToAdd: 'Ketuk untuk tambah',
+        setupCosts: 'Tetapan kos',
+        noSetup:
+          'Anda belum menetapkan kategori perbelanjaan untuk apartmen ini.',
+        monthList: 'Senarai bulan (YYYY-MM)',
+        noData: 'Belum ada data. Ketuk "+ Bulan semasa".',
+        tapToView: 'Ketuk untuk lihat/masukkan perbelanjaan',
+        addCurrentMonth: '+ Bulan semasa',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'Kos tetap',
+        variableCosts: 'Kos tidak tetap',
+        addFixed: '+ Tambah kos tetap',
+        addVariable: '+ Tambah kos tidak tetap',
+        save: 'Simpan',
+        defaultAmount: 'Amaun lalai',
+        namePlaceholder: 'Nama kos',
+        variableNamePlaceholder: 'Nama kos (tidak tetap)',
+        delete: 'Padam',
+        saved: 'Disimpan',
+        savedMsg: 'Konfigurasi perbelanjaan telah dikemas kini.',
+        houserent: 'Sewa rumah',
+        employeecost: 'Gaji pekerja',
+        internet: 'Internet',
+        garbage: 'Kutipan sampah',
+      },
+      roomForm: {
+        missingApartmentId: 'ID apartmen tiada',
+        total: 'Jumlah bilik',
+        occupied: 'Diduduki',
+        available: 'Tersedia',
+        operatingCosts: 'Kos operasi',
+        report: 'Laporan',
+        searchPlaceholder: 'Cari bilik mengikut kod/status...',
+        noRooms: 'Tiada bilik lagi. Tekan + untuk tambah.',
+        deleteRoom: 'Padam bilik',
+        confirmDelete: 'Padam bilik {{code}}?',
+        deleteFailed: 'Gagal memadam',
+        room: 'Bilik',
+      },
       payment: {
         invoiceInfoTitle: 'Nota pada invois',
         invoiceInfo:
@@ -6850,6 +7829,60 @@ const resources = {
         unitShort: 'unit',
         month: 'bulan',
       },
+      leaseDetail: {
+        saved: 'Disimpan',
+        appliedNextCycles:
+          'Perubahan akan berkuat kuasa pada kitar bil seterusnya.',
+        cannotEnd: 'Tidak boleh tamat',
+        mustSettleCurrent: 'Kitaran semasa perlu diselesaikan dahulu.',
+        confirm: 'Sahkan',
+        endNowConfirm:
+          'Mahukah anda menamatkan sewaan dan menyelesaikan deposit?',
+
+        tenant: 'Penyewa',
+        name: 'Nama',
+        idNumber: 'Nombor ID',
+        phone: 'Telefon',
+
+        start: 'Mula',
+        end: 'Tamat',
+        cycle: 'Kitaran',
+        baseRent: 'Sewa asas',
+        deposit: 'Deposit',
+        status: 'Status',
+
+        activeCharges: 'Caj aktif',
+        fixed: 'Tetap',
+        variable: 'Berubah',
+        unitPrice: 'Harga seunit',
+        meterStart: 'Bacaan meter permulaan',
+
+        endEarly: 'Tamatkan sewaan lebih awal',
+
+        baseRentNext: 'Sewa asas (berkuat kuasa kitaran seterusnya)',
+        fixedCharges: 'Caj tetap',
+        perCycle: 'kitaran',
+        variableCharges: 'Caj berubah',
+
+        addOtherCharge: 'Tambah caj lain',
+        chargeNamePh: 'Nama caj',
+        unitPh: 'Unit (cth.: bulan, kWh, m³...)',
+        pricePerUnitPh: 'Harga / unit',
+        pricePerCyclePh: 'Harga / kitaran',
+        meterStartPh: 'Bacaan meter permulaan',
+
+        depositNow: 'Deposit semasa',
+        arisingCharges: 'Caj yang timbul',
+        itemNamePh: 'Nama item',
+        amountPlusPh: 'Amaun (+ tolak daripada deposit)',
+
+        totalArising: 'Jumlah yang timbul',
+        refundToTenant: 'Pulangkan kepada penyewa',
+        collectMore: 'Kutip tambahan daripada penyewa',
+        noFurther: 'Tiada amaun tambahan.',
+        finish: 'Selesai',
+        ended: 'Sewaan ditamatkan',
+      },
       roomCreate: {
         title: 'Tambah bilik',
         missingApartmentId: 'ID apartmen tiada',
@@ -6892,6 +7925,7 @@ const resources = {
         help: 'Bantuan',
         reportmonthdetail: 'Butiran Laporan Bulanan',
       },
+      overdueCycles: 'Kitaran tertunggak (belum diselesaikan)',
       InputJson: 'Masukkan JSON untuk diimport',
       InvalidJson: 'JSON tidak sah',
       importedOk: 'Import selesai',
@@ -6992,6 +8026,8 @@ const resources = {
         emptyHint: 'Tiada data. Buat invois atau tambah kos.',
       },
       apartmentReport: {
+        from: 'Tarikh mula',
+        to: 'Tarikh tamat',
         range: 'Julat tarikh',
         viewReport: 'Lihat laporan',
         incomeByRoom: 'Pendapatan mengikut bilik',
@@ -7003,6 +8039,11 @@ const resources = {
         finalBalance: 'Baki akhir',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Sahkan penyelesaian',
+        confirmSettleMessage:
+          'Selepas penyelesaian, semua item dan bacaan meter akan dikunci dan TIDAK boleh disunting.',
+        settledOkLocked:
+          'Diselesaikan. Data telah dikunci dan tidak boleh diubah lagi.',
         roomInfo: 'Maklumat bilik',
         tenant: 'Penyewa',
         noTenant: 'Tiada penyewa',
@@ -7109,6 +8150,9 @@ const resources = {
         pdfSharedPrefix: 'Invois PDF:',
       },
       leaseForm: {
+        errorTenantName: 'Sila masukkan nama penyewa',
+        errorAllInclusive: 'Sila masukkan jumlah pakej (all-in)',
+        errorBaseRent: 'Sila masukkan sewa asas',
         tenantName: 'Nama penyewa',
         idNumber: 'No. IC',
         phone: 'No. telefon',
@@ -7140,6 +8184,9 @@ const resources = {
         created: 'Sewaan dibuat',
       },
       tenantsList: {
+        editTenant: 'Edit maklumat penyewa',
+        note: 'Nota',
+        updatedOk: 'Dikemas kini',
         title: 'Penyewa',
         active: 'Aktif',
         ended: 'Tamat',
@@ -7270,6 +8317,130 @@ const resources = {
   },
   fil: {
     translation: {
+      tenantsList: {
+        editTenant: 'I-edit ang impormasyon ng nangungupahan',
+        note: 'Tala',
+        updatedOk: 'Na-update',
+        title: 'Mga nangungupahan',
+        active: 'Aktibo',
+        ended: 'Natapos',
+        room: 'Kuwarto',
+        phone: 'Telepono',
+        noTenant: 'Wala pang nangungupahan',
+        delete: 'Tanggalin',
+        deleteConfirm: 'Sigurado ka bang tatanggalin ang nangungupahang ito?',
+        deleteSuccess: 'Matagumpay na natanggal ang nangungupahan',
+        deleteFail: 'Nabigong tanggalin ang nangungupahan',
+        all: 'Lahat',
+        viewLease: 'Tingnan ang kontrata',
+        deleteConfirmTitle: 'Tanggalin ang nangungupahang ito',
+        searchPh: 'Maghanap ayon sa kuwarto',
+      },
+      leaseForm: {
+        errorTenantName: 'Pakilagay ang pangalan ng nangungupahan',
+        errorAllInclusive: 'Maglagay ng wastong halagang all-in',
+        errorBaseRent: 'Maglagay ng wastong batayang upa',
+        tenantName: 'Pangalan ng nangungupahan',
+        idNumber: 'Numero ng ID',
+        phone: 'Numero ng telepono',
+
+        contractType: 'Uri ng kontrata',
+        monthly: 'Buwanang',
+        daily: 'Arawang',
+
+        startDate: 'Petsa ng simula',
+        monthCount: 'Bilang ng buwan',
+        dayCount: 'Bilang ng araw',
+        duration: 'Tagal',
+        months: 'buwan',
+        days: 'araw',
+
+        collectRent: 'Kolektahin ang batayang upa',
+        collectStart: 'Sa simula',
+        collectEnd: 'Sa pagtatapos',
+
+        allInclusive: 'Bayad na all-inclusive',
+        on: 'On',
+        off: 'Off',
+        allInclusiveAmountHint:
+          'Kabuuang halaga (all-in), kapalit ng batayang upa',
+
+        baseRent: 'Batayang upa',
+        deposit: 'Deposito',
+        amountPlaceholder: 'hal. 800',
+
+        chooseCharges: 'Pumili ng mga singil',
+        chargeNamePlaceholder: 'Pangalan ng singil (hal. Kuryente, Tubig...)',
+        fixed: 'Nakapirmi',
+        variable: 'Nagbabago',
+        unitPricePerUnit: 'Presyo kada yunit',
+        unitPricePerPeriod: 'Presyo kada yugto',
+        initialMeter: 'Unang basa ng metro',
+
+        createLease: 'Gumawa ng kontrata',
+        created: 'Nagawa ang kontrata',
+
+        errorMissingRoomId: 'Nawawala ang roomId',
+        errorMissingStart: 'Kinakailangan ang petsa ng pagsisimula',
+        errorMonths: 'Dapat > 0 ang bilang ng buwan',
+        errorDays: 'Dapat > 0 ang bilang ng araw',
+        collectNow: 'Halagang kokolektahin',
+        firstPeriodRent: 'Paunang upa',
+        total: 'Kabuuan',
+        fixedTerm: 'Termino',
+        openTerm: 'Walang takdang panahon',
+        noTerm: 'Walang termino',
+      },
+      tenantForm: {
+        addTenant: 'Magdagdag ng nangungupahan',
+        fullName: 'Buong pangalan',
+        phone: 'Telepono',
+        idNumber: 'Numero ng ID',
+        note: 'Tala',
+        save: 'I-save',
+      },
+      operatingCosts: {
+        chooseMonthToAdd: 'Pumili ng buwan na idaragdag',
+        tapToAdd: 'I-tap para magdagdag',
+        setupCosts: 'Mga setting ng gastos',
+        noSetup:
+          'Hindi mo pa naisaayos ang mga kategorya ng gastos para sa apartment na ito.',
+        monthList: 'Listahan ng buwan (YYYY-MM)',
+        noData: 'Wala pang data. I-tap ang "+ Kasalukuyang buwan".',
+        tapToView: 'I-tap para tingnan/ilagay ang gastos',
+        addCurrentMonth: '+ Kasalukuyang buwan',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'Nakapirming gastos',
+        variableCosts: 'Hindi nakapirming gastos',
+        addFixed: '+ Magdagdag ng nakapirming gastos',
+        addVariable: '+ Magdagdag ng hindi nakapirming gastos',
+        save: 'I-save',
+        defaultAmount: 'Default na halaga',
+        namePlaceholder: 'Pangalan ng gastos',
+        variableNamePlaceholder: 'Pangalan ng gastos (hindi nakapirmi)',
+        delete: 'Tanggalin',
+        saved: 'Na-save',
+        savedMsg: 'Na-update ang configuration ng gastos.',
+        houserent: 'Upa sa bahay',
+        employeecost: 'Suweldo ng empleyado',
+        internet: 'Internet',
+        garbage: 'Pagkolekta ng basura',
+      },
+      roomForm: {
+        missingApartmentId: 'Walang ID ng apartment',
+        total: 'Kabuuang kuwarto',
+        occupied: 'May nakatira',
+        available: 'Bakante',
+        operatingCosts: 'Gastos sa operasyon',
+        report: 'Ulat',
+        searchPlaceholder: 'Maghanap ng kuwarto ayon sa code/status...',
+        noRooms: 'Wala pang kuwarto. I-tap ang + para magdagdag.',
+        deleteRoom: 'Tanggalin ang kuwarto',
+        confirmDelete: 'Tanggalin ang kuwarto {{code}}?',
+        deleteFailed: 'Nabigo ang pagtanggal',
+        room: 'Kuwarto',
+      },
       payment: {
         invoiceInfoTitle: 'Invoice note',
         invoiceInfo:
@@ -7352,6 +8523,60 @@ const resources = {
         unitShort: 'yunit',
         month: 'buwan',
       },
+      leaseDetail: {
+        saved: 'Na-save',
+        appliedNextCycles:
+          'Ilalapat ang mga pagbabago sa mga susunod na billing cycle.',
+        cannotEnd: 'Hindi maaaring tapusin',
+        mustSettleCurrent: 'Kailangang isara muna ang kasalukuyang cycle.',
+        confirm: 'Kumpirmahin',
+        endNowConfirm:
+          'Gusto mo bang tapusin ang lease at isaayos ang deposito?',
+
+        tenant: 'Nangungupahan',
+        name: 'Pangalan',
+        idNumber: 'Numero ng ID',
+        phone: 'Telepono',
+
+        start: 'Simula',
+        end: 'Wakas',
+        cycle: 'Siklo',
+        baseRent: 'Batayang upa',
+        deposit: 'Deposito',
+        status: 'Katayuan',
+
+        activeCharges: 'Aktibong singil',
+        fixed: 'Nakapirmi',
+        variable: 'Nagbabago',
+        unitPrice: 'Presyo kada yunit',
+        meterStart: 'Unang basa ng metro',
+
+        endEarly: 'Tapusin ang lease nang mas maaga',
+
+        baseRentNext: 'Batayang upa (ilalapat sa susunod na siklo)',
+        fixedCharges: 'Nakapirming singil',
+        perCycle: 'siklo',
+        variableCharges: 'Nagbabagong singil',
+
+        addOtherCharge: 'Magdagdag ng ibang singil',
+        chargeNamePh: 'Pangalan ng singil',
+        unitPh: 'Yunit (hal. buwan, kWh, m³...)',
+        pricePerUnitPh: 'Presyo / yunit',
+        pricePerCyclePh: 'Presyo / siklo',
+        meterStartPh: 'Unang basa ng metro',
+
+        depositNow: 'Kasalukuyang deposito',
+        arisingCharges: 'Singil na naganap',
+        itemNamePh: 'Pangalan ng item',
+        amountPlusPh: 'Halaga (+ ibabawas sa deposito)',
+
+        totalArising: 'Kabuuang naganap',
+        refundToTenant: 'Ibalik sa nangungupahan',
+        collectMore: 'Maningil pa sa nangungupahan',
+        noFurther: 'Wala nang karagdagang halaga.',
+        finish: 'Tapos',
+        ended: 'Natapos ang lease',
+      },
       roomCreate: {
         title: 'Magdagdag ng kuwarto',
         missingApartmentId: 'Nawawala ang apartment ID',
@@ -7395,6 +8620,7 @@ const resources = {
         help: 'Tulong',
         reportmonthdetail: 'Detalye ng Ulat Buwanang',
       },
+      overdueCycles: 'Mga siklong overdue (hindi pa na-settle)',
       InputJson: 'Ilagay ang JSON na i-import',
       InvalidJson: 'Hindi wastong JSON',
       importedOk: 'Import tapos na',
@@ -7496,6 +8722,8 @@ const resources = {
         emptyHint: 'Walang datos pa. Gumawa ng resibo o magdagdag ng gastos.',
       },
       apartmentReport: {
+        from: 'Petsa ng simula',
+        to: 'Petsa ng pagtatapos',
         range: 'Saklaw ng petsa',
         viewReport: 'Tingnan ang ulat',
         incomeByRoom: 'Kita ayon sa silid',
@@ -7507,6 +8735,11 @@ const resources = {
         finalBalance: 'Huling balanse',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Kumpirmahin ang pagsasaayos',
+        confirmSettleMessage:
+          'Pagkatapos ng pagsasaayos, malalock ang lahat ng item at mga basa ng metro at HINDI na mae-edit.',
+        settledOkLocked:
+          'Na-settle na. Na-lock na ang data at hindi na mababago.',
         roomInfo: 'Impormasyon ng silid',
         tenant: 'Nangungupahan',
         noTenant: 'Walang nangungupahan',
@@ -7721,6 +8954,56 @@ const resources = {
   },
   pt: {
     translation: {
+      tenantForm: {
+        addTenant: 'Adicionar inquilino',
+        fullName: 'Nome completo',
+        phone: 'Telefone',
+        idNumber: 'Número de identificação',
+        note: 'Nota',
+        save: 'Salvar',
+      },
+      operatingCosts: {
+        chooseMonthToAdd: 'Escolha um mês para adicionar',
+        tapToAdd: 'Toque para adicionar',
+        setupCosts: 'Configurações de despesas',
+        noSetup:
+          'Você ainda não configurou as categorias de despesas deste apartamento.',
+        monthList: 'Lista de meses (YYYY-MM)',
+        noData: 'Ainda não há dados. Toque em "+ Mês atual".',
+        tapToView: 'Toque para visualizar/inserir despesas',
+        addCurrentMonth: '+ Mês atual',
+      },
+      operatingCostSettings: {
+        fixedCosts: 'Custos fixos',
+        variableCosts: 'Custos não fixos',
+        addFixed: '+ Adicionar custo fixo',
+        addVariable: '+ Adicionar custo não fixo',
+        save: 'Salvar',
+        defaultAmount: 'Valor padrão',
+        namePlaceholder: 'Nome do custo',
+        variableNamePlaceholder: 'Nome do custo (não fixo)',
+        delete: 'Excluir',
+        saved: 'Salvo',
+        savedMsg: 'A configuração de despesas foi atualizada.',
+        houserent: 'Aluguel da casa',
+        employeecost: 'Salário do funcionário',
+        internet: 'Internet',
+        garbage: 'Coleta de lixo',
+      },
+      roomForm: {
+        missingApartmentId: 'ID do apartamento ausente',
+        total: 'Total de quartos',
+        occupied: 'Ocupados',
+        available: 'Disponíveis',
+        operatingCosts: 'Custos operacionais',
+        report: 'Relatório',
+        searchPlaceholder: 'Pesquisar quarto por código/status...',
+        noRooms: 'Ainda não há quartos. Toque em + para adicionar.',
+        deleteRoom: 'Excluir quarto',
+        confirmDelete: 'Excluir o quarto {{code}}?',
+        deleteFailed: 'Falha ao excluir',
+        room: 'Quarto',
+      },
       payment: {
         invoiceInfoTitle: 'Aviso da fatura',
         invoiceInfo:
@@ -7803,6 +9086,59 @@ const resources = {
         unitShort: 'unidade',
         month: 'mês',
       },
+      leaseDetail: {
+        saved: 'Salvo',
+        appliedNextCycles:
+          'As alterações serão aplicadas nos próximos ciclos de cobrança.',
+        cannotEnd: 'Não é possível encerrar',
+        mustSettleCurrent: 'É necessário quitar primeiro o ciclo atual.',
+        confirm: 'Confirmar',
+        endNowConfirm: 'Deseja encerrar o contrato e acertar o depósito?',
+
+        tenant: 'Inquilino',
+        name: 'Nome',
+        idNumber: 'Número de identificação',
+        phone: 'Telefone',
+
+        start: 'Início',
+        end: 'Fim',
+        cycle: 'Ciclo',
+        baseRent: 'Aluguel base',
+        deposit: 'Depósito',
+        status: 'Status',
+
+        activeCharges: 'Encargos ativos',
+        fixed: 'Fixo',
+        variable: 'Variável',
+        unitPrice: 'Preço por unidade',
+        meterStart: 'Leitura inicial do medidor',
+
+        endEarly: 'Encerrar contrato antecipadamente',
+
+        baseRentNext: 'Aluguel base (aplica no próximo ciclo)',
+        fixedCharges: 'Encargos fixos',
+        perCycle: 'ciclo',
+        variableCharges: 'Encargos variáveis',
+
+        addOtherCharge: 'Adicionar outro encargo',
+        chargeNamePh: 'Nome do encargo',
+        unitPh: 'Unidade (p. ex.: mês, kWh, m³...)',
+        pricePerUnitPh: 'Preço / unidade',
+        pricePerCyclePh: 'Preço / ciclo',
+        meterStartPh: 'Leitura inicial do medidor',
+
+        depositNow: 'Depósito atual',
+        arisingCharges: 'Encargos ocorridos',
+        itemNamePh: 'Nome do item',
+        amountPlusPh: 'Valor (+ descontar do depósito)',
+
+        totalArising: 'Total ocorrido',
+        refundToTenant: 'Reembolsar ao inquilino',
+        collectMore: 'Cobrar mais do inquilino',
+        noFurther: 'Nenhum valor adicional.',
+        finish: 'Concluir',
+        ended: 'Contrato encerrado',
+      },
       roomCreate: {
         title: 'Adicionar quarto',
         missingApartmentId: 'ID do apartamento ausente',
@@ -7845,6 +9181,7 @@ const resources = {
         help: 'Ajuda',
         reportmonthdetail: 'Detalhe do Relatório Mensal',
       },
+      verdueCycles: 'Ciclos em atraso (não liquidados)',
       InputJson: 'Insira o JSON para importar',
       InvalidJson: 'JSON inválido',
       importedOk: 'Importação concluída',
@@ -7946,6 +9283,8 @@ const resources = {
           'Nenhum dado ainda. Crie uma fatura ou adicione uma despesa.',
       },
       apartmentReport: {
+        from: 'Data de início',
+        to: 'Data de fim',
         range: 'Período',
         viewReport: 'Ver relatório',
         incomeByRoom: 'Renda por quarto',
@@ -7957,6 +9296,11 @@ const resources = {
         finalBalance: 'Saldo final',
       },
       cycleDetail: {
+        confirmSettleTitle: 'Confirmar liquidação',
+        confirmSettleMessage:
+          'Após a liquidação, todos os itens e as leituras do medidor serão bloqueados e NÃO poderão ser editados.',
+        settledOkLocked:
+          'Liquidado. Os dados foram bloqueados e não podem mais ser alterados.',
         roomInfo: 'Informações do quarto',
         tenant: 'Inquilino',
         noTenant: 'Sem inquilino',
@@ -8063,6 +9407,9 @@ const resources = {
         pdfSharedPrefix: 'PDF da fatura:',
       },
       leaseForm: {
+        errorTenantName: 'Por favor, informe o nome do inquilino',
+        errorAllInclusive: 'Por favor, informe o valor total (pacote)',
+        errorBaseRent: 'Por favor, informe o aluguel base',
         tenantName: 'Nome do inquilino',
         idNumber: 'Número de ID',
         phone: 'Telefone',
@@ -8087,6 +9434,9 @@ const resources = {
         created: 'Contrato criado',
       },
       tenantsList: {
+        editTenant: 'Editar informações do inquilino',
+        note: 'Nota',
+        updatedOk: 'Atualizado',
         title: 'Inquilinos',
         active: 'Ativo',
         ended: 'Encerrado',
@@ -8217,6 +9567,39 @@ const resources = {
   },
   hi: {
     translation: {
+      tenantsList: {
+        editTenant: 'किरायेदार की जानकारी संपादित करें',
+        note: 'नोट',
+        updatedOk: 'अद्यतन किया गया',
+        title: 'किरायेदारों',
+        active: 'सक्रिय',
+        ended: 'समाप्त',
+        room: 'कमरा',
+        phone: 'फ़ोन',
+        noTenant: 'अभी कोई किरायेदार नहीं',
+        delete: 'हटाएँ',
+        deleteConfirm: 'क्या आप वाकई इस किरायेदार को हटाना चाहते हैं?',
+        deleteSuccess: 'किरायेदार सफलतापूर्वक हटाया गया',
+        deleteFail: 'किरायेदार को हटाने में विफल',
+        all: 'सभी',
+        viewLease: 'अनुबंध देखें',
+        deleteConfirmTitle: 'इस किरायेदार को हटाएँ',
+        searchPh: 'कमरे से खोजें',
+      },
+      roomForm: {
+        missingApartmentId: 'अपार्टमेंट आईडी अनुपस्थित है',
+        total: 'कुल कमरे',
+        occupied: 'भरे हुए',
+        available: 'उपलब्ध',
+        operatingCosts: 'संचालन लागत',
+        report: 'रिपोर्ट',
+        searchPlaceholder: 'कोड/स्थिति के आधार पर कमरा खोजें...',
+        noRooms: 'अभी तक कोई कमरा नहीं है। जोड़ने के लिए + दबाएँ।',
+        deleteRoom: 'कमरा हटाएँ',
+        confirmDelete: 'कमरा {{code}} हटाएँ?',
+        deleteFailed: 'हटाना विफल रहा',
+        room: 'कमरा',
+      },
       invoice: {
         title: 'चालान',
         code: 'चालान कोड',
@@ -8251,6 +9634,59 @@ const resources = {
       units: {
         unitShort: 'इकाई',
         month: 'महीना',
+      },
+      leaseDetail: {
+        saved: 'सहेजा गया',
+        appliedNextCycles: 'परिवर्तन अगले बिलिंग चक्रों पर लागू होंगे।',
+        cannotEnd: 'समाप्त नहीं कर सकते',
+        mustSettleCurrent: 'पहले वर्तमान चक्र का समापन आवश्यक है।',
+        confirm: 'पुष्टि करें',
+        endNowConfirm:
+          'क्या आप अनुबंध समाप्त करके जमा राशि का निपटान करना चाहते हैं?',
+
+        tenant: 'किरायेदार',
+        name: 'नाम',
+        idNumber: 'पहचान संख्या',
+        phone: 'फोन',
+
+        start: 'प्रारंभ',
+        end: 'समाप्ति',
+        cycle: 'चक्र',
+        baseRent: 'मूल किराया',
+        deposit: 'जमा',
+        status: 'स्थिति',
+
+        activeCharges: 'सक्रिय शुल्क',
+        fixed: 'निश्चित',
+        variable: 'परिवर्ती',
+        unitPrice: 'प्रति इकाई मूल्य',
+        meterStart: 'मीटर प्रारंभ रीडिंग',
+
+        endEarly: 'अनुबंध समय से पूर्व समाप्त करें',
+
+        baseRentNext: 'मूल किराया (अगले चक्र से लागू)',
+        fixedCharges: 'निश्चित शुल्क',
+        perCycle: 'चक्र',
+        variableCharges: 'परिवर्ती शुल्क',
+
+        addOtherCharge: 'अन्य शुल्क जोड़ें',
+        chargeNamePh: 'शुल्क का नाम',
+        unitPh: 'इकाई (जैसे: माह, kWh, m³...)',
+        pricePerUnitPh: 'मूल्य / इकाई',
+        pricePerCyclePh: 'मूल्य / चक्र',
+        meterStartPh: 'मीटर प्रारंभ रीडिंग',
+
+        depositNow: 'वर्तमान जमा',
+        arisingCharges: 'उत्पन्न शुल्क',
+        itemNamePh: 'आइटम नाम',
+        amountPlusPh: 'राशि (+ जमा से कटौती)',
+
+        totalArising: 'कुल उत्पन्न',
+        refundToTenant: 'किरायेदार को वापसी',
+        collectMore: 'किरायेदार से अतिरिक्त वसूली',
+        noFurther: 'कोई अतिरिक्त राशि नहीं।',
+        finish: 'समाप्त',
+        ended: 'अनुबंध समाप्त',
       },
       roomCreate: {
         title: 'कमरा जोड़ें',
@@ -8294,6 +9730,7 @@ const resources = {
         help: 'मदद',
         reportmonthdetail: 'मासिक रिपोर्ट विवरण',
       },
+      overdueCycles: 'अतिदेय चक्र (अभी निपटान नहीं हुआ)',
       InputJson: 'आयात करने के लिए JSON दर्ज करें',
       InvalidJson: 'अमान्य JSON',
       importedOk: 'आयात पूरा हुआ',
@@ -8394,6 +9831,8 @@ const resources = {
         emptyHint: 'अभी तक कोई डेटा नहीं। चालान बनाएं या व्यय जोड़ें।',
       },
       apartmentReport: {
+        from: 'From Date',
+        to: 'To Date',
         range: 'तिथि सीमा',
         viewReport: 'रिपोर्ट देखें',
         incomeByRoom: 'कमरे के अनुसार आय',
@@ -8405,6 +9844,11 @@ const resources = {
         finalBalance: 'अंतिम शेष',
       },
       cycleDetail: {
+        confirmSettleTitle: 'निपटान की पुष्टि',
+        confirmSettleMessage:
+          'निपटान के बाद सभी आइटम और मीटर रीडिंग लॉक हो जाएँगी और उन्हें संपादित नहीं किया जा सकेगा।',
+        settledOkLocked:
+          'निपटान हो गया। डेटा लॉक कर दिया गया है और अब बदला नहीं जा सकता।',
         roomInfo: 'कमरे की जानकारी',
         tenant: 'किरायेदार',
         noTenant: 'कोई किरायेदार नहीं',
@@ -8491,6 +9935,9 @@ const resources = {
           pdfSharedPrefix: 'चालान PDF:',
         },
         leaseForm: {
+          errorTenantName: 'कृपया किरायेदार का नाम दर्ज करें',
+          errorAllInclusive: 'कृपया सर्वसमावेशी राशि दर्ज करें',
+          errorBaseRent: 'कृपया मूल किराया दर्ज करें',
           tenantName: 'किरायेदार का नाम',
           idNumber: 'पहचान संख्या',
           phone: 'फ़ोन नंबर',

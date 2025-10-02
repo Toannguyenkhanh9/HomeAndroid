@@ -7,7 +7,7 @@ import {RootStackParamList} from '../navigation/RootNavigator';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
-import {getLeaseByRoom, getRoom, listCycles, nextDueDate} from '../../services/rent';
+import {getLeaseByRoom, getRoom, listCycles, nextDueDate, getTenant} from '../../services/rent';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
 import {useTranslation} from 'react-i18next';
@@ -22,15 +22,28 @@ export default function RoomDetail({route, navigation}: Props) {
   const [room, setRoom] = useState<any>();
   const [lease, setLease] = useState<any>();
   const [cycles, setCycles] = useState<any[]>([]);
+  const [tenantName, setTenantName] = useState<string>(''); // ⬅️ tên người thuê
   const {dateFormat, language} = useSettings();
 
   const loadAll = useCallback(() => {
     const r = getRoom(roomId);
     setRoom(r);
+
     const l = getLeaseByRoom(roomId);
     setLease(l);
-    if (l) setCycles(listCycles(l.id));
-    else setCycles([]);
+    if (l) {
+      setCycles(listCycles(l.id));
+      // lấy tên người thuê nếu có
+      try {
+        const tnt = l?.tenant_id ? getTenant(l.tenant_id) : null;
+        setTenantName(tnt?.full_name || '');
+      } catch {
+        setTenantName('');
+      }
+    } else {
+      setCycles([]);
+      setTenantName('');
+    }
   }, [roomId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -38,25 +51,33 @@ export default function RoomDetail({route, navigation}: Props) {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // ===== Phân nhóm chu kỳ =====
+  const openCycles = useMemo(
+    () => cycles.filter(cy => String(cy.status) !== 'settled'),
+    [cycles]
+  );
+
   const currentCycle = useMemo(() => {
     if (!lease) return undefined;
-    return cycles.find(
-      cy =>
-        String(cy.period_start) <= today &&
-        today <= String(cy.period_end) &&
-        String(cy.status) !== 'settled',
+    return openCycles.find(
+      cy => String(cy.period_start) <= today && today <= String(cy.period_end)
     );
-  }, [cycles, lease, today]);
+  }, [openCycles, lease, today]);
 
-  const upcomingCycle = useMemo(() => {
-    if (!lease) return undefined;
-    const list = cycles
-      .filter(cy => String(cy.period_start) > today && String(cy.status) !== 'settled')
+  const futureOpenSorted = useMemo(() => {
+    return openCycles
+      .filter(cy => String(cy.period_start) > today)
       .sort((a, b) => (a.period_start < b.period_start ? -1 : 1));
-    return list[0];
-  }, [cycles, lease, today]);
+  }, [openCycles, today]);
 
-  const mainCycle = currentCycle ?? upcomingCycle;
+  const overdueOpenSorted = useMemo(() => {
+    // các chu kỳ trước hôm nay nhưng CHƯA tất toán
+    return openCycles
+      .filter(cy => String(cy.period_end) < today)
+      .sort((a, b) => (a.period_start < b.period_start ? -1 : 1));
+  }, [openCycles, today]);
+
+  const mainCycle = currentCycle ?? futureOpenSorted[0];
 
   const settledList = useMemo(() => {
     const list = cycles
@@ -102,6 +123,12 @@ export default function RoomDetail({route, navigation}: Props) {
 
           {lease ? (
             <>
+              {/* ⬇️ dòng hiển thị tên người thuê */}
+              <Text style={{color: c.subtext}}>
+                {(t('cycleDetail.tenant') || t('leaseForm.tenantName') || 'Người thuê') + ':'}{' '}
+                {tenantName || '—'}
+              </Text>
+
               <Text style={{color: c.subtext}}>
                 {t('startDate')}: {formatDateISO(lease.start_date, dateFormat, language)}
               </Text>
@@ -164,6 +191,36 @@ export default function RoomDetail({route, navigation}: Props) {
             </Text>
           )}
         </Card>
+
+        {/* Chu kỳ quá hạn (chưa tất toán) */}
+        {overdueOpenSorted.length > 0 && (
+          <Card>
+            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+              {t('overdueCycles') || 'Chu kỳ quá hạn (chưa tất toán)'}
+            </Text>
+            {overdueOpenSorted.map(cy => (
+              <TouchableOpacity
+                key={cy.id}
+                onPress={() => navigation.navigate('CycleDetail', {cycleId: cy.id, onSettled: loadAll})}
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: c.card,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                }}>
+                <Text style={{color: c.text}}>
+                  {formatDateISO(cy.period_start, dateFormat, language)}  →  {formatDateISO(cy.period_end, dateFormat, language)}
+                </Text>
+                <Text style={{fontStyle: 'italic', color: '#EF4444'}}>
+                  {t('settledNo')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Card>
+        )}
 
         {/* Danh sách chu kỳ đã tất toán */}
         {settledList.length > 0 && (

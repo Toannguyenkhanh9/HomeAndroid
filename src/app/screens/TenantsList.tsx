@@ -1,4 +1,3 @@
-// src/app/screens/TenantsList.tsx
 import React from 'react';
 import {
   View,
@@ -7,6 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/RootNavigator';
@@ -17,7 +19,7 @@ import {useThemeColors, cardStyle} from '../theme';
 import {useFocusEffect} from '@react-navigation/native';
 import {query} from '../../db';
 import {useTranslation} from 'react-i18next';
-import {deleteTenant} from '../../services/rent';
+import {deleteTenant, updateTenant} from '../../services/rent';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TenantsList'>;
 
@@ -113,6 +115,48 @@ export default function TenantsList({navigation}: Props) {
   const [keyword, setKeyword] = React.useState('');
   const [tab, setTab] = React.useState<'all' | 'active' | 'ended'>('all');
 
+  // ==== Edit modal state ====
+  const [editing, setEditing] = React.useState<Row | null>(null);
+  const [name, setName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [idNumber, setIdNumber] = React.useState('');
+  const [note, setNote] = React.useState('');
+
+  const openEdit = (row: Row) => {
+    setEditing(row);
+    setName(row.full_name || '');
+    setPhone(row.phone || '');
+    setIdNumber(row.id_number || '');
+    setNote('');
+  };
+  const closeEdit = () => {
+    setEditing(null);
+    setName('');
+    setPhone('');
+    setIdNumber('');
+    setNote('');
+  };
+  const saveEdit = async () => {
+    try {
+      if (!editing) return;
+      if (!name.trim()) {
+        Alert.alert(t('common.missingInfo'), t('tenantsList.nameRequired') || 'Vui lòng nhập tên');
+        return;
+      }
+      updateTenant(editing.id, {
+        full_name: name.trim(),
+        phone: phone.trim(),
+        id_number: idNumber.trim(),
+        note: note.trim(),
+      });
+      closeEdit();
+      reload();
+      Alert.alert(t('common.success'), t('tenantsList.updatedOk') || 'Đã cập nhật');
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    }
+  };
+
   const reload = React.useCallback(() => {
     const list = query<Row>(
       `
@@ -137,8 +181,7 @@ export default function TenantsList({navigation}: Props) {
   useFocusEffect(React.useCallback(() => void reload(), [reload]));
 
   const counts = React.useMemo(() => {
-    let a = 0,
-      e = 0;
+    let a = 0, e = 0;
     for (const r of rows) {
       if (r.lease_id && r.lease_status === 'active') a++;
       else e++;
@@ -239,6 +282,7 @@ export default function TenantsList({navigation}: Props) {
             gap: 8,
             marginTop: 6,
           }}>
+          <Button title={t('common.edit') || 'Sửa'} variant="ghost" onPress={() => openEdit(row)} />
           {isActive ? (
             <Button
               title={t('tenantsList.viewLease')}
@@ -322,6 +366,75 @@ export default function TenantsList({navigation}: Props) {
           contentContainerStyle={{paddingBottom: 24}}
         />
       </View>
+
+      {/* ===== Edit tenant modal ===== */}
+      <Modal
+        visible={!!editing}
+        transparent
+        animationType="slide"
+        onRequestClose={closeEdit}
+      >
+        <KeyboardAvoidingView
+          style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)'}}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{color: c.text, fontWeight: '800', fontSize: 16}}>
+              {t('tenantsList.editTenant') || 'Sửa thông tin người thuê'}
+            </Text>
+
+            <TextInput
+              placeholder={t('leaseForm.tenantName')}
+              placeholderTextColor={c.subtext}
+              value={name}
+              onChangeText={setName}
+              style={{borderRadius: 10, padding: 10, backgroundColor: c.card, color: c.text}}
+            />
+            <TextInput
+              placeholder={t('leaseForm.phone')}
+              placeholderTextColor={c.subtext}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              style={{borderRadius: 10, padding: 10, backgroundColor: c.card, color: c.text}}
+            />
+            <TextInput
+              placeholder={t('leaseForm.idNumber')}
+              placeholderTextColor={c.subtext}
+              value={idNumber}
+              onChangeText={setIdNumber}
+              style={{borderRadius: 10, padding: 10, backgroundColor: c.card, color: c.text}}
+            />
+            <TextInput
+              placeholder={t('tenantsList.note') || 'Ghi chú'}
+              placeholderTextColor={c.subtext}
+              value={note}
+              onChangeText={setNote}
+              style={{borderRadius: 10, padding: 10, backgroundColor: c.card, color: c.text}}
+            />
+
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 12,
+                marginTop: 6,
+              }}
+            >
+              <Button title={t('common.cancel')} variant="ghost" onPress={closeEdit} />
+              <Button title={t('common.save') || 'Lưu'} onPress={saveEdit} />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
