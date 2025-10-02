@@ -48,6 +48,31 @@ export default function PaymentProfileScreen() {
       contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 120, gap: 12 }}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Banner thông tin hóa đơn */}
+      <View
+        style={{
+          padding: 12,
+          borderRadius: 12,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
+          // Nền xanh nhạt + viền nhẹ để nổi bật (trung lập với theme)
+          backgroundColor: 'rgba(16,185,129,0.08)', // emerald-500 @8%
+          borderWidth: 1,
+          borderColor: 'rgba(16,185,129,0.35)',     // emerald-500 @35%
+        }}
+      >
+        <Text style={{ fontSize: 18, marginTop: 2 }}>🧾</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.text, fontWeight: '700', marginBottom: 4 }}>
+            {t('payment.invoiceInfoTitle') || 'Lưu ý hóa đơn'}
+          </Text>
+          <Text style={{ color: c.subtext, lineHeight: 18 }}>
+            {t('payment.invoiceInfo') || 'Thông tin thanh toán sẽ hiển thị trên hóa đơn gửi cho khách thuê'}
+          </Text>
+        </View>
+      </View>
+
       <Card style={{ gap: 8 }}>
         <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
           {t('payment.title') || 'Payment profile'}
@@ -138,8 +163,25 @@ export default function PaymentProfileScreen() {
         </View>
       </Card>
 
-      <View style={{ position: 'absolute', left: 12, right: 12, bottom: insets.bottom + 12, flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }}>
-        <Button title={t('common.cancel') || 'Clear'} variant="ghost" onPress={async () => { await clearPaymentProfile(); setP({}); }} />
+      <View
+        style={{
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: insets.bottom + 12,
+          flexDirection: 'row',
+          gap: 12,
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Button
+          title={t('common.cancel') || 'Clear'}
+          variant="ghost"
+          onPress={async () => {
+            await clearPaymentProfile();
+            setP({});
+          }}
+        />
         <Button title={t('common.save') || 'Save'} onPress={save} />
       </View>
     </ScrollView>

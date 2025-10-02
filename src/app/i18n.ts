@@ -8,6 +8,9 @@ const resources = {
   vi: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Lưu ý hóa đơn',
+        invoiceInfo:
+          'Thông tin thanh toán sẽ hiển thị trên hóa đơn gửi cho khách thuê',
         title: 'Thông tin thanh toán',
         brandName: 'Tên thương hiệu',
         bankName: 'Ngân hàng',
@@ -808,6 +811,9 @@ const resources = {
   en: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Invoice note',
+        invoiceInfo:
+          'Payment information will appear on the invoice sent to the tenant.',
         title: 'Payment details',
         brandName: 'Brand / Business name',
         bankName: 'Bank',
@@ -1611,6 +1617,9 @@ const resources = {
   es: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Aviso de factura',
+        invoiceInfo:
+          'La información de pago aparecerá en la factura enviada al inquilino.',
         title: 'Información de pago',
         brandName: 'Nombre de la marca/empresa',
         bankName: 'Banco',
@@ -2280,6 +2289,9 @@ const resources = {
   fr: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Note de facture',
+        invoiceInfo:
+          'Les informations de paiement figureront sur la facture envoyée au locataire.',
         title: 'Informations de paiement',
         brandName: 'Nom de la marque / entreprise',
         bankName: 'Banque',
@@ -2757,6 +2769,9 @@ const resources = {
   de: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Rechnungshinweis',
+        invoiceInfo:
+          'Zahlungsinformationen werden auf der an den Mieter gesendeten Rechnung angezeigt.',
         title: 'Zahlungsinformationen',
         brandName: 'Marken-/Firmenname',
         bankName: 'Bank',
@@ -3234,6 +3249,8 @@ const resources = {
   zh: {
     translation: {
       payment: {
+        invoiceInfoTitle: '发票提示',
+        invoiceInfo: '付款信息将显示在发送给租户的发票上。',
         title: '付款信息',
         brandName: '品牌/商户名称',
         bankName: '银行',
@@ -3700,6 +3717,8 @@ const resources = {
   ja: {
     translation: {
       payment: {
+        invoiceInfoTitle: '請求書に関する注意',
+        invoiceInfo: '支払い情報は、入居者に送付される請求書に表示されます。',
         title: '支払い情報',
         brandName: 'ブランド／事業者名',
         bankName: '銀行',
@@ -4173,6 +4192,8 @@ const resources = {
   ko: {
     translation: {
       payment: {
+        invoiceInfoTitle: '청구서 안내',
+        invoiceInfo: '결제 정보는 세입자에게 발송되는 청구서에 표시됩니다.',
         title: '결제 정보',
         brandName: '브랜드/업체명',
         bankName: '은행',
@@ -4639,6 +4660,9 @@ const resources = {
   ru: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Примечание к счёту',
+        invoiceInfo:
+          'Платёжная информация будет указана в счёте, отправляемом арендатору.',
         title: 'Платёжная информация',
         brandName: 'Название бренда/компании',
         bankName: 'Банк',
@@ -5115,6 +5139,8 @@ const resources = {
   ar: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'ملاحظة على الفاتورة',
+        invoiceInfo: 'ستظهر معلومات الدفع على الفاتورة المُرسلة إلى المستأجر.',
         title: 'بيانات الدفع',
         brandName: 'اسم العلامة التجارية/النشاط',
         bankName: 'البنك',
@@ -5608,6 +5634,8 @@ const resources = {
   th: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'หมายเหตุใบแจ้งหนี้',
+        invoiceInfo: 'ข้อมูลการชำระเงินจะแสดงบนใบแจ้งหนี้ที่ส่งให้ผู้เช่า',
         title: 'ข้อมูลการชำระเงิน',
         brandName: 'ชื่อแบรนด์/ธุรกิจ',
         bankName: 'ธนาคาร',
@@ -6173,6 +6201,9 @@ const resources = {
   id: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Catatan pada faktur',
+        invoiceInfo:
+          'Informasi pembayaran akan ditampilkan pada faktur yang dikirim kepada penyewa.',
         title: 'Informasi pembayaran',
         brandName: 'Nama merek/perusahaan',
         bankName: 'Bank',
@@ -6738,6 +6769,9 @@ const resources = {
   ms: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Nota pada invois',
+        invoiceInfo:
+          'Maklumat pembayaran akan dipaparkan pada invois yang dihantar kepada penyewa.',
         title: 'Maklumat pembayaran',
         brandName: 'Nama jenama/syarikat',
         bankName: 'Bank',
@@ -7237,6 +7271,9 @@ const resources = {
   fil: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Invoice note',
+        invoiceInfo:
+          'Payment information will appear on the invoice sent to the tenant.',
         title: 'Impormasyon sa pagbabayad',
         brandName: 'Pangalan ng brand/kumpanya',
         bankName: 'Bangko',
@@ -7685,6 +7722,9 @@ const resources = {
   pt: {
     translation: {
       payment: {
+        invoiceInfoTitle: 'Aviso da fatura',
+        invoiceInfo:
+          'As informações de pagamento aparecerão na fatura enviada ao inquilino.',
         title: 'Informações de pagamento',
         brandName: 'Nome da marca/empresa',
         bankName: 'Banco',
@@ -8194,6 +8234,9 @@ const resources = {
         footer: 'धन्यवाद!',
       },
       payment: {
+        invoiceInfoTitle: 'चालान संबंधी सूचना',
+        invoiceInfo:
+          'भुगतान जानकारी किरायेदार को भेजे जाने वाले चालान पर दिखाई देगी।',
         title: 'भुगतान विवरण',
         brandName: 'ब्रांड/व्यवसाय का नाम',
         bankName: 'बैंक',

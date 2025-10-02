@@ -7,7 +7,8 @@ import {
   Alert,
   TouchableOpacity,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -73,7 +74,12 @@ export default function LeaseForm({ route, navigation }: Props) {
   const [term, setTerm] = useState<'fixed' | 'open'>('fixed');
 
   const [startISO, setStartISO] = useState(new Date().toISOString().slice(0, 10));
-  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Picker state
+  const [showDatePicker, setShowDatePicker] = useState(false); // Android
+  const [iosShow, setIosShow] = useState(false);               // iOS Modal
+  const [iosTemp, setIosTemp] = useState<Date | null>(null);   // iOS temp date
+
   const [months, setMonths] = useState('12');
   const [days, setDays] = useState('');
 
@@ -239,14 +245,26 @@ export default function LeaseForm({ route, navigation }: Props) {
     }
   }
 
+  // ==== Handlers mở picker theo nền tảng ====
+  const openStartPicker = () => {
+    if (Platform.OS === 'ios') {
+      setIosTemp(new Date(startISO));
+      setIosShow(true);
+    } else {
+      setShowDatePicker(true);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
-       contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 100, gap: 12 }}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Khách thuê */}
         <Card style={{ gap: 8 }}>
           <FormInput placeholder={t('leaseForm.tenantName')} value={fullName} onChangeText={setFullName} />
@@ -305,17 +323,67 @@ export default function LeaseForm({ route, navigation }: Props) {
 
           {/* Ngày bắt đầu */}
           <Text style={{ color: c.subtext, marginTop: 6 }}>{t('leaseForm.startDate')}</Text>
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ borderRadius: 10, padding: 10, backgroundColor: c.card }}>
+          <TouchableOpacity
+            onPress={openStartPicker}
+            style={{ borderRadius: 10, padding: 10, backgroundColor: c.card }}
+          >
             <Text style={{ color: c.text }}>{formatDateISO(startISO, dateFormat, language)}</Text>
           </TouchableOpacity>
-          {showDatePicker && (
+
+          {/* iOS: Modal + Done/Cancel */}
+          {Platform.OS === 'ios' && (
+            <Modal
+              visible={iosShow}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setIosShow(false)}
+            >
+              <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.25)' }}>
+                <View
+                  style={{
+                    backgroundColor: (c as any).bg || c.card,
+                    borderTopLeftRadius: 16,
+                    borderTopRightRadius: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
+                    <TouchableOpacity onPress={() => setIosShow(false)}>
+                      <Text style={{ color: c.subtext }}>{t('common.cancel') || 'Cancel'}</Text>
+                    </TouchableOpacity>
+                    <Text style={{ color: c.text, fontWeight: '700' }}>
+                      {t('leaseForm.startDate') || 'Start date'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (iosTemp) setStartISO(iosTemp.toISOString().slice(0, 10));
+                        setIosShow(false);
+                      }}
+                    >
+                      <Text style={{ color: (c as any).primary || '#10b981', fontWeight: '700' }}>
+                        {t('common.done') || 'Done'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={iosTemp ?? new Date(startISO)}
+                    mode="date"
+                    display="spinner"
+                    onChange={(_, d) => d && setIosTemp(d)}
+                  />
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Android: chọn rồi đóng */}
+          {Platform.OS !== 'ios' && showDatePicker && (
             <DateTimePicker
               value={new Date(startISO)}
               mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="default"
               onChange={(event, date) => {
                 setShowDatePicker(false);
-                if (date) setStartISO(date.toISOString().slice(0, 10));
+                if (event.type === 'set' && date) setStartISO(date.toISOString().slice(0, 10));
               }}
             />
           )}
@@ -463,15 +531,17 @@ export default function LeaseForm({ route, navigation }: Props) {
         )}
 
         {/* Actions */}
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
+        <View
+          style={{
+            justifyContent: 'flex-end',
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+            flexDirection: 'row',
+            gap: 12,
+          }}
+        >
           <Button title={t('common.cancel')} variant="ghost" onPress={() => navigation.goBack()} />
           <Button title={t('leaseForm.createLease')} onPress={submit} />
         </View>
