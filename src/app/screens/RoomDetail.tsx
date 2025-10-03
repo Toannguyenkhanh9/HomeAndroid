@@ -7,7 +7,14 @@ import {RootStackParamList} from '../navigation/RootNavigator';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import {useThemeColors} from '../theme';
-import {getLeaseByRoom, getRoom, listCycles, nextDueDate, getTenant} from '../../services/rent';
+import {
+  getLeaseByRoom,
+  getRoom,
+  listCycles,
+  nextDueDate,
+  getTenant,
+  getInvoiceItems,   // ⬅️ thêm để kiểm tra opening từ meta_json
+} from '../../services/rent';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
 import {useTranslation} from 'react-i18next';
@@ -51,6 +58,32 @@ export default function RoomDetail({route, navigation}: Props) {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // ===== Helpers nhận diện & render chu kỳ mở đầu =====
+  const isOpeningCycle = (cy: any) => {
+    if (cy?.is_opening === 1 || cy?.is_opening === true) return true;
+    try {
+      if (!cy?.invoice_id) return false;
+      const items = (getInvoiceItems(cy.invoice_id) || []) as any[];
+      for (const it of items) {
+        if (!it?.meta_json) continue;
+        try {
+          const m = JSON.parse(it.meta_json);
+          if (m?.opening === true) return true;
+        } catch {}
+      }
+    } catch {}
+    return false;
+  };
+
+  const labelForCycle = (cy: any) => {
+    if (isOpeningCycle(cy)) return t('cycleDetail.openingCycle') || 'Kỳ Mở Đầu';
+    return `${formatDateISO(cy.period_start, dateFormat, language)}  →  ${formatDateISO(
+      cy.period_end,
+      dateFormat,
+      language,
+    )}`;
+  };
+
   // ===== Phân nhóm chu kỳ =====
   const openCycles = useMemo(
     () => cycles.filter(cy => String(cy.status) !== 'settled'),
@@ -86,6 +119,16 @@ export default function RoomDetail({route, navigation}: Props) {
     if (!mainCycle) return list;
     return list.filter(cy => cy.id !== mainCycle.id);
   }, [cycles, mainCycle]);
+
+  // Ngày đến hạn tiếp theo (safe)
+  const nextDue = useMemo(() => {
+    try {
+      if (!lease) return null;
+      return nextDueDate(lease.id) || null;
+    } catch {
+      return null;
+    }
+  }, [lease]);
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
@@ -136,7 +179,7 @@ export default function RoomDetail({route, navigation}: Props) {
                 {t('endDate')}: { lease.end_date ? formatDateISO(lease.end_date, dateFormat, language) : '—'}
               </Text>
               <Text style={{color: c.subtext}}>
-                {t('nextDueDate')}: {formatDateISO(nextDueDate(lease.id), dateFormat, language) || '—'}
+                {t('nextDueDate')}: {nextDue ? formatDateISO(nextDue, dateFormat, language) : '—'}
               </Text>
             </>
           ) : (
@@ -172,7 +215,7 @@ export default function RoomDetail({route, navigation}: Props) {
                   alignItems: 'center',
                 }}>
                 <Text style={{color: c.text}}>
-                  {formatDateISO(mainCycle.period_start, dateFormat, language)}  →  {formatDateISO(mainCycle.period_end, dateFormat, language)}
+                  {labelForCycle(mainCycle)}
                 </Text>
                 <Text
                   style={{
@@ -212,7 +255,7 @@ export default function RoomDetail({route, navigation}: Props) {
                   marginBottom: 8,
                 }}>
                 <Text style={{color: c.text}}>
-                  {formatDateISO(cy.period_start, dateFormat, language)}  →  {formatDateISO(cy.period_end, dateFormat, language)}
+                  {labelForCycle(cy)}
                 </Text>
                 <Text style={{fontStyle: 'italic', color: '#EF4444'}}>
                   {t('settledNo')}
@@ -242,7 +285,7 @@ export default function RoomDetail({route, navigation}: Props) {
                   marginBottom: 8,
                 }}>
                 <Text style={{color: c.text}}>
-                   {formatDateISO(cy.period_start, dateFormat, language)}  →   {formatDateISO(cy.period_end, dateFormat, language)}
+                  {labelForCycle(cy)}
                 </Text>
                 <Text style={{fontStyle: 'italic', color: '#10B981'}}>{t('settledYes')}</Text>
               </TouchableOpacity>

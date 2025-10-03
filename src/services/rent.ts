@@ -1,4 +1,3 @@
-// src/services/rent.ts
 import { exec, query } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { t } from '../utils/i18nProxy';
@@ -35,7 +34,12 @@ export type LeaseConfig = {
     unitPrice?: number | null;
     meterStart?: number | null;
   }>;
-  tenant?: { full_name: string; phone?: string; id_number?: string; note?: string };
+  tenant?: {
+    full_name: string;
+    phone?: string;
+    id_number?: string;
+    note?: string;
+  };
 };
 
 type AddRecurringItem = {
@@ -47,6 +51,29 @@ type AddRecurringItem = {
 };
 
 // ===== Dates helpers =====
+const dayMs = 24 * 60 * 60 * 1000;
+function ymd(y: number, m: number, d: number) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+function monthBounds(year: number, month: number) {
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0)); // last day of month
+  return { start, end };
+}
+function toDateISO(s: string) {
+  // ISO yyyy-mm-dd stored in DB → treat as UTC date
+  const [Y, M, D] = s.split('-').map(Number);
+  return new Date(Date.UTC(Y, M - 1, D));
+}
+function daysInclusive(a: Date, b: Date) {
+  return Math.max(0, Math.floor((b.getTime() - a.getTime()) / dayMs) + 1);
+}
+function overlapDaysInclusive(a1: Date, a2: Date, b1: Date, b2: Date) {
+  const s = new Date(Math.max(a1.getTime(), b1.getTime()));
+  const e = new Date(Math.min(a2.getTime(), b2.getTime()));
+  if (e.getTime() < s.getTime()) return 0;
+  return daysInclusive(s, e);
+}
 const toYMD = (d: Date) => d.toISOString().slice(0, 10);
 const addDays = (d: Date, n: number) => {
   const x = new Date(d);
@@ -67,18 +94,29 @@ const addYears = (d: Date, n: number) => {
 // ===== Apartments / Rooms =====
 export function createApartment(name: string, address?: string) {
   const id = uuidv4();
-  exec(`INSERT INTO apartments (id, name, address) VALUES (?,?,?)`, [id, name, address ?? null]);
+  exec(`INSERT INTO apartments (id, name, address) VALUES (?,?,?)`, [
+    id,
+    name,
+    address ?? null,
+  ]);
   return id;
 }
 export function deleteApartment(apartmentId: string) {
   const rooms =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM rooms WHERE apartment_id = ?`, [apartmentId])[0]?.c ??
-    0;
+    query<{ c: number }>(
+      `SELECT COUNT(*) c FROM rooms WHERE apartment_id = ?`,
+      [apartmentId],
+    )[0]?.c ?? 0;
   if (rooms > 0) throw new Error(t('rent.apartmentexistroom'));
   exec(`DELETE FROM apartments WHERE id = ?`, [apartmentId]);
 }
 
-export function createRoom(apartmentId: string, code: string, floor?: number, area?: number) {
+export function createRoom(
+  apartmentId: string,
+  code: string,
+  floor?: number,
+  area?: number,
+) {
   const norm = (code || '').trim();
   if (!norm) throw new Error('EMPTY_CODE');
 
@@ -115,7 +153,12 @@ export function getRoom(roomId: string) {
 }
 
 // ===== Tenants =====
-export function createTenant(full_name: string, phone?: string, id_number?: string, note?: string) {
+export function createTenant(
+  full_name: string,
+  phone?: string,
+  id_number?: string,
+  note?: string,
+) {
   const id = uuidv4();
   exec(
     `INSERT INTO tenants (id, full_name, phone, id_number, note) VALUES (?,?,?,?,?)`,
@@ -138,23 +181,34 @@ export function upsertChargeType(
   unit_price?: number | null,
   is_variable = false,
 ) {
-  const found = query<{ id: string }>(`SELECT id FROM charge_types WHERE name = ? LIMIT 1`, [
-    name,
-  ])[0];
+  const found = query<{ id: string }>(
+    `SELECT id FROM charge_types WHERE name = ? LIMIT 1`,
+    [name],
+  )[0];
   if (found) {
-    exec(`UPDATE charge_types SET unit=?, pricing_model=?, unit_price=?, meta_json=? WHERE id=?`, [
-      unit || null,
-      pricing_model,
-      unit_price ?? null,
-      JSON.stringify({ is_variable }),
-      found.id,
-    ]);
+    exec(
+      `UPDATE charge_types SET unit=?, pricing_model=?, unit_price=?, meta_json=? WHERE id=?`,
+      [
+        unit || null,
+        pricing_model,
+        unit_price ?? null,
+        JSON.stringify({ is_variable }),
+        found.id,
+      ],
+    );
     return found.id;
   }
   const id = uuidv4();
   exec(
     `INSERT INTO charge_types (id,name,unit,pricing_model,unit_price,meta_json) VALUES (?,?,?,?,?,?)`,
-    [id, name, unit || null, pricing_model, unit_price ?? null, JSON.stringify({ is_variable })],
+    [
+      id,
+      name,
+      unit || null,
+      pricing_model,
+      unit_price ?? null,
+      JSON.stringify({ is_variable }),
+    ],
   );
   return id;
 }
@@ -164,7 +218,13 @@ export function addCustomChargeType(
   unit?: string,
   defaultPrice?: number,
 ) {
-  return upsertChargeType(name, unit, isVariable ? 'per_unit' : 'flat', defaultPrice, isVariable);
+  return upsertChargeType(
+    name,
+    unit,
+    isVariable ? 'per_unit' : 'flat',
+    defaultPrice,
+    isVariable,
+  );
 }
 export function getChargeType(id: string) {
   return query(`SELECT * FROM charge_types WHERE id = ?`, [id])[0];
@@ -178,7 +238,10 @@ export function getLease(leaseId: string) {
   return query(`SELECT * FROM leases WHERE id = ?`, [leaseId])[0];
 }
 export function getLeaseByRoom(roomId: string) {
-  return query(`SELECT * FROM leases WHERE room_id=? AND status='active' LIMIT 1`, [roomId])[0];
+  return query(
+    `SELECT * FROM leases WHERE room_id=? AND status='active' LIMIT 1`,
+    [roomId],
+  )[0];
 }
 
 export function startLeaseAdvanced(cfg: LeaseConfig) {
@@ -197,12 +260,21 @@ export function startLeaseAdvanced(cfg: LeaseConfig) {
     charges,
   } = cfg;
 
+  // 1) Tenant (nếu có)
   let tenantId: string | null = null;
-  if (tenant?.full_name)
-    tenantId = createTenant(tenant.full_name, tenant.phone, tenant.id_number, tenant.note);
+  if (tenant?.full_name) {
+    tenantId = createTenant(
+      tenant.full_name,
+      tenant.phone,
+      tenant.id_number,
+      tenant.note,
+    );
+  }
 
+  // 2) Chu kỳ tính tiền theo loại HĐ
   const billing_cycle: Billing = leaseType === 'short_term' ? 'daily' : billing;
 
+  // 3) Tạo lease
   exec(
     `INSERT INTO leases (
       id, room_id, lease_type, start_date, billing_cycle,
@@ -226,6 +298,7 @@ export function startLeaseAdvanced(cfg: LeaseConfig) {
   );
   exec(`UPDATE rooms SET status='occupied' WHERE id=?`, [roomId]);
 
+  // 4) Phí định kỳ của hợp đồng
   if (Array.isArray(charges) && charges.length) {
     for (const ch of charges) {
       const ctId = upsertChargeType(
@@ -235,14 +308,25 @@ export function startLeaseAdvanced(cfg: LeaseConfig) {
         ch.unitPrice ?? 0,
         ch.type === 'variable',
       );
-      addRecurringCharge(id, ctId, ch.unitPrice ?? 0, ch.type === 'variable' ? 1 : 0, {
-        meter_start: ch.type === 'variable' ? ch.meterStart ?? 0 : undefined,
-      });
+      addRecurringCharge(
+        id,
+        ctId,
+        ch.unitPrice ?? 0,
+        ch.type === 'variable' ? 1 : 0,
+        { meter_start: ch.type === 'variable' ? ch.meterStart ?? 0 : undefined },
+      );
     }
   }
 
-  // tạo cycles đúng theo yêu cầu
+  // 5) Tạo các chu kỳ “thực” theo tháng/ngày
   ensureCyclesForLease(id);
+
+  // 6) Nếu THU TIỀN NHÀ ĐẦU KỲ → tạo một “Kỳ mở đầu” riêng (1 ngày), có hóa đơn riêng
+  //    chỉ gồm tiền nhà của KỲ KẾ TIẾP. Không gộp vào kỳ đầu tiên.
+  if ((baseRentCollect || 'start') === 'start' && (Number(baseRent) || 0) > 0) {
+    ensureOpeningCycleForLease(id);
+  }
+
   return id;
 }
 
@@ -271,12 +355,22 @@ export function addRecurringCharge(
   exec(
     `INSERT INTO recurring_charges (id, lease_id, charge_type_id, unit_price, is_variable, config_json)
      VALUES (?,?,?,?,?,?)`,
-    [id, leaseId, chargeTypeId, unit_price ?? 0, is_variable ?? 0, cfg ? JSON.stringify(cfg) : null],
+    [
+      id,
+      leaseId,
+      chargeTypeId,
+      unit_price ?? 0,
+      is_variable ?? 0,
+      cfg ? JSON.stringify(cfg) : null,
+    ],
   );
   return id;
 }
 
-export function addCustomRecurringCharges(leaseId: string, items: AddRecurringItem[]) {
+export function addCustomRecurringCharges(
+  leaseId: string,
+  items: AddRecurringItem[],
+) {
   for (const it of items) {
     const ctId = addCustomChargeType(it.name, it.isVariable, it.unit, it.price);
     addRecurringCharge(leaseId, ctId, it.price, it.isVariable ? 1 : 0, {
@@ -301,24 +395,32 @@ export function listChargesForLease(leaseId: string) {
     let meter_start = 0;
     try {
       const cfg = r.config_json ? JSON.parse(r.config_json) : null;
-      if (cfg && typeof cfg.meter_start === 'number') meter_start = cfg.meter_start;
-      else if (cfg && typeof cfg.meterStart === 'number') meter_start = cfg.meterStart;
+      if (cfg && typeof cfg.meter_start === 'number')
+        meter_start = cfg.meter_start;
+      else if (cfg && typeof cfg.meterStart === 'number')
+        meter_start = cfg.meterStart;
     } catch {}
     return { ...r, meter_start };
   });
 }
 
-export function updateRecurringChargePrice(leaseId: string, chargeTypeId: string, newPrice: number) {
-  exec(`UPDATE recurring_charges SET unit_price=? WHERE lease_id=? AND charge_type_id=?`, [
-    newPrice,
-    leaseId,
-    chargeTypeId,
-  ]);
+export function updateRecurringChargePrice(
+  leaseId: string,
+  chargeTypeId: string,
+  newPrice: number,
+) {
+  exec(
+    `UPDATE recurring_charges SET unit_price=? WHERE lease_id=? AND charge_type_id=?`,
+    [newPrice, leaseId, chargeTypeId],
+  );
 }
 
 // ===== Cycles =====
 export function listCycles(leaseId: string) {
-  return query(`SELECT * FROM lease_cycles WHERE lease_id=? ORDER BY period_start ASC`, [leaseId]);
+  return query(
+    `SELECT * FROM lease_cycles WHERE lease_id=? ORDER BY period_start ASC`,
+    [leaseId],
+  );
 }
 export function listSettledCyclesDesc(leaseId: string) {
   return query(
@@ -330,15 +432,66 @@ export function getCycle(cycleId: string) {
   return query(`SELECT * FROM lease_cycles WHERE id=?`, [cycleId])[0];
 }
 
-function insertCycle(leaseId: string, s: Date, e: Date) {
+function insertCycle(leaseId: string, s: Date, e: Date, opts?: { opening?: boolean }) {
+  ensureLeaseCyclesOpeningColumn();
   const id = uuidv4();
   exec(
-    `INSERT INTO lease_cycles (id, lease_id, period_start, period_end, due_date, status)
-        VALUES (?,?,?,?,?, 'open')`,
-    [id, leaseId, toYMD(s), toYMD(e), toYMD(e)],
+    `INSERT INTO lease_cycles (id, lease_id, period_start, period_end, due_date, status, is_opening)
+     VALUES (?,?,?,?,?, 'open', ?)`,
+    [id, leaseId, toYMD(s), toYMD(e), toYMD(e), opts?.opening ? 1 : 0],
   );
   return id;
 }
+
+function insertOpeningCycle(leaseId: string, day: Date) {
+  ensureLeaseCyclesOpeningColumn();
+  const id = uuidv4();
+  exec(
+    `INSERT INTO lease_cycles (id, lease_id, period_start, period_end, due_date, status, is_opening)
+     VALUES (?,?,?,?,?, 'open', 1)`,
+    [id, leaseId, toYMD(day), toYMD(day), toYMD(day)],
+  );
+  return id;
+}
+
+function ensureOpeningCycleForLease(leaseId: string) {
+  ensureLeaseCyclesOpeningColumn();
+
+  const l = getLease(leaseId);
+  if (!l) return;
+
+  const collect = (l.base_rent_collect || 'start') as 'start' | 'end';
+  const base = Number(l.base_rent || 0);
+  if (collect !== 'start' || base <= 0) return;
+
+  // đã có chu kỳ mở đầu?
+  const existed = query<{ id: string }>(
+    `SELECT id FROM lease_cycles WHERE lease_id=? AND is_opening=1 LIMIT 1`,
+    [leaseId],
+  )[0];
+  if (existed) return;
+
+  // cần biết kỳ đầu “thực” để điền for_period_* cho item opening
+  const first = query<any>(
+    `SELECT * FROM lease_cycles WHERE lease_id=? ORDER BY period_start ASC LIMIT 1`,
+    [leaseId],
+  )[0];
+  if (!first) return;
+
+  // tạo cycle mở đầu: 1 ngày tại start_date, đóng luôn
+  const s = new Date(l.start_date);
+  const ocId = insertCycle(leaseId, s, s, { opening: true });
+  const inv = openInvoiceForCycle(ocId);
+
+  addInvoiceItem(inv.id, 'rent.roomprice', 1, 'rent.month', base, base, undefined, {
+    opening: true,
+    for_period_start: first.period_start,
+    for_period_end: first.period_end,
+  });
+  recalcInvoice(inv.id);
+  exec(`UPDATE lease_cycles SET status='settled' WHERE id=?`, [ocId]);
+}
+
 
 /** Tạo đầy đủ chu kỳ theo quy tắc:
  * - daily  : 1 chu kỳ, kéo dài duration_days (>=1, mặc định 1)
@@ -352,7 +505,10 @@ export function ensureCyclesForLease(leaseId: string) {
 
   // Nếu đã có chu kỳ rồi (tạo từ trước) thì thôi.
   const existing =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM lease_cycles WHERE lease_id=?`, [leaseId])[0]?.c ?? 0;
+    query<{ c: number }>(
+      `SELECT COUNT(*) c FROM lease_cycles WHERE lease_id=?`,
+      [leaseId],
+    )[0]?.c ?? 0;
   if (existing > 0) return;
 
   const s0 = new Date(lease.start_date);
@@ -366,11 +522,17 @@ export function ensureCyclesForLease(leaseId: string) {
   }
 
   // MONTHLY / YEARLY → coi như theo tháng
-  const endOfThisMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+  const endOfThisMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() + 1,
+    0,
+  );
 
   // Không tạo vượt quá end_date (nếu có)
   const hardEnd = lease.end_date
-    ? new Date(Math.min(new Date(lease.end_date).getTime(), endOfThisMonth.getTime()))
+    ? new Date(
+        Math.min(new Date(lease.end_date).getTime(), endOfThisMonth.getTime()),
+      )
     : endOfThisMonth;
 
   // Nếu start nằm sau "ngưỡng tạo" (start > hardEnd) → chỉ tạo kỳ đầu tiên
@@ -390,21 +552,17 @@ export function ensureCyclesForLease(leaseId: string) {
   }
 }
 
-
-
-
-
 export function extendLeaseAndAddCycles(leaseId: string, extraCount: number) {
   const lease = getLease(leaseId);
   if (!lease) throw new Error('Lease not found');
 
-  const toYMD = (d: Date) => d.toISOString().slice(0, 10);
-  const addDays = (d: Date, n: number) => {
+  const toY = (d: Date) => d.toISOString().slice(0, 10);
+  const _addDays = (d: Date, n: number) => {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return x;
   };
-  const addMonths = (d: Date, n: number) => {
+  const _addMonths = (d: Date, n: number) => {
     const x = new Date(d);
     x.setMonth(x.getMonth() + n);
     return x;
@@ -421,24 +579,24 @@ export function extendLeaseAndAddCycles(leaseId: string, extraCount: number) {
   )[0];
   if (!last) throw new Error('No cycle found');
 
-  let start = addDays(new Date(last.period_end), 1);
+  let start = _addDays(new Date(last.period_end), 1);
 
   if (String(lease.billing_cycle) === 'monthly') {
     const n = Math.max(1, Number(extraCount || 0));
     let end: Date = new Date(last.period_end);
     for (let i = 0; i < n; i++) {
-      const e = addDays(addMonths(start, 1), -1);
+      const e = _addDays(_addMonths(start, 1), -1);
       insertCycle(leaseId, start, e);
       end = e;
-      start = addDays(e, 1);
+      start = _addDays(e, 1);
     }
-    exec(`UPDATE leases SET end_date = ? WHERE id = ?`, [toYMD(end), leaseId]);
+    exec(`UPDATE leases SET end_date = ? WHERE id = ?`, [toY(end), leaseId]);
   } else {
     // daily
     const days = Math.max(1, Number(extraCount || 0));
-    const e = addDays(start, days - 1);
+    const e = _addDays(start, days - 1);
     insertCycle(leaseId, start, e);
-    exec(`UPDATE leases SET end_date = ? WHERE id = ?`, [toYMD(e), leaseId]);
+    exec(`UPDATE leases SET end_date = ? WHERE id = ?`, [toY(e), leaseId]);
   }
 }
 
@@ -446,7 +604,8 @@ export function extendLeaseAndAddCycles(leaseId: string, extraCount: number) {
 export function openInvoiceForCycle(cycleId: string) {
   const c = getCycle(cycleId);
   if (!c) throw new Error('Cycle not found');
-  if (c.invoice_id) return query(`SELECT * FROM invoices WHERE id=?`, [c.invoice_id])[0];
+  if (c.invoice_id)
+    return query(`SELECT * FROM invoices WHERE id=?`, [c.invoice_id])[0];
   const id = uuidv4();
   exec(
     `INSERT INTO invoices (id, lease_id, period_start, period_end, issue_date, subtotal, total, status)
@@ -461,8 +620,89 @@ export function getInvoice(id: string) {
   return query(`SELECT * FROM invoices WHERE id=?`, [id])[0];
 }
 export function getInvoiceItems(invoiceId: string) {
-  return query(`SELECT * FROM invoice_items WHERE invoice_id=? ORDER BY rowid ASC`, [invoiceId]);
+  return query(
+    `SELECT * FROM invoice_items WHERE invoice_id=? ORDER BY rowid ASC`,
+    [invoiceId],
+  );
 }
+function seedFirstMonthBaseRentIfNeeded(leaseId: string) {
+  const l = getLease(leaseId);
+  if (!l) return;
+  const collect = (l.base_rent_collect || 'start') as 'start' | 'end';
+  const base = Number(l.base_rent || 0);
+  if (collect !== 'start' || base <= 0) return;
+
+  const first = query<any>(
+    `SELECT * FROM lease_cycles WHERE lease_id=? ORDER BY period_start ASC LIMIT 1`,
+    [leaseId],
+  )[0];
+  if (!first) return;
+
+  // ✅ kiểm tra tồn tại theo cả khoá & bản dịch cũ
+  const existed =
+    query<{ c: number }>(
+      `
+      SELECT COUNT(*) AS c
+      FROM invoice_items ii
+      JOIN invoices i ON i.id = ii.invoice_id
+      WHERE i.lease_id = ?
+        AND ii.description IN ('rent.roomprice', ?)
+        AND json_extract(ii.meta_json,'$.for_period_start') = ?
+        AND json_extract(ii.meta_json,'$.for_period_end')   = ?
+      `,
+      [leaseId, t('rent.roomprice'), first.period_start, first.period_end],
+    )[0]?.c ?? 0;
+  if (existed > 0) return;
+
+  const inv = openInvoiceForCycle(first.id);
+  addInvoiceItem(inv.id, 'rent.roomprice', 1, 'rent.month', base, base, undefined, {
+    opening: true,
+    base: true,
+    cycle_of: 'current',
+    for_period_start: first.period_start,
+    for_period_end: first.period_end,
+  });
+  recalcInvoice(inv.id);
+
+  // dọn trùng nếu có sẵn dữ liệu cũ
+  dedupeBaseRentItems(inv.id);
+}
+function dedupeBaseRentItems(invoiceId: string) {
+  const items = getInvoiceItems(invoiceId) as any[];
+  const map: Record<string, string[]> = {};
+
+  for (const it of items) {
+    const desc = String(it.description || '');
+    // nhận diện tiền nhà (cả khoá & bản dịch cũ)
+    const isBase =
+      desc === 'rent.roomprice' ||
+      desc === t('rent.roomprice') ||
+      desc === (t('leaseForm.baseRent') || '');
+    if (!isBase) continue;
+
+    let key = '';
+    try {
+      const m = it.meta_json ? JSON.parse(it.meta_json) : null;
+      if (m?.for_period_start && m?.for_period_end) {
+        key = `${m.for_period_start}__${m.for_period_end}`;
+      }
+    } catch {}
+    if (!key) continue;
+
+    if (!map[key]) map[key] = [];
+    map[key].push(it.id);
+  }
+
+  for (const ids of Object.values(map)) {
+    if (ids.length <= 1) continue;
+    // giữ lại bản đầu, xoá phần dư
+    for (let i = 1; i < ids.length; i++) {
+      exec(`DELETE FROM invoice_items WHERE id = ?`, [ids[i]]);
+    }
+  }
+  recalcInvoice(invoiceId);
+}
+
 function addInvoiceItem(
   invoiceId: string,
   description: string,
@@ -492,15 +732,20 @@ function addInvoiceItem(
 }
 function recalcInvoice(invoiceId: string) {
   const sum =
-    query<{ sum: number }>(`SELECT SUM(amount) sum FROM invoice_items WHERE invoice_id=?`, [
-      invoiceId,
-    ])[0]?.sum ?? 0;
+    query<{ sum: number }>(
+      `SELECT SUM(amount) sum FROM invoice_items WHERE invoice_id=?`,
+      [invoiceId],
+    )[0]?.sum ?? 0;
   exec(
     `UPDATE invoices SET subtotal=?, total=?, status = CASE WHEN total>0 THEN status ELSE 'open' END WHERE id=?`,
     [sum, sum, invoiceId],
   );
 }
-export function recordPayment(invoiceId: string, amount: number, method: string) {
+export function recordPayment(
+  invoiceId: string,
+  amount: number,
+  method: string,
+) {
   const id = uuidv4();
   exec(
     `INSERT INTO payments (id, invoice_id, payment_date, amount, method) VALUES (?,?,?,?,?)`,
@@ -508,15 +753,23 @@ export function recordPayment(invoiceId: string, amount: number, method: string)
   );
   const inv = getInvoice(invoiceId);
   const paid =
-    query<{ sum: number }>(`SELECT SUM(amount) sum FROM payments WHERE invoice_id=?`, [invoiceId])[0]
-      ?.sum ?? 0;
-  exec(`UPDATE invoices SET status=? WHERE id=?`, [paid >= inv.total ? 'paid' : 'partial', invoiceId]);
+    query<{ sum: number }>(
+      `SELECT SUM(amount) sum FROM payments WHERE invoice_id=?`,
+      [invoiceId],
+    )[0]?.sum ?? 0;
+  exec(`UPDATE invoices SET status=? WHERE id=?`, [
+    paid >= inv.total ? 'paid' : 'partial',
+    invoiceId,
+  ]);
 }
 
-// ===== Settle cycle =====
 export function settleCycleWithInputs(
   cycleId: string,
-  variableInputs: Array<{ charge_type_id: string; quantity: number; meter_end?: number }>,
+  variableInputs: Array<{
+    charge_type_id: string;
+    quantity: number;
+    meter_end?: number;
+  }>,
   extraCosts: Array<{ name: string; amount: number }> = [],
 ) {
   const c = getCycle(cycleId);
@@ -524,61 +777,92 @@ export function settleCycleWithInputs(
   const inv = openInvoiceForCycle(cycleId);
   const lease = getLease(inv.lease_id);
 
-  const collectWhen: 'start' | 'end' = (lease?.base_rent_collect || 'start') as any;
+  const collectWhen: 'start' | 'end' = (lease?.base_rent_collect ||
+    'start') as any;
   const base = Number(lease?.base_rent || 0);
 
   const endCur = new Date(c.period_end);
-  const nextStart = addDays(endCur, 0);
+  // ⚠️ PHẢI +1 ngày để ra 01 của tháng kế
+  const nextStart = addDays(endCur, 1);
   const nextEnd = addDays(addMonths(nextStart, 1), -1);
-  const isLastCycle = lease?.end_date ? toYMD(endCur) >= String(lease.end_date) : false;
+  const lastOfLease = lease?.end_date
+    ? toYMD(endCur) >= String(lease.end_date)
+    : false;
 
-  if (base > 0) {
-    if (collectWhen === 'end') {
-      addInvoiceItem(inv.id, t('rent.roomprice'), 1, t('rent.month'), base, base, undefined, {
-        base: true,
-        cycle_of: 'current',
-        for_period_start: c.period_start,
-        for_period_end: c.period_end,
+  // Tiền nhà
+if (base > 0) {
+  if (collectWhen === 'end') {
+    // thu cuối kỳ -> tính cho kỳ hiện tại
+    addInvoiceItem(inv.id, 'rent.roomprice', 1, 'rent.month', base, base, undefined, {
+      base: true, cycle_of: 'current',
+      for_period_start: c.period_start,
+      for_period_end:   c.period_end,
+    });
+  } else {
+    // thu đầu kỳ -> chèn TIỀN NHÀ của kỳ kế tiếp (trừ khi đây là kỳ cuối)
+    const last = isLastCycle(cycleId);      // ✅ GỌI HÀM
+    if (!last) {
+      const nStart = addDays(endCur, 1);
+      const nEnd   = addDays(addMonths(nStart, 1), -1);
+      addInvoiceItem(inv.id, 'rent.roomprice', 1, 'rent.month', base, base, undefined, {
+        base: true, cycle_of: 'next',
+        for_period_start: toYMD(nStart),
+        for_period_end:   toYMD(nEnd),
       });
-    } else {
-      if (!isLastCycle) {
-        addInvoiceItem(inv.id, t('rent.roomprice'), 1, t('rent.month'), base, base, undefined, {
-          base: true,
-          cycle_of: 'next',
-          for_period_start: toYMD(nextStart),
-          for_period_end: toYMD(nextEnd),
-        });
-      }
     }
   }
+}
 
+  // Các phí định kỳ cố định
   const charges = listChargesForLease(inv.lease_id);
   for (const ch of charges) {
     if (Number(ch.is_variable) === 1) continue;
-    if (String(ch.name).toLowerCase() === t('rent.roomprice1')) continue;
+    if (String(ch.name).toLowerCase() === t('rent.roomprice1')) continue; // tránh trùng tên “tiền nhà” nếu có key khác
     const price = Number(ch.unit_price) || 0;
-    addInvoiceItem(inv.id, ch.name, 1, ch.unit || t('rent.month'), price, price, ch.charge_type_id, {
-      cycle_of: 'current',
-      for_period_start: c.period_start,
-      for_period_end: c.period_end,
-    });
+    addInvoiceItem(
+      inv.id,
+      ch.name,
+      1,
+      ch.unit || t('rent.month'),
+      price,
+      price,
+      ch.charge_type_id,
+      {
+        cycle_of: 'current',
+        for_period_start: c.period_start,
+        for_period_end: c.period_end,
+      },
+    );
   }
 
+  // Biến số
   for (const inp of variableInputs) {
-    const ch = (charges as any[]).find(x => x.charge_type_id === inp.charge_type_id);
+    const ch = (charges as any[]).find(
+      x => x.charge_type_id === inp.charge_type_id,
+    );
     if (!ch) continue;
     const qty = Math.max(0, Number(inp.quantity) || 0);
     const price = Number(ch.unit_price) || 0;
-    addInvoiceItem(inv.id, ch.name, qty, ch.unit, price, qty * price, ch.charge_type_id, {
-      variable: true,
-      meter_start: Number(ch.meter_start || 0),
-      meter_end: Number(inp.meter_end || 0),
-      cycle_of: 'current',
-      for_period_start: c.period_start,
-      for_period_end: c.period_end,
-    });
+    addInvoiceItem(
+      inv.id,
+      ch.name,
+      qty,
+      ch.unit,
+      price,
+      qty * price,
+      ch.charge_type_id,
+      {
+        variable: true,
+        meter_start: Number(ch.meter_start || 0),
+        meter_end: Number(inp.meter_end || 0),
+        cycle_of: 'current',
+        for_period_start: c.period_start,
+        for_period_end: c.period_end,
+      },
+    );
   }
 
+  // Phát sinh
   for (const ex of extraCosts) {
     const amt = Number(ex.amount) || 0;
     if (ex.name && amt > 0)
@@ -593,14 +877,15 @@ export function settleCycleWithInputs(
   recalcInvoice(inv.id);
   exec(`UPDATE lease_cycles SET status='settled' WHERE id=?`, [cycleId]);
 
-  // roll meter_start
+  // roll đồng hồ
   const items = getInvoiceItems(inv.id) as any[];
   const meterMap: Record<string, number> = {};
   for (const it of items) {
     if (it.charge_type_id && it.meta_json) {
       try {
         const m = JSON.parse(it.meta_json);
-        if (typeof m?.meter_end === 'number') meterMap[it.charge_type_id] = m.meter_end;
+        if (typeof m?.meter_end === 'number')
+          meterMap[it.charge_type_id] = m.meter_end;
       } catch {}
     }
   }
@@ -614,11 +899,10 @@ export function settleCycleWithInputs(
       cfg = row?.config_json ? JSON.parse(row.config_json) : {};
     } catch {}
     (cfg as any).meter_start = endVal;
-    exec(`UPDATE recurring_charges SET config_json=? WHERE lease_id=? AND charge_type_id=?`, [
-      JSON.stringify(cfg),
-      inv.lease_id,
-      ctId,
-    ]);
+    exec(
+      `UPDATE recurring_charges SET config_json=? WHERE lease_id=? AND charge_type_id=?`,
+      [JSON.stringify(cfg), inv.lease_id, ctId],
+    );
   }
 
   return getInvoice(inv.id);
@@ -636,12 +920,29 @@ export function nextDueDate(leaseId: string) {
 
 // ===== Reports =====
 export function revenueByMonth(year: number, month: number) {
-  const ym = `${year}-${String(month).padStart(2, '0')}`;
-  const rows = query<{ sum: number }>(
-    `SELECT SUM(total) sum FROM invoices WHERE strftime('%Y-%m', issue_date)=?`,
-    [ym],
+  const { start: ms, end: me } = monthBounds(year, month);
+
+  // Lấy tất cả invoice_items + invoice period để tự phân bổ
+  const items = query<any>(
+    `
+    SELECT ii.amount, ii.meta_json, i.period_start, i.period_end
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    `,
   );
-  return rows[0]?.sum ?? 0;
+
+  let sum = 0;
+  for (const it of items) {
+    const { ps, pe } = parseItemPeriod(it);
+    // bỏ qua item không liên quan tháng này
+    const overlapDays = clampRangeOverlapDays(ps, pe, ms, me);
+    if (overlapDays <= 0) continue;
+
+    const itemDays = daysBetweenInclusive(ps, pe);
+    const amount = Number(it.amount) || 0;
+    sum += (amount * overlapDays) / itemDays;
+  }
+  return Math.round(sum);
 }
 
 // ===== Seed + housekeeping =====
@@ -656,22 +957,65 @@ export function ensureChargeTypesTable() {
 export function seedChargeCatalogOnce() {
   ensureChargeTypesTable();
   const c =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM charge_types`)[0]?.c ??
-    0;
+    query<{ c: number }>(`SELECT COUNT(*) c FROM charge_types`)[0]?.c ?? 0;
   if (c > 0) return;
   const defs = [
-    { name: t('rent.carprice'), unit: t('rent.month'), pricing_model: 'flat', unit_price: 0 },
-    { name: t('rent.internet'), unit: t('rent.month'), pricing_model: 'flat', unit_price: 0 },
-    { name: t('rent.garbage'), unit: t('rent.month'), pricing_model: 'flat', unit_price: 0 },
-    { name: t('rent.maintenance'), unit: t('rent.month'), pricing_model: 'flat', unit_price: 0 },
-    { name: t('rent.security'), unit: t('rent.month'), pricing_model: 'flat', unit_price: 0 },
-    { name: t('rent.electricity'), unit: 'kWh', pricing_model: 'per_unit', unit_price: 0, meta: { is_variable: true } },
-    { name: t('rent.water'), unit: 'm3', pricing_model: 'per_unit', unit_price: 0, meta: { is_variable: true } },
+    {
+      name: t('rent.carprice'),
+      unit: t('rent.month'),
+      pricing_model: 'flat',
+      unit_price: 0,
+    },
+    {
+      name: t('rent.internet'),
+      unit: t('rent.month'),
+      pricing_model: 'flat',
+      unit_price: 0,
+    },
+    {
+      name: t('rent.garbage'),
+      unit: t('rent.month'),
+      pricing_model: 'flat',
+      unit_price: 0,
+    },
+    {
+      name: t('rent.maintenance'),
+      unit: t('rent.month'),
+      pricing_model: 'flat',
+      unit_price: 0,
+    },
+    {
+      name: t('rent.security'),
+      unit: t('rent.month'),
+      pricing_model: 'flat',
+      unit_price: 0,
+    },
+    {
+      name: t('rent.electricity'),
+      unit: 'kWh',
+      pricing_model: 'per_unit',
+      unit_price: 0,
+      meta: { is_variable: true },
+    },
+    {
+      name: t('rent.water'),
+      unit: 'm3',
+      pricing_model: 'per_unit',
+      unit_price: 0,
+      meta: { is_variable: true },
+    },
   ] as any[];
   for (const d of defs) {
     exec(
       `INSERT INTO charge_types (id,name,unit,pricing_model,unit_price,meta_json) VALUES (?,?,?,?,?,?)`,
-      [rid(), d.name, d.unit ?? null, d.pricing_model, d.unit_price ?? 0, d.meta ? JSON.stringify(d.meta) : null],
+      [
+        rid(),
+        d.name,
+        d.unit ?? null,
+        d.pricing_model,
+        d.unit_price ?? 0,
+        d.meta ? JSON.stringify(d.meta) : null,
+      ],
     );
   }
 }
@@ -704,9 +1048,10 @@ export function ensureOperatingCostTables() {
 export function hasOperatingCostSetup(apartmentId: string) {
   ensureOperatingCostTables();
   const c =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM op_cost_templates WHERE apartment_id=?`, [
-      apartmentId,
-    ])[0]?.c ?? 0;
+    query<{ c: number }>(
+      `SELECT COUNT(*) c FROM op_cost_templates WHERE apartment_id=?`,
+      [apartmentId],
+    )[0]?.c ?? 0;
   return c > 0;
 }
 
@@ -730,14 +1075,26 @@ export function upsertOperatingCostTemplate(
   exec(
     `INSERT INTO op_cost_templates (id, apartment_id, name, is_variable, unit, default_amount)
         VALUES (?,?,?,?,?,?)`,
-    [id, apartmentId, name, isVariable ? 1 : 0, unit ?? null, Number(defaultAmount || 0)],
+    [
+      id,
+      apartmentId,
+      name,
+      isVariable ? 1 : 0,
+      unit ?? null,
+      Number(defaultAmount || 0),
+    ],
   );
   return id;
 }
 
 export function replaceOperatingCostTemplates(
   apartmentId: string,
-  items: Array<{ name: string; isVariable: boolean; unit?: string; defaultAmount?: number }>,
+  items: Array<{
+    name: string;
+    isVariable: boolean;
+    unit?: string;
+    defaultAmount?: number;
+  }>,
 ) {
   ensureOperatingCostTables();
   exec(`DELETE FROM op_cost_templates WHERE apartment_id=?`, [apartmentId]);
@@ -769,7 +1126,11 @@ function ensureOperatingCostMonthRow(apartmentId: string, ym: string) {
   )[0];
   if (!m) {
     const mid = uuidv4();
-    exec(`INSERT INTO op_cost_months (id, apartment_id, ym) VALUES (?,?,?)`, [mid, apartmentId, ym]);
+    exec(`INSERT INTO op_cost_months (id, apartment_id, ym) VALUES (?,?,?)`, [
+      mid,
+      apartmentId,
+      ym,
+    ]);
     m = query<any>(`SELECT * FROM op_cost_months WHERE id=?`, [mid])[0];
   }
   return m;
@@ -785,7 +1146,11 @@ export function ensureOperatingCostMonth(apartmentId: string, ym: string) {
   )[0];
   if (!m) {
     const mid = uuidv4();
-    exec(`INSERT INTO op_cost_months (id, apartment_id, ym) VALUES (?,?,?)`, [mid, apartmentId, ym]);
+    exec(`INSERT INTO op_cost_months (id, apartment_id, ym) VALUES (?,?,?)`, [
+      mid,
+      apartmentId,
+      ym,
+    ]);
     m = query<any>(`SELECT * FROM op_cost_months WHERE id=?`, [mid])[0];
     // seed items from templates
     const tpls = listOperatingCostTemplates(apartmentId);
@@ -794,7 +1159,14 @@ export function ensureOperatingCostMonth(apartmentId: string, ym: string) {
       exec(
         `INSERT INTO op_cost_items (id, month_id, name, is_variable, unit, amount)
             VALUES (?,?,?,?,?,?)`,
-        [iid, m.id, t.name, t.is_variable ? 1 : 0, t.unit ?? null, t.is_variable ? 0 : Number(t.default_amount) || 0],
+        [
+          iid,
+          m.id,
+          t.name,
+          t.is_variable ? 1 : 0,
+          t.unit ?? null,
+          t.is_variable ? 0 : Number(t.default_amount) || 0,
+        ],
       );
     }
   }
@@ -822,7 +1194,13 @@ export function getOperatingMonth(apartmentId: string, ym: string) {
 export function saveOperatingMonth(
   apartmentId: string,
   ym: string,
-  items: Array<{ id?: string; name: string; is_variable: number; unit?: string | null; amount: number }>,
+  items: Array<{
+    id?: string;
+    name: string;
+    is_variable: number;
+    unit?: string | null;
+    amount: number;
+  }>,
 ) {
   ensureOperatingCostTables();
   const m = ensureOperatingCostMonthRow(apartmentId, ym); // không seed
@@ -833,7 +1211,14 @@ export function saveOperatingMonth(
     exec(
       `INSERT INTO op_cost_items (id, month_id, name, is_variable, unit, amount)
           VALUES (?,?,?,?,?,?)`,
-      [iid, m.id, it.name.trim(), Number(it.is_variable) || 0, it.unit ?? null, Number(it.amount) || 0],
+      [
+        iid,
+        m.id,
+        it.name.trim(),
+        Number(it.is_variable) || 0,
+        it.unit ?? null,
+        Number(it.amount) || 0,
+      ],
     );
   }
 }
@@ -851,7 +1236,10 @@ export function deleteOperatingCostMonth(apartmentId: string, ym: string) {
 }
 
 /** Reseed một tháng theo template hiện tại */
-export function reseedOperatingCostMonthFromTemplates(apartmentId: string, ym: string) {
+export function reseedOperatingCostMonthFromTemplates(
+  apartmentId: string,
+  ym: string,
+) {
   ensureOperatingCostTables();
   const m = ensureOperatingCostMonthRow(apartmentId, ym);
   exec(`DELETE FROM op_cost_items WHERE month_id=?`, [m.id]);
@@ -861,7 +1249,14 @@ export function reseedOperatingCostMonthFromTemplates(apartmentId: string, ym: s
     exec(
       `INSERT INTO op_cost_items (id, month_id, name, is_variable, unit, amount)
        VALUES (?,?,?,?,?,?)`,
-      [iid, m.id, t.name, t.is_variable ? 1 : 0, t.unit ?? null, t.is_variable ? 0 : Number(t.default_amount) || 0],
+      [
+        iid,
+        m.id,
+        t.name,
+        t.is_variable ? 1 : 0,
+        t.unit ?? null,
+        t.is_variable ? 0 : Number(t.default_amount) || 0,
+      ],
     );
   }
 }
@@ -876,9 +1271,10 @@ export function monthLabel(date: Date) {
 // ===== Misc lease helpers =====
 export function closeExpiredLeases() {
   const t0 = new Date();
-  const today = `${t0.getFullYear()}-${String(t0.getMonth() + 1).padStart(2, '0')}-${String(
-    t0.getDate(),
-  ).padStart(2, '0')}`;
+  const today = `${t0.getFullYear()}-${String(t0.getMonth() + 1).padStart(
+    2,
+    '0',
+  )}-${String(t0.getDate()).padStart(2, '0')}`;
   const expired = query<any>(
     `
     SELECT l.id, l.room_id FROM leases l
@@ -887,13 +1283,19 @@ export function closeExpiredLeases() {
   );
   for (const row of expired) {
     exec(`UPDATE leases SET status='ended' WHERE id=?`, [row.id]);
-    if (row.room_id) exec(`UPDATE rooms SET status='available' WHERE id=? AND status!='available'`, [row.room_id]);
+    if (row.room_id)
+      exec(
+        `UPDATE rooms SET status='available' WHERE id=? AND status!='available'`,
+        [row.room_id],
+      );
   }
 }
 
 export function ensureLeaseCollectColumn() {
   try {
-    exec(`ALTER TABLE leases ADD COLUMN base_rent_collect TEXT DEFAULT 'start'`);
+    exec(
+      `ALTER TABLE leases ADD COLUMN base_rent_collect TEXT DEFAULT 'start'`,
+    );
   } catch {}
 }
 
@@ -935,7 +1337,8 @@ export function getLeaseTemplateForRenew(leaseId: string) {
     baseRent: Number(lease.base_rent || 0),
     baseRentCollect: (lease.base_rent_collect || 'start') as 'start' | 'end',
     deposit: 0,
-    durationDays: lease.billing_cycle === 'daily' ? lease.duration_days || 1 : undefined,
+    durationDays:
+      lease.billing_cycle === 'daily' ? lease.duration_days || 1 : undefined,
     endDateISO: undefined,
     charges: charges.map((r: any) => {
       const isVar = Number(r.is_variable) === 1;
@@ -986,7 +1389,15 @@ export function endLeaseWithSettlement(
     `INSERT INTO lease_settlements
       (id, lease_id, settled_at, deposit, adjustments_total, final_balance, details_json)
      VALUES (?,?,?,?,?,?,?)`,
-    [sid, leaseId, new Date().toISOString(), deposit, adjustmentsTotal, finalBalance, JSON.stringify(adjustments || [])],
+    [
+      sid,
+      leaseId,
+      new Date().toISOString(),
+      deposit,
+      adjustmentsTotal,
+      finalBalance,
+      JSON.stringify(adjustments || []),
+    ],
   );
 
   return { deposit, adjustmentsTotal, finalBalance };
@@ -1057,7 +1468,10 @@ export function listSettlementAdjustments(leaseId: string) {
 }
 
 export function listLeasesByRoom(roomId: string) {
-  return query(`SELECT * FROM leases WHERE room_id = ? ORDER BY start_date DESC`, [roomId]);
+  return query(
+    `SELECT * FROM leases WHERE room_id = ? ORDER BY start_date DESC`,
+    [roomId],
+  );
 }
 
 export function getLeaseSettlement(leaseId: string) {
@@ -1069,7 +1483,12 @@ export function getLeaseSettlement(leaseId: string) {
 }
 
 // ====== Operating costs (legacy operating_* tables) ======
-type OperatingExpense = { name: string; amount: number; type: 'fixed' | 'variable'; note?: string };
+type OperatingExpense = {
+  name: string;
+  amount: number;
+  type: 'fixed' | 'variable';
+  note?: string;
+};
 
 export function ensureOperatingTables() {
   exec(`CREATE TABLE IF NOT EXISTS apartment_meta(
@@ -1109,17 +1528,28 @@ export function listRoomsWithApartment() {
 }
 
 export function getApartmentStats() {
-  const apt = query<any>(`SELECT id, name, address FROM apartments ORDER BY rowid ASC LIMIT 1`)[0];
+  const apt = query<any>(
+    `SELECT id, name, address FROM apartments ORDER BY rowid ASC LIMIT 1`,
+  )[0];
   if (!apt) return null;
   const total =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM rooms WHERE apartment_id=?`, [apt.id])[0]?.c ?? 0;
+    query<{ c: number }>(`SELECT COUNT(*) c FROM rooms WHERE apartment_id=?`, [
+      apt.id,
+    ])[0]?.c ?? 0;
   const occupied =
     query<{ c: number }>(
       `SELECT COUNT(*) c FROM rooms WHERE apartment_id=? AND status='occupied'`,
       [apt.id],
     )[0]?.c ?? 0;
   const available = total - occupied;
-  return { apartment_id: apt.id, name: apt.name, address: apt.address, total, occupied, available };
+  return {
+    apartment_id: apt.id,
+    name: apt.name,
+    address: apt.address,
+    total,
+    occupied,
+    available,
+  };
 }
 
 function ymOf(d: Date) {
@@ -1129,7 +1559,9 @@ function ymOf(d: Date) {
 export function listOperatingMonths(apartmentId: string): string[] {
   ensureOperatingTables();
   // bắt đầu từ tháng tạo apartment (fallback: tháng đầu tiên có phòng)
-  let startRow = query<any>(`SELECT created_at FROM apartments WHERE id=?`, [apartmentId])[0];
+  let startRow = query<any>(`SELECT created_at FROM apartments WHERE id=?`, [
+    apartmentId,
+  ])[0];
   let start: string | null = null;
   if (startRow?.created_at) {
     start = startRow.created_at.slice(0, 7);
@@ -1138,7 +1570,9 @@ export function listOperatingMonths(apartmentId: string): string[] {
       `SELECT created_at FROM rooms WHERE apartment_id=? ORDER BY created_at ASC LIMIT 1`,
       [apartmentId],
     )[0];
-    start = anyRoom?.created_at ? String(anyRoom.created_at).slice(0, 7) : ymOf(new Date());
+    start = anyRoom?.created_at
+      ? String(anyRoom.created_at).slice(0, 7)
+      : ymOf(new Date());
   }
 
   // generate list từ start đến tháng hiện tại (desc)
@@ -1148,7 +1582,10 @@ export function listOperatingMonths(apartmentId: string): string[] {
   const cur = new Date();
   let y = sy,
     m = sm;
-  while (y < cur.getFullYear() || (y === cur.getFullYear() && m <= cur.getMonth() + 1)) {
+  while (
+    y < cur.getFullYear() ||
+    (y === cur.getFullYear() && m <= cur.getMonth() + 1)
+  ) {
     arr.push(`${y}-${String(m).padStart(2, '0')}`);
     m++;
     if (m > 12) {
@@ -1168,12 +1605,17 @@ export function ensureOperatingMonth(apartmentId: string, ym: string) {
     )[0]?.c ?? 0;
   if (exist > 0) return;
   const id = uuidv4();
-  exec(`INSERT INTO operating_months (id, apartment_id, ym) VALUES (?,?,?)`, [id, apartmentId, ym]);
+  exec(`INSERT INTO operating_months (id, apartment_id, ym) VALUES (?,?,?)`, [
+    id,
+    apartmentId,
+    ym,
+  ]);
 
   // auto add fixed templates
-  const tpls = query<any>(`SELECT * FROM operating_fixed_templates WHERE apartment_id=?`, [
-    apartmentId,
-  ]);
+  const tpls = query<any>(
+    `SELECT * FROM operating_fixed_templates WHERE apartment_id=?`,
+    [apartmentId],
+  );
   for (const t of tpls) {
     const eid = uuidv4();
     exec(
@@ -1192,7 +1634,11 @@ export function listOperatingExpenses(apartmentId: string, ym: string) {
   );
 }
 
-export function addOperatingExpense(apartmentId: string, ym: string, exp: OperatingExpense) {
+export function addOperatingExpense(
+  apartmentId: string,
+  ym: string,
+  exp: OperatingExpense,
+) {
   ensureOperatingMonth(apartmentId, ym);
   const id = uuidv4();
   exec(
@@ -1209,7 +1655,10 @@ export function listFixedExpenseTemplates(apartmentId: string) {
     [apartmentId],
   );
 }
-export function addFixedExpenseTemplate(apartmentId: string, tpl: { name: string; amount: number }) {
+export function addFixedExpenseTemplate(
+  apartmentId: string,
+  tpl: { name: string; amount: number },
+) {
   ensureOperatingTables();
   const id = uuidv4();
   exec(
@@ -1222,28 +1671,97 @@ export function removeFixedExpenseTemplate(id: string) {
   exec(`DELETE FROM operating_fixed_templates WHERE id=?`, [id]);
 }
 
-// ====== Reports (revenue by room, expenses) ======
-export function getReportRevenueByRoom(apartmentId: string, start: string, end: string) {
-  // Sum invoices.total theo phòng trong khoảng issue_date
-  const rows = query<any>(
-    `
-    SELECT r.id AS room_id, r.code, SUM(i.total) AS total
-    FROM invoices i
-    JOIN leases l ON l.id = i.lease_id
-    JOIN rooms r ON r.id = l.room_id
-    WHERE r.apartment_id = ?
-      AND i.issue_date >= ?
-      AND i.issue_date <= ?
-    GROUP BY r.id, r.code
-    ORDER BY r.code ASC
-  `,
-    [apartmentId, start, end],
-  );
-  const total = rows.reduce((s: any, x: any) => s + (Number(x.total) || 0), 0);
-  return { rows, total };
+// ===== Helpers for reports (override old impl with UTC-safe versions) =====
+function daysBetweenInclusive(a: Date, b: Date) {
+  const ms = b.getTime() - a.getTime();
+  return Math.floor(ms / 86400000) + 1;
+}
+function clampRangeOverlapDays(s1: Date, e1: Date, s2: Date, e2: Date) {
+  const s = new Date(Math.max(s1.getTime(), s2.getTime()));
+  const e = new Date(Math.min(e1.getTime(), e2.getTime()));
+  if (e < s) return 0;
+  return daysBetweenInclusive(s, e);
+}
+function parseItemPeriod(row: any): { ps: Date; pe: Date } {
+  // mặc định dùng period của invoice
+  let ps = toDateISO(row.period_start);
+  let pe = toDateISO(row.period_end);
+  // nếu meta có for_period_* thì override
+  if (row.meta_json) {
+    try {
+      const m = JSON.parse(row.meta_json);
+      if (m?.for_period_start && m?.for_period_end) {
+        ps = toDateISO(m.for_period_start);
+        pe = toDateISO(m.for_period_end);
+      }
+    } catch {}
+  }
+  return { ps, pe };
 }
 
-export function getReportOperatingExpenses(apartmentId: string, start: string, end: string) {
+// ====== Reports (revenue by room, expenses) ======
+/** Báo cáo doanh thu theo PHÒNG trong khoảng ngày [start..end] (ghi nhận theo kỳ) */
+export function getReportRevenueByRoom(
+  apartmentId: string,
+  start: string,
+  end: string,
+) {
+  const rs = toDateISO(start);
+  const re = toDateISO(end);
+
+  // Lấy item + invoice + phòng
+  const rows = query<any>(
+    `
+    SELECT
+      r.id   AS room_id,
+      r.code AS room_code,
+      ii.amount,
+      ii.meta_json,
+      i.period_start,
+      i.period_end
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    JOIN leases   l ON l.id = i.lease_id
+    JOIN rooms    r ON r.id = l.room_id
+    WHERE r.apartment_id = ?
+    `,
+    [apartmentId],
+  );
+
+  // Gom theo phòng, phân bổ theo số ngày overlap với [start..end]
+  const map: Record<string, { room_id: string; code: string; total: number }> =
+    {};
+  for (const r of rows) {
+    const { ps, pe } = parseItemPeriod(r);
+    const overlap = clampRangeOverlapDays(ps, pe, rs, re);
+    if (overlap <= 0) continue;
+
+    const days = daysBetweenInclusive(ps, pe);
+    const amt = Number(r.amount) || 0;
+    const alloc = (amt * overlap) / days;
+
+    if (!map[r.room_id])
+      map[r.room_id] = { room_id: r.room_id, code: r.room_code, total: 0 };
+    map[r.room_id].total += alloc;
+  }
+
+  const outRows = Object.values(map)
+    .map(x => ({
+      room_id: x.room_id,
+      code: x.code,
+      total: Math.round(x.total),
+    }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+  const total = outRows.reduce((s, x) => s + x.total, 0);
+
+  return { rows: outRows, total };
+}
+
+export function getReportOperatingExpenses(
+  apartmentId: string,
+  start: string,
+  end: string,
+) {
   ensureOperatingTables();
   // gom theo ym trong range
   const rows = query<any>(
@@ -1262,10 +1780,21 @@ export function getReportOperatingExpenses(apartmentId: string, start: string, e
 }
 export function upsertRecurringChargeForLease(
   leaseId: string,
-  item: { name: string; isVariable: boolean; unit?: string; price: number; meterStart?: number },
+  item: {
+    name: string;
+    isVariable: boolean;
+    unit?: string;
+    price: number;
+    meterStart?: number;
+  },
 ) {
   // 1) Bảo đảm có charge_type id (dùng upsert theo NAME)
-  const ctId = addCustomChargeType(item.name, item.isVariable, item.unit, item.price);
+  const ctId = addCustomChargeType(
+    item.name,
+    item.isVariable,
+    item.unit,
+    item.price,
+  );
 
   // 2) Kiểm tra lease đã có dòng recurring_charges cho ctId chưa
   const exist = query<{ id: string }>(
@@ -1273,7 +1802,9 @@ export function upsertRecurringChargeForLease(
     [leaseId, ctId],
   )[0];
 
-  const cfg = item.isVariable ? JSON.stringify({ meter_start: Number(item.meterStart || 0) }) : null;
+  const cfg = item.isVariable
+    ? JSON.stringify({ meter_start: Number(item.meterStart || 0) })
+    : null;
 
   if (exist) {
     exec(
@@ -1294,13 +1825,24 @@ export function upsertRecurringChargeForLease(
 }
 export function addOrUpdateRecurringCharges(
   leaseId: string,
-  items: Array<{ name: string; isVariable: boolean; unit?: string; price: number; meterStart?: number }>,
+  items: Array<{
+    name: string;
+    isVariable: boolean;
+    unit?: string;
+    price: number;
+    meterStart?: number;
+  }>,
 ) {
   for (const it of items) upsertRecurringChargeForLease(leaseId, it);
 }
 export function updateTenant(
   tenantId: string,
-  fields: { full_name?: string; phone?: string; id_number?: string; note?: string }
+  fields: {
+    full_name?: string;
+    phone?: string;
+    id_number?: string;
+    note?: string;
+  },
 ) {
   const cur = getTenant(tenantId);
   if (!cur) throw new Error('Tenant not found');
@@ -1315,16 +1857,17 @@ export function updateTenant(
 
   exec(
     `UPDATE tenants SET full_name = ?, phone = ?, id_number = ?, note = ? WHERE id = ?`,
-    [full_name, phone, id_number, note, tenantId]
+    [full_name, phone, id_number, note, tenantId],
   );
   return getTenant(tenantId);
 }
 export function deleteTenant(tenantId: string) {
   // Chặn xóa nếu còn hợp đồng active
   const active =
-    query<{ c: number }>(`SELECT COUNT(*) c FROM leases WHERE tenant_id = ? AND status = 'active'`, [
-      tenantId,
-    ])[0]?.c ?? 0;
+    query<{ c: number }>(
+      `SELECT COUNT(*) c FROM leases WHERE tenant_id = ? AND status = 'active'`,
+      [tenantId],
+    )[0]?.c ?? 0;
   if (active > 0) {
     throw new Error('Người thuê đang có hợp đồng hoạt động.');
   }
@@ -1362,27 +1905,51 @@ export function listYearsWithData(): number[] {
 
 // Breakdown theo căn hộ cho 1 tháng (YYYY, M)
 export function listApartments() {
-  return query<any>(`SELECT id, name, address FROM apartments ORDER BY name ASC`);
+  return query<any>(
+    `SELECT id, name, address FROM apartments ORDER BY name ASC`,
+  );
 }
 
-export function revenueByApartmentForMonth(apartmentId: string, year: number, month: number) {
-  const ym = `${year}-${String(month).padStart(2, '0')}`;
-  // tổng theo căn hộ, join invoices -> leases -> rooms
-  const row = query<{ sum: number }>(
+export function revenueByApartmentForMonth(
+  apartmentId: string,
+  year: number,
+  month: number,
+) {
+  const { start: ms, end: me } = monthBounds(year, month);
+
+  const rows = query<any>(
     `
-    SELECT SUM(i.total) AS sum
-    FROM invoices i
-    JOIN leases l ON l.id = i.lease_id
-    JOIN rooms r ON r.id = l.room_id
+    SELECT
+      r.apartment_id,
+      ii.amount,
+      ii.meta_json,
+      i.period_start,
+      i.period_end
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    JOIN leases   l ON l.id = i.lease_id
+    JOIN rooms    r ON r.id = l.room_id
     WHERE r.apartment_id = ?
-      AND strftime('%Y-%m', i.issue_date) = ?
-  `,
-    [apartmentId, ym],
-  )[0];
-  return Number(row?.sum || 0);
+    `,
+    [apartmentId],
+  );
+
+  let sum = 0;
+  for (const r of rows) {
+    const { ps, pe } = parseItemPeriod(r);
+    const overlap = clampRangeOverlapDays(ps, pe, ms, me);
+    if (overlap <= 0) continue;
+    const days = daysBetweenInclusive(ps, pe);
+    sum += (Number(r.amount) || 0) * (overlap / days);
+  }
+  return Math.round(sum);
 }
 
-export function expenseByApartmentForMonth(apartmentId: string, year: number, month: number) {
+export function expenseByApartmentForMonth(
+  apartmentId: string,
+  year: number,
+  month: number,
+) {
   ensureOperatingTables();
   ensureOperatingCostTables();
   const ym = `${year}-${String(month).padStart(2, '0')}`;
@@ -1409,23 +1976,19 @@ export function expenseByApartmentForMonth(apartmentId: string, year: number, mo
   return Number(row?.sum || 0);
 }
 
-export function revenueByApartmentMonth(apartmentId: string, year: number, month: number) {
-  const ym = `${year}-${String(month).padStart(2, '0')}`;
-  const row = query<{ sum: number }>(
-    `
-    SELECT SUM(i.total) sum
-    FROM invoices i
-    JOIN leases l ON l.id = i.lease_id
-    JOIN rooms r ON r.id = l.room_id
-    WHERE r.apartment_id = ?
-      AND strftime('%Y-%m', i.issue_date) = ?
-  `,
-    [apartmentId, ym],
-  )[0];
-  return Number(row?.sum || 0);
+export function revenueByApartmentMonth(
+  apartmentId: string,
+  year: number,
+  month: number,
+) {
+  return revenueByApartmentForMonth(apartmentId, year, month);
 }
 
-export function expensesByApartmentMonth(apartmentId: string, year: number, month: number) {
+export function expensesByApartmentMonth(
+  apartmentId: string,
+  year: number,
+  month: number,
+) {
   // alias cho hàm trên (nếu nơi khác đang gọi)
   return expenseByApartmentForMonth(apartmentId, year, month);
 }
@@ -1438,38 +2001,65 @@ export function revenueAllApartmentsByMonth(year: number) {
   }
   return arr;
 }
-export function revenueAndExpenseByApartmentForMonth(year: number, month: number) {
+export function revenueAndExpenseByApartmentForMonth(
+  year: number,
+  month: number,
+) {
   ensureOperatingTables();
   ensureOperatingCostTables();
 
-  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const { start, end } = monthBounds(year, month);
+  const startIso = toYMD(start);
+  const endIso = toYMD(end);
 
-  // Doanh thu theo apartment (invoices.total)
-  const revenue = query<any>(
+  // Doanh thu: phân bổ theo period_start/period_end
+  const invRows = query<any>(
     `
-    SELECT a.id AS apartment_id, a.name, SUM(i.total) AS revenue
+    SELECT a.id AS apartment_id, a.name,
+           i.total, i.period_start, i.period_end
     FROM invoices i
     JOIN leases  l ON l.id = i.lease_id
     JOIN rooms   r ON r.id = l.room_id
     JOIN apartments a ON a.id = r.apartment_id
-    WHERE strftime('%Y-%m', i.issue_date) = ?
-    GROUP BY a.id, a.name
-    ORDER BY a.name ASC
-    `,
-    [ym],
-  ).map(x => ({ ...x, revenue: Number(x.revenue || 0) }));
+    WHERE NOT (i.period_end < ? OR i.period_start > ?)
+  `,
+    [startIso, endIso],
+  );
 
-  // Chi phí theo apartment: GỘP 2 nguồn và SUM lại
+  const revenueMap: Record<
+    string,
+    { apartment_id: string; name: string; revenue: number }
+  > = {};
+  for (const row of invRows) {
+    const pS = toDateISO(row.period_start);
+    const pE = toDateISO(row.period_end);
+    const totalDays = daysInclusive(pS, pE);
+    if (totalDays <= 0) continue;
+    const overlap = overlapDaysInclusive(pS, pE, start, end);
+    if (overlap <= 0) continue;
+
+    const portion = (Number(row.total) || 0) * (overlap / totalDays);
+
+    if (!revenueMap[row.apartment_id]) {
+      revenueMap[row.apartment_id] = {
+        apartment_id: row.apartment_id,
+        name: row.name,
+        revenue: 0,
+      };
+    }
+    revenueMap[row.apartment_id].revenue += portion;
+  }
+
+  // Chi phí: GỘP 2 nguồn như trước
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
   const expenses = query<any>(
     `
     SELECT apartment_id, SUM(expense) AS expense FROM (
-      -- nguồn 1
       SELECT apartment_id, SUM(amount) AS expense
       FROM operating_expenses
       WHERE ym = ?
       GROUP BY apartment_id
       UNION ALL
-      -- nguồn 2
       SELECT om.apartment_id AS apartment_id, SUM(oi.amount) AS expense
       FROM op_cost_items oi
       JOIN op_cost_months om ON om.id = oi.month_id
@@ -1479,15 +2069,23 @@ export function revenueAndExpenseByApartmentForMonth(year: number, month: number
     GROUP BY apartment_id
     `,
     [ym, ym],
-  ).map(x => ({ apartment_id: x.apartment_id, expense: Number(x.expense || 0) }));
+  ).map((x: any) => ({
+    apartment_id: x.apartment_id,
+    expense: Number(x.expense || 0),
+  }));
 
   // Gộp revenue + expense
   const map: Record<
     string,
-    { apartment_id: string; name: string; revenue: number; expense: number; profit: number }
+    {
+      apartment_id: string;
+      name: string;
+      revenue: number;
+      expense: number;
+      profit: number;
+    }
   > = {};
-
-  for (const r of revenue) {
+  for (const r of Object.values(revenueMap)) {
     map[r.apartment_id] = {
       apartment_id: r.apartment_id,
       name: r.name,
@@ -1496,11 +2094,11 @@ export function revenueAndExpenseByApartmentForMonth(year: number, month: number
       profit: r.revenue,
     };
   }
-
   for (const e of expenses) {
     if (!map[e.apartment_id]) {
-      // TH có chi phí mà không có doanh thu tháng đó
-      const apt = query<any>(`SELECT name FROM apartments WHERE id=? LIMIT 1`, [e.apartment_id])[0];
+      const apt = query<any>(`SELECT name FROM apartments WHERE id=? LIMIT 1`, [
+        e.apartment_id,
+      ])[0];
       map[e.apartment_id] = {
         apartment_id: e.apartment_id,
         name: apt?.name || '—',
@@ -1526,11 +2124,41 @@ export function revenueAndExpenseByApartmentForMonth(year: number, month: number
   return { rows, totals };
 }
 
+// ===== Data fix for already-created items (optional one-time) =====
+export function fixBaseRentNextPeriodMeta() {
+  const rows = query<any>(`
+    SELECT ii.id, ii.meta_json, i.period_end
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    WHERE ii.meta_json IS NOT NULL
+  `);
+  for (const r of rows) {
+    try {
+      const m = JSON.parse(r.meta_json);
+      if (m?.base === true && m?.cycle_of === 'next') {
+        const endCur = toDateISO(r.period_end);
+        const nStart = addDays(endCur, 1);
+        const nEnd = addDays(addMonths(nStart, 1), -1);
+        m.for_period_start = toYMD(nStart);
+        m.for_period_end = toYMD(nEnd);
+        exec(`UPDATE invoice_items SET meta_json=? WHERE id=?`, [
+          JSON.stringify(m),
+          r.id,
+        ]);
+      }
+    } catch {}
+  }
+}
+export function ensureLeaseCyclesOpeningColumn() {
+  try {
+    exec(`ALTER TABLE lease_cycles ADD COLUMN is_opening INTEGER NOT NULL DEFAULT 0`);
+  } catch {}
+}
+
 export function bootstrapRentModule() {
-  try {
-    ensureChargeTypesTable(); // bảng loại phí định kỳ
-  } catch {}
-  try {
-    ensureOperatingTables(); // 4 bảng operating_* (months, expenses, templates, meta)
-  } catch {}
+  try { ensureChargeTypesTable(); } catch {}
+  try { ensureOperatingTables(); } catch {}
+  try { ensureOperatingCostTables(); } catch {}
+  try { fixBaseRentNextPeriodMeta(); } catch {}
+  try { ensureLeaseCyclesOpeningColumn(); } catch {}   // ✅ thêm dòng này
 }

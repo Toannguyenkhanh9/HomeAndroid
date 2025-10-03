@@ -9,8 +9,7 @@ import Button from '../components/Button';
 import { useThemeColors } from '../theme';
 import { useCurrency } from '../../utils/currency';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getOperatingMonth } from '../../services/rent';
-import { query } from '../../db';
+import { getOperatingMonth, getReportRevenueByRoom } from '../../services/rent';
 import { onlyDigits } from '../../utils/number';
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
@@ -19,10 +18,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ApartmentReport'>;
 
-const toYMD = (d: Date) => d.toISOString().slice(0, 10);
+// ✅ Local (không UTC) để không bị lùi 1 ngày
+const toYMDLocal = (d: Date) => {
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
 const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const firstDay = (y: number, m0: number) => new Date(y, m0, 1);
-const lastDay = (y: number, m0: number) => new Date(y, m0 + 1, 0);
+const lastDay  = (y: number, m0: number) => new Date(y, m0 + 1, 0);
 
 function prevMonthRange(): { from: Date; to: Date } {
   const now = new Date();
@@ -91,25 +96,14 @@ export default function ApartmentReport({ route }: Props) {
     setToDate(nt);
   };
 
+  // ✅ Doanh thu theo kỳ (không theo issue_date)
   const incomeByRoom = useMemo(() => {
-    const rows = query<any>(
-      `
-      SELECT r.code AS room_code, COALESCE(SUM(i.total),0) AS total
-      FROM invoices i
-      JOIN leases l ON l.id = i.lease_id
-      JOIN rooms r  ON r.id = l.room_id
-      WHERE r.apartment_id = ?
-        AND date(i.issue_date) >= date(?)
-        AND date(i.issue_date) <= date(?)
-      GROUP BY r.code
-      ORDER BY r.code ASC
-      `,
-      [apartmentId, toYMD(fromDate), toYMD(toDate)],
-    );
-    const total = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
-    return { rows, total };
+    const start = toYMDLocal(fromDate);
+    const end   = toYMDLocal(toDate);
+    return getReportRevenueByRoom(apartmentId, start, end);
   }, [apartmentId, fromDate, toDate]);
 
+  // Chi vận hành (tổng theo các tháng giao nhau)
   const operatingCost = useMemo(() => {
     const yms = monthsInRange(fromDate, toDate);
     let total = 0;
@@ -126,7 +120,10 @@ export default function ApartmentReport({ route }: Props) {
     return { total, detail };
   }, [apartmentId, fromDate, toDate]);
 
-  const finalBalance = useMemo(() => incomeByRoom.total - operatingCost.total, [incomeByRoom.total, operatingCost.total]);
+  const finalBalance = useMemo(
+    () => incomeByRoom.total - operatingCost.total,
+    [incomeByRoom.total, operatingCost.total]
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent' }}>
@@ -146,7 +143,7 @@ export default function ApartmentReport({ route }: Props) {
             style={{ borderRadius: 10, padding: 10, backgroundColor: c.card, marginBottom: 8 }}
           >
             <Text style={{ color: c.text }}>
-              {formatDateISO(toYMD(fromDate), dateFormat, language)}
+              {formatDateISO(toYMDLocal(fromDate), dateFormat, language)}
             </Text>
           </TouchableOpacity>
 
@@ -156,11 +153,11 @@ export default function ApartmentReport({ route }: Props) {
             style={{ borderRadius: 10, padding: 10, backgroundColor: c.card }}
           >
             <Text style={{ color: c.text }}>
-              {formatDateISO(toYMD(toDate), dateFormat, language)}
+              {formatDateISO(toYMDLocal(toDate), dateFormat, language)}
             </Text>
           </TouchableOpacity>
 
-          {/* iOS: Modal + Done/Cancel để tránh onChange bắn khi mount */}
+          {/* iOS pickers */}
           {Platform.OS === 'ios' && (
             <>
               <Modal
@@ -170,13 +167,7 @@ export default function ApartmentReport({ route }: Props) {
                 onRequestClose={() => setShowFrom(false)}
               >
                 <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.25)' }}>
-                  <View
-                    style={{
-                      backgroundColor: (c as any).bg || c.card,
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                    }}
-                  >
+                  <View style={{ backgroundColor: (c as any).bg || c.card, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
                       <TouchableOpacity onPress={() => setShowFrom(false)}>
                         <Text style={{ color: c.subtext }}>{t('common.cancel') || 'Cancel'}</Text>
@@ -211,13 +202,7 @@ export default function ApartmentReport({ route }: Props) {
                 onRequestClose={() => setShowTo(false)}
               >
                 <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.25)' }}>
-                  <View
-                    style={{
-                      backgroundColor: (c as any).bg || c.card,
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                    }}
-                  >
+                  <View style={{ backgroundColor: (c as any).bg || c.card, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
                       <TouchableOpacity onPress={() => setShowTo(false)}>
                         <Text style={{ color: c.subtext }}>{t('common.cancel') || 'Cancel'}</Text>
@@ -247,7 +232,7 @@ export default function ApartmentReport({ route }: Props) {
             </>
           )}
 
-          {/* Android: chọn rồi đóng ngay */}
+          {/* Android pickers */}
           {Platform.OS !== 'ios' && showFrom && (
             <DateTimePicker
               value={fromDate}
@@ -286,7 +271,7 @@ export default function ApartmentReport({ route }: Props) {
             incomeByRoom.rows.map((r: any, i: number) => (
               <View key={i} style={{ borderRadius: 10, padding: 10 }}>
                 <Text style={{ color: c.text, fontWeight: '700' }}>
-                  {t('apartmentReport.room')} {r.room_code}
+                  {t('apartmentReport.room')} {r.code}
                 </Text>
                 <Text style={{ color: c.subtext }}>
                   {t('apartmentReport.totalIncome')}: <Text style={{ color: c.text }}>{format(Number(r.total) || 0)}</Text>
