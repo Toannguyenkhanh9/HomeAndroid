@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Image, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, Image, Alert, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Card from '../components/Card';
@@ -24,6 +24,12 @@ export default function PaymentProfileScreen() {
     loadPaymentProfile().then(setP);
   }, []);
 
+  // style gạch chân mảnh
+  const underlineInput = [
+    styles.underlineInput,
+    { borderBottomColor: c.border, color: c.text },
+  ] as const;
+
   const pick = async (key: 'logoPath' | 'qrPath') => {
     try {
       const res = await launchImageLibrary({
@@ -32,7 +38,11 @@ export default function PaymentProfileScreen() {
         selectionLimit: 1,
       });
       const uri = res.assets?.[0]?.uri;
-      if (uri) setP(prev => ({ ...prev, [key]: uri.startsWith('file://') ? uri : `file://${uri}` }));
+      if (uri)
+        setP(prev => ({
+          ...prev,
+          [key]: uri.startsWith('file://') ? uri : `file://${uri}`,
+        }));
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Select image failed');
     }
@@ -48,29 +58,58 @@ export default function PaymentProfileScreen() {
       contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 120, gap: 12 }}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Banner thông tin hóa đơn */}
-      <View
-        style={{
-          padding: 12,
-          borderRadius: 12,
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          gap: 10,
-          // Nền xanh nhạt + viền nhẹ để nổi bật (trung lập với theme)
-          backgroundColor: 'rgba(16,185,129,0.08)', // emerald-500 @8%
-          borderWidth: 1,
-          borderColor: 'rgba(16,185,129,0.35)',     // emerald-500 @35%
-        }}
-      >
-        <Text style={{ fontSize: 18, marginTop: 2 }}>🧾</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: c.text, fontWeight: '700', marginBottom: 4 }}>
-            {t('payment.invoiceInfoTitle') || 'Lưu ý hóa đơn'}
-          </Text>
-          <Text style={{ color: c.subtext, lineHeight: 18 }}>
-            {t('payment.invoiceInfo') || 'Thông tin thanh toán sẽ hiển thị trên hóa đơn gửi cho khách thuê'}
-          </Text>
+      {/* Banner lưu ý: nổi bật hơn */}
+      <View style={{ position: 'relative' }}>
+        <View
+          style={{
+            padding: 12,
+            paddingLeft: 14,
+            borderRadius: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            borderWidth: 1,
+            borderColor: 'rgba(16,185,129,0.35)',
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(16,185,129,0.15)',
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>🧾</Text>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.text, fontWeight: '800', marginBottom: 2 }}>
+              {t('payment.invoiceInfoTitle') || 'Lưu ý hóa đơn'}
+            </Text>
+            <Text style={{ color: c.subtext, lineHeight: 18 }}>
+              {t('payment.invoiceInfo') ||
+                'Thông tin thanh toán sẽ hiển thị trên hóa đơn gửi cho khách thuê'}
+            </Text>
+          </View>
         </View>
+
+        {/* Thanh nhấn màu ở mé trái */}
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            backgroundColor: '#10B981',
+            borderTopLeftRadius: 12,
+            borderBottomLeftRadius: 12,
+          }}
+        />
       </View>
 
       <Card style={{ gap: 8 }}>
@@ -78,13 +117,16 @@ export default function PaymentProfileScreen() {
           {t('payment.title') || 'Payment profile'}
         </Text>
 
-        <Text style={{ color: c.subtext }}>{t('payment.brandName') || 'Brand / Business name'}</Text>
+        <Text style={{ color: c.subtext }}>
+          {t('payment.brandName') || 'Brand / Business name'}
+        </Text>
         <TextInput
           value={p.brandName}
           onChangeText={v => setP({ ...p, brandName: v })}
           placeholder={t('payment.brandName')}
           placeholderTextColor={c.subtext}
-          style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+          selectionColor={c.text}
+          style={underlineInput}
         />
 
         <Text style={{ color: c.subtext }}>{t('payment.bankName') || 'Bank name'}</Text>
@@ -93,7 +135,8 @@ export default function PaymentProfileScreen() {
           onChangeText={v => setP({ ...p, bankName: v })}
           placeholder={t('payment.bankName')}
           placeholderTextColor={c.subtext}
-          style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+          selectionColor={c.text}
+          style={underlineInput}
         />
 
         <Text style={{ color: c.subtext }}>{t('payment.accountName') || 'Account holder'}</Text>
@@ -102,7 +145,8 @@ export default function PaymentProfileScreen() {
           onChangeText={v => setP({ ...p, accountName: v })}
           placeholder={t('payment.accountName')}
           placeholderTextColor={c.subtext}
-          style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+          selectionColor={c.text}
+          style={underlineInput}
         />
 
         <Text style={{ color: c.subtext }}>{t('payment.accountNumber') || 'Account number'}</Text>
@@ -112,31 +156,39 @@ export default function PaymentProfileScreen() {
           placeholder={t('payment.accountNumber')}
           placeholderTextColor={c.subtext}
           keyboardType="number-pad"
-          style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+          selectionColor={c.text}
+          style={underlineInput}
         />
 
-        <Text style={{ color: c.subtext }}>{t('payment.note') || 'Note (transfer content)'}</Text>
+        <Text style={{ color: c.subtext }}>
+          {t('payment.note') || 'Note (transfer content)'}
+        </Text>
         <TextInput
           value={p.note}
           onChangeText={v => setP({ ...p, note: v })}
           placeholder={t('payment.note')}
           placeholderTextColor={c.subtext}
-          style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+          selectionColor={c.text}
+          style={underlineInput}
         />
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('payment.logo') || 'Logo'}</Text>
+        <Text style={{ color: c.text, fontWeight: '700' }}>
+          {t('payment.logo') || 'Logo'}
+        </Text>
         {p.logoPath ? (
           <Image source={{ uri: p.logoPath }} style={{ width: 120, height: 120, borderRadius: 8 }} />
         ) : (
-          <Text style={{ color: c.subtext }}>{t('payment.logoHint') || 'Pick a square logo'}</Text>
+          <Text style={{ color: c.subtext }}>
+            {t('payment.logoHint') || 'Chọn ảnh logo (nên hình vuông)'}
+          </Text>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button title={t('common.choose') || 'Choose'} onPress={() => pick('logoPath')} />
+          <Button title={t('common.choose') || 'Chọn'} onPress={() => pick('logoPath')} />
           {p.logoPath ? (
             <Button
-              title={t('common.delete') || 'Remove'}
+              title={t('common.delete') || 'Xóa'}
               variant="ghost"
               onPress={() => setP(prev => ({ ...prev, logoPath: undefined }))}
             />
@@ -145,17 +197,21 @@ export default function PaymentProfileScreen() {
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <Text style={{ color: c.text, fontWeight: '700' }}>{t('payment.qr') || 'QR code'}</Text>
+        <Text style={{ color: c.text, fontWeight: '700' }}>
+          {t('payment.qr') || 'Mã QR'}
+        </Text>
         {p.qrPath ? (
           <Image source={{ uri: p.qrPath }} style={{ width: 160, height: 160, borderRadius: 8 }} />
         ) : (
-          <Text style={{ color: c.subtext }}>{t('payment.qrHint') || 'Pick a bank/Pay QR'}</Text>
+          <Text style={{ color: c.subtext }}>
+            {t('payment.qrHint') || 'Chọn ảnh QR ngân hàng/ví'}
+          </Text>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button title={t('common.choose') || 'Choose'} onPress={() => pick('qrPath')} />
+          <Button title={t('common.choose') || 'Chọn'} onPress={() => pick('qrPath')} />
           {p.qrPath ? (
             <Button
-              title={t('common.delete') || 'Remove'}
+              title={t('common.delete') || 'Xóa'}
               variant="ghost"
               onPress={() => setP(prev => ({ ...prev, qrPath: undefined }))}
             />
@@ -187,3 +243,13 @@ export default function PaymentProfileScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  underlineInput: {
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0.5, // mảnh hơn
+    marginBottom: 10,
+  },
+});

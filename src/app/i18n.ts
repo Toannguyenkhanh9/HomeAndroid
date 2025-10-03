@@ -183,6 +183,13 @@ const resources = {
         finalBalance: 'Số dư cuối cùng',
       },
       cycleDetail: {
+        openingCycle : 'Kỳ mở đầu',
+        errVarRequired: 'Vui lòng nhập chỉ số hiện tại cho “{{name}}”.',
+        errVarLessThanStart:
+          'Chỉ số hiện tại của “{{name}}” phải ≥ chỉ số đầu kỳ ({{start}}).',
+        errFixedRequired: 'Vui lòng nhập “Giá kỳ này” cho “{{name}}”.',
+        errExtraIncomplete:
+          'Vui lòng điền cả TÊN và SỐ TIỀN cho mục bổ sung #{{index}}.',
         confirmSettleTitle: 'Xác nhận tất toán',
         confirmSettleMessage:
           'Sau khi tất toán, các khoản và chỉ số sẽ bị khóa và KHÔNG thể chỉnh sửa.',
@@ -1000,6 +1007,13 @@ const resources = {
         finalBalance: 'Final balance',
       },
       cycleDetail: {
+        openingCycle: 'Opening cycle',
+        errVarRequired: 'Please enter the current reading for “{{name}}”.',
+        errVarLessThanStart:
+          'The current reading for “{{name}}” must be ≥ the start reading ({{start}}).',
+        errFixedRequired: 'Please enter “This cycle price” for “{{name}}”.',
+        errExtraIncomplete:
+          'Please fill both NAME and AMOUNT for extra item #{{index}}.',
         confirmSettleTitle: 'Confirm settlement',
         confirmSettleMessage:
           'After settlement, all items and meter indexes will be locked and CANNOT be edited.',
@@ -1964,13 +1978,19 @@ const resources = {
         finalBalance: 'Balance final',
       },
       cycleDetail: {
-        es: {
-          confirmSettleTitle: 'Confirmar liquidación',
-          confirmSettleMessage:
-            'Después de la liquidación, todos los ítems y las lecturas del medidor quedarán bloqueados y NO podrán editarse.',
-          settledOkLocked:
-            'Liquidado. Los datos han sido bloqueados y ya no se pueden cambiar.',
-        },
+        openingCycle: 'Ciclo inicial',
+        errVarRequired: 'Por favor, ingresa la lectura actual de “{{name}}”.',
+        errVarLessThanStart:
+          'La lectura actual de “{{name}}” debe ser ≥ la lectura inicial ({{start}}).',
+        errFixedRequired:
+          'Por favor, ingresa el “Precio de este ciclo” para “{{name}}”.',
+        errExtraIncomplete:
+          'Por favor, completa NOMBRE e IMPORTE para el ítem extra #{{index}}.',
+        confirmSettleTitle: 'Confirmar liquidación',
+        confirmSettleMessage:
+          'Después de la liquidación, todos los ítems y las lecturas del medidor quedarán bloqueados y NO podrán editarse.',
+        settledOkLocked:
+          'Liquidado. Los datos han sido bloqueados y ya no se pueden cambiar.',
 
         roomInfo: 'Información de la habitación',
         tenant: 'Inquilino',
@@ -2731,6 +2751,14 @@ const resources = {
         finalBalance: 'Solde final',
       },
       cycleDetail: {
+        openingCycle: 'Cycle initial',
+        errVarRequired: 'Veuillez saisir le relevé actuel pour « {{name}} ».',
+        errVarLessThanStart:
+          'Le relevé actuel pour « {{name}} » doit être ≥ au relevé de départ ({{start}}).',
+        errFixedRequired:
+          'Veuillez saisir le « Prix de ce cycle » pour « {{name}} ».',
+        errExtraIncomplete:
+          'Veuillez renseigner le NOM et le MONTANT pour l’élément supplémentaire n°{{index}}.',
         confirmSettleTitle: 'Confirmer le règlement',
         confirmSettleMessage:
           'Après le règlement, tous les éléments et les index de compteur seront verrouillés et NE pourront PAS être modifiés.',
@@ -3309,6 +3337,15 @@ const resources = {
         finalBalance: 'Endsaldo',
       },
       cycleDetail: {
+        openingCycle: 'Anfangszyklus',
+        errVarRequired:
+          'Bitte den aktuellen Zählerstand für “{{name}}” eingeben.',
+        errVarLessThanStart:
+          'Der aktuelle Zählerstand für “{{name}}” muss ≥ dem Startwert ({{start}}) sein.',
+        errFixedRequired:
+          'Bitte „Preis dieses Zyklus“ für “{{name}}” eingeben.',
+        errExtraIncomplete:
+          'Bitte sowohl NAME als auch BETRAG für den zusätzlichen Posten #{{index}} ausfüllen.',
         confirmSettleTitle: 'Abrechnung bestätigen',
         confirmSettleMessage:
           'Nach der Abrechnung werden alle Positionen und Zählerstände gesperrt und können NICHT mehr bearbeitet werden.',
@@ -3879,6 +3916,12 @@ const resources = {
         finalBalance: '期末余额',
       },
       cycleDetail: {
+        openingCycle: '起始周期',
+        errVarRequired: '请输入“{{name}}”的当前读数。',
+        errVarLessThanStart:
+          '“{{name}}”的当前读数必须 ≥ 起始读数（{{start}}）。',
+        errFixedRequired: '请输入“{{name}}”的“本期价格”。',
+        errExtraIncomplete: '请填写附加项目 #{{index}} 的名称和金额。',
         confirmSettleTitle: '确认结算',
         confirmSettleMessage: '结算后，所有项目和表计读数将被锁定，无法编辑。',
         settledOkLocked: '已结算。数据已锁定，无法再更改。',
@@ -4440,6 +4483,14 @@ const resources = {
         finalBalance: '最終残高',
       },
       cycleDetail: {
+        openingCycle: '初回サイクル' ,
+        errVarRequired: '“{{name}}”の現在の検針値を入力してください。',
+        errVarLessThanStart:
+          '“{{name}}”の現在の検針値は開始値（{{start}}）以上（≥）である必要があります。',
+        errFixedRequired:
+          '“{{name}}”の「本サイクルの価格」を入力してください。',
+        errExtraIncomplete:
+          '追加項目 #{{index}} の「名前」と「金額」を両方入力してください。',
         confirmSettleTitle: '精算の確認',
         confirmSettleMessage:
           '精算後は、すべての項目とメーターの指示値がロックされ、編集できません。',
@@ -5006,6 +5057,13 @@ const resources = {
         finalBalance: '최종 잔액',
       },
       cycleDetail: {
+        openingCycle: '초기 주기',
+        errVarRequired: '“{{name}}”의 현재 검침값을 입력하세요.',
+        errVarLessThanStart:
+          '“{{name}}”의 현재 검침값은 시작 검침값({{start}}) 이상(≥)이어야 합니다.',
+        errFixedRequired: '“{{name}}”의 “이번 주기 가격”을 입력하세요.',
+        errExtraIncomplete:
+          '추가 항목 #{{index}}의 이름과 금액을 모두 입력하세요.',
         confirmSettleTitle: '정산 확인',
         confirmSettleMessage:
           '정산 후 모든 항목과 계량기 검침값이 잠기며 편집할 수 없습니다.',
@@ -5569,6 +5627,14 @@ const resources = {
         finalBalance: 'Финальный баланс',
       },
       cycleDetail: {
+        openingCycle: 'Начальный цикл',
+        errVarRequired: 'Введите текущее показание для «{{name}}».',
+        errVarLessThanStart:
+          'Текущее показание для «{{name}}» должно быть ≥ начального ({{start}}).',
+        errFixedRequired: 'Введите «Цена этого цикла» для «{{name}}».',
+        errExtraIncomplete:
+          'Заполните ИМЯ и СУММУ для дополнительной позиции #{{index}}.',
+
         confirmSettleTitle: 'Подтвердить расчёт',
         confirmSettleMessage:
           'После расчёта все позиции и показания счётчиков будут заблокированы и НЕ подлежат редактированию.',
@@ -6180,6 +6246,13 @@ const resources = {
         finalBalance: 'الرصيد النهائي',
       },
       cycleDetail: {
+        openingCycle: 'الدورة الافتتاحية',
+        errVarRequired: 'يُرجى إدخال القراءة الحالية لـ “{{name}}”.',
+        errVarLessThanStart:
+          'يجب أن تكون القراءة الحالية لـ “{{name}}” ≥ قراءة البدء ({{start}}).',
+        errFixedRequired: 'يُرجى إدخال “سعر هذه الدورة” لـ “{{name}}”.',
+        errExtraIncomplete:
+          'يُرجى تعبئة الاسم والمبلغ للبند الإضافي رقم #{{index}}.',
         confirmSettleTitle: 'تأكيد التسوية',
         confirmSettleMessage:
           'بعد إتمام التسوية، سيتم قفل جميع العناصر وقراءات العداد ولن يمكن تعديلها.',
@@ -6712,6 +6785,13 @@ const resources = {
         finalBalance: 'ยอดสุทธิ',
       },
       cycleDetail: {
+        openingCycle: 'รอบเริ่มต้น',
+        errVarRequired: 'โปรดกรอกค่ามิเตอร์ปัจจุบันสำหรับ “{{name}}”',
+        errVarLessThanStart:
+          'ค่ามิเตอร์ปัจจุบันของ “{{name}}” ต้อง ≥ ค่าตั้งต้น ({{start}})',
+        errFixedRequired: 'โปรดกรอก “ราคาของรอบนี้” สำหรับ “{{name}}”',
+        errExtraIncomplete:
+          'โปรดกรอกทั้ง ชื่อ และ จำนวนเงิน สำหรับรายการเพิ่มเติม #{{index}}',
         confirmSettleTitle: 'ยืนยันการปิดยอด',
         confirmSettleMessage:
           'หลังจากปิดยอดแล้ว รายการทั้งหมดและเลขมิเตอร์จะถูกล็อกและไม่สามารถแก้ไขได้',
@@ -7361,6 +7441,13 @@ const resources = {
         finalBalance: 'Saldo akhir',
       },
       cycleDetail: {
+        openingCycle: 'Siklus awal',
+        errVarRequired: 'Harap masukkan pembacaan saat ini untuk “{{name}}”.',
+        errVarLessThanStart:
+          'Pembacaan saat ini untuk “{{name}}” harus ≥ pembacaan awal ({{start}}).',
+        errFixedRequired: 'Harap masukkan “Harga siklus ini” untuk “{{name}}”.',
+        errExtraIncomplete:
+          'Harap isi NAMA dan JUMLAH untuk item tambahan #{{index}}.',
         confirmSettleTitle: 'Konfirmasi penyelesaian',
         confirmSettleMessage:
           'Setelah penyelesaian, semua item dan angka meter akan dikunci dan TIDAK dapat diedit.',
@@ -8039,6 +8126,13 @@ const resources = {
         finalBalance: 'Baki akhir',
       },
       cycleDetail: {
+        openingCycle: 'Kitaran awal',
+        errVarRequired: 'Sila masukkan bacaan semasa untuk “{{name}}”.',
+        errVarLessThanStart:
+          'Bacaan semasa untuk “{{name}}” mesti ≥ bacaan permulaan ({{start}}).',
+        errFixedRequired: 'Sila masukkan “Harga kitaran ini” untuk “{{name}}”.',
+        errExtraIncomplete:
+          'Sila isi NAMA dan AMAUN untuk item tambahan #{{index}}.',
         confirmSettleTitle: 'Sahkan penyelesaian',
         confirmSettleMessage:
           'Selepas penyelesaian, semua item dan bacaan meter akan dikunci dan TIDAK boleh disunting.',
@@ -8735,6 +8829,14 @@ const resources = {
         finalBalance: 'Huling balanse',
       },
       cycleDetail: {
+        openingCycle: 'Paunang siklo',
+        errVarRequired: 'Pakilagay ang kasalukuyang basa para sa “{{name}}”.',
+        errVarLessThanStart:
+          'Ang kasalukuyang basa para sa “{{name}}” ay dapat ≥ sa panimulang basa ({{start}}).',
+        errFixedRequired:
+          'Pakilagay ang “Presyo ng cycle na ito” para sa “{{name}}”.',
+        errExtraIncomplete:
+          'Pakilagay ang parehong PANGALAN at HALAGA para sa extra item #{{index}}.',
         confirmSettleTitle: 'Kumpirmahin ang pagsasaayos',
         confirmSettleMessage:
           'Pagkatapos ng pagsasaayos, malalock ang lahat ng item at mga basa ng metro at HINDI na mae-edit.',
@@ -9296,6 +9398,14 @@ const resources = {
         finalBalance: 'Saldo final',
       },
       cycleDetail: {
+        openingCycle: 'Ciclo inicial',
+        errVarRequired: 'Por favor, informe a leitura atual de “{{name}}”.',
+        errVarLessThanStart:
+          'A leitura atual de “{{name}}” deve ser ≥ à leitura inicial ({{start}}).',
+        errFixedRequired:
+          'Por favor, informe o “Preço deste ciclo” para “{{name}}”.',
+        errExtraIncomplete:
+          'Preencha NOME e VALOR para o item extra #{{index}}.',
         confirmSettleTitle: 'Confirmar liquidação',
         confirmSettleMessage:
           'Após a liquidação, todos os itens e as leituras do medidor serão bloqueados e NÃO poderão ser editados.',
@@ -9844,6 +9954,14 @@ const resources = {
         finalBalance: 'अंतिम शेष',
       },
       cycleDetail: {
+        openingCycle: 'प्रारंभिक चक्र',
+        errVarRequired: 'कृपया “{{name}}” की वर्तमान रीडिंग दर्ज करें।',
+        errVarLessThanStart:
+          '“{{name}}” की वर्तमान रीडिंग प्रारंभिक रीडिंग ({{start}}) के बराबर या उससे अधिक (≥) होनी चाहिए।',
+        errFixedRequired:
+          'कृपया “{{name}}” के लिए “इस चक्र की कीमत” दर्ज करें।',
+        errExtraIncomplete:
+          'कृपया अतिरिक्त आइटम #{{index}} के लिए नाम और राशि दोनों भरें।',
         confirmSettleTitle: 'निपटान की पुष्टि',
         confirmSettleMessage:
           'निपटान के बाद सभी आइटम और मीटर रीडिंग लॉक हो जाएँगी और उन्हें संपादित नहीं किया जा सकेगा।',
