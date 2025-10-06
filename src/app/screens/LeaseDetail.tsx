@@ -519,96 +519,119 @@ export default function LeaseDetail({ route, navigation }: Props) {
         animationType="slide"
         onRequestClose={() => setShowEndModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
-          <View
-            style={{
-              backgroundColor: c.bg,
-              padding: 16,
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              gap: 10,
-              maxHeight: '90%',
-            }}
-          >
-            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
-              {t('leaseDetail.endEarly')}
-            </Text>
-            <Text style={{ color: c.text }}>
-              {t('leaseDetail.depositNow')}: {format(deposit)}
-            </Text>
-
-            <Card style={{ gap: 8 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>
-                {t('leaseDetail.arisingCharges')}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={insets.top + 8}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+            <View
+              style={{
+                backgroundColor: c.bg,
+                paddingTop: 16,
+                paddingHorizontal: 16,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                maxHeight: '90%',
+              }}
+            >
+              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16, marginBottom: 8 }}>
+                {t('leaseDetail.endEarly')}
               </Text>
-              {endExtras.map((ex, idx) => (
-                <View key={idx} style={{ gap: 6 }}>
-                  <FormInput
-                    placeholder={t('leaseDetail.itemNamePh')}
-                    value={ex.name}
-                    onChangeText={t_ => updEndExtra(idx, { name: t_ })}
-                  />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <FormInput
-                      style={{ flex: 1 }}
-                      placeholder={t('leaseDetail.amountPlusPh')}
-                      keyboardType="decimal-pad"
-                      value={ex.amount}
-                      onChangeText={t_ => updEndExtra(idx, { amount: formatDecimalTypingVNStrict(t_) })}
-                    />
-                    <Button title={t('common.remove')} variant="ghost" onPress={() => delEndExtra(idx)} />
-                  </View>
-                </View>
-              ))}
-              <Button title={t('common.addItem')} variant="ghost" onPress={addEndExtra} />
-            </Card>
-
-            <Card>
-              <Text style={{ color: c.text }}>
-                {t('leaseDetail.totalArising')}: {format(endExtrasSum)}
+              <Text style={{ color: c.text, marginBottom: 8 }}>
+                {t('leaseDetail.depositNow')}: {format(deposit)}
               </Text>
-              {finalBalance > 0 && (
-                <Text style={{ color: c.text }}>
-                  {t('leaseDetail.refundToTenant')}: {format(finalBalance)}
-                </Text>
-              )}
-              {finalBalance < 0 && (
-                <Text style={{ color: c.text }}>
-                  {t('leaseDetail.collectMore')}: {format(Math.abs(finalBalance))}
-                </Text>
-              )}
-              {finalBalance === 0 && (
-                <Text style={{ color: c.text }}>{t('leaseDetail.noFurther')}</Text>
-              )}
-            </Card>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-              <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
-              <Button
-                title={t('leaseDetail.finish')}
-                onPress={() => {
-                  const payload = endExtras
-                    .filter(it => it.name.trim())
-                    .map(it => ({
-                      name: it.name.trim(),
-                      amount: parseAmount(it.amount || ''),
-                    }));
-                  const res = endLeaseWithSettlement(leaseId, payload);
-                  setShowEndModal(false);
-                  const msg =
-                    res.finalBalance > 0
-                      ? `${t('leaseDetail.refundToTenant')} ${format(res.finalBalance)}`
-                      : res.finalBalance < 0
-                      ? `${t('leaseDetail.collectMore')} ${format(Math.abs(res.finalBalance))}`
-                      : t('leaseDetail.noFurther');
-                  Alert.alert(t('leaseDetail.ended'), msg, [
-                    { text: t('common.ok'), onPress: () => navigation.goBack() },
-                  ]);
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                contentInsetAdjustmentBehavior="automatic"
+                contentContainerStyle={{ gap: 10, paddingBottom: insets.bottom + 84 }}
+              >
+                <Card style={{ gap: 8 }}>
+                  <Text style={{ color: c.text, fontWeight: '700' }}>
+                    {t('leaseDetail.arisingCharges')}
+                  </Text>
+                  {endExtras.map((ex, idx) => (
+                    <View key={idx} style={{ gap: 6 }}>
+                      <FormInput
+                        placeholder={t('leaseDetail.itemNamePh')}
+                        value={ex.name}
+                        onChangeText={t_ => updEndExtra(idx, { name: t_ })}
+                      />
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <FormInput
+                          style={{ flex: 1 }}
+                          placeholder={t('leaseDetail.amountPlusPh')}
+                          keyboardType="decimal-pad"
+                          value={ex.amount}
+                          onChangeText={t_ => updEndExtra(idx, { amount: formatDecimalTypingVNStrict(t_) })}
+                        />
+                        <Button title={t('common.remove')} variant="ghost" onPress={() => delEndExtra(idx)} />
+                      </View>
+                    </View>
+                  ))}
+                  <Button title={t('common.addItem')} variant="ghost" onPress={addEndExtra} />
+                </Card>
+
+                <Card>
+                  <Text style={{ color: c.text }}>
+                    {t('leaseDetail.totalArising')}: {format(endExtrasSum)}
+                  </Text>
+                  {finalBalance > 0 && (
+                    <Text style={{ color: c.text }}>
+                      {t('leaseDetail.refundToTenant')}: {format(finalBalance)}
+                    </Text>
+                  )}
+                  {finalBalance < 0 && (
+                    <Text style={{ color: c.text }}>
+                      {t('leaseDetail.collectMore')}: {format(Math.abs(finalBalance))}
+                    </Text>
+                  )}
+                  {finalBalance === 0 && (
+                    <Text style={{ color: c.text }}>{t('leaseDetail.noFurther')}</Text>
+                  )}
+                </Card>
+              </ScrollView>
+
+              {/* Action bar nổi lên trên bàn phím */}
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 16,
+                  right: 16,
+                  bottom: insets.bottom + 8,
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 10,
                 }}
-              />
+              >
+                <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
+                <Button
+                  title={t('leaseDetail.finish')}
+                  onPress={() => {
+                    const payload = endExtras
+                      .filter(it => it.name.trim())
+                      .map(it => ({
+                        name: it.name.trim(),
+                        amount: parseAmount(it.amount || ''),
+                      }));
+                    const res = endLeaseWithSettlement(leaseId, payload);
+                    setShowEndModal(false);
+                    const msg =
+                      res.finalBalance > 0
+                        ? `${t('leaseDetail.refundToTenant')} ${format(res.finalBalance)}`
+                        : res.finalBalance < 0
+                        ? `${t('leaseDetail.collectMore')} ${format(Math.abs(res.finalBalance))}`
+                        : t('leaseDetail.noFurther');
+                    Alert.alert(t('leaseDetail.ended'), msg, [
+                      { text: t('common.ok'), onPress: () => navigation.goBack() },
+                    ]);
+                  }}
+                />
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       </KeyboardAvoidingView>
   );

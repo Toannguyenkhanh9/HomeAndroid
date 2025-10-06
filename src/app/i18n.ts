@@ -183,7 +183,12 @@ const resources = {
         finalBalance: 'Số dư cuối cùng',
       },
       cycleDetail: {
-        openingCycle : 'Kỳ mở đầu',
+        collectMore: 'Thu bổ sung',
+        collectedMoreOk: 'Đã thêm khoản bổ sung',
+        errExtraRequired: 'Vui lòng nhập đầy đủ tên và số tiền',
+        shareText: 'Chia sẻ (tin nhắn)',
+        thank: 'Cảm ơn bạn!',
+        openingCycle: 'Kỳ mở đầu',
         errVarRequired: 'Vui lòng nhập chỉ số hiện tại cho “{{name}}”.',
         errVarLessThanStart:
           'Chỉ số hiện tại của “{{name}}” phải ≥ chỉ số đầu kỳ ({{start}}).',
@@ -1007,6 +1012,11 @@ const resources = {
         finalBalance: 'Final balance',
       },
       cycleDetail: {
+        collectMore: 'Collect additional',
+        collectedMoreOk: 'Additional item added',
+        errExtraRequired: 'Please enter both name and amount',
+        shareText: 'Share (message)',
+        thank: 'Thank you!',
         openingCycle: 'Opening cycle',
         errVarRequired: 'Please enter the current reading for “{{name}}”.',
         errVarLessThanStart:
@@ -1978,6 +1988,11 @@ const resources = {
         finalBalance: 'Balance final',
       },
       cycleDetail: {
+        collectMore: 'Cobrar adicional',
+        collectedMoreOk: 'Se agregó el cargo adicional',
+        errExtraRequired: 'Por favor, ingresa el nombre y el importe',
+        shareText: 'Compartir (mensaje)',
+        thank: '¡Gracias!',
         openingCycle: 'Ciclo inicial',
         errVarRequired: 'Por favor, ingresa la lectura actual de “{{name}}”.',
         errVarLessThanStart:
@@ -2751,6 +2766,11 @@ const resources = {
         finalBalance: 'Solde final',
       },
       cycleDetail: {
+        collectMore: 'Encaisser un complément',
+        collectedMoreOk: 'Élément complémentaire ajouté',
+        errExtraRequired: 'Veuillez saisir le nom et le montant',
+        shareText: 'Partager (message)',
+        thank: 'Merci !',
         openingCycle: 'Cycle initial',
         errVarRequired: 'Veuillez saisir le relevé actuel pour « {{name}} ».',
         errVarLessThanStart:
@@ -3337,6 +3357,11 @@ const resources = {
         finalBalance: 'Endsaldo',
       },
       cycleDetail: {
+        collectMore: 'Zusatzbetrag einziehen',
+        collectedMoreOk: 'Zusatzposition hinzugefügt',
+        errExtraRequired: 'Bitte Name und Betrag eingeben',
+        shareText: 'Teilen (Nachricht)',
+        thank: 'Danke!',
         openingCycle: 'Anfangszyklus',
         errVarRequired:
           'Bitte den aktuellen Zählerstand für “{{name}}” eingeben.',
@@ -3916,6 +3941,11 @@ const resources = {
         finalBalance: '期末余额',
       },
       cycleDetail: {
+        collectMore: '追加收取',
+        collectedMoreOk: '已添加附加项',
+        errExtraRequired: '请填写名称和金额',
+        shareText: '分享（消息）',
+        thank: '谢谢！',
         openingCycle: '起始周期',
         errVarRequired: '请输入“{{name}}”的当前读数。',
         errVarLessThanStart:
@@ -4483,7 +4513,12 @@ const resources = {
         finalBalance: '最終残高',
       },
       cycleDetail: {
-        openingCycle: '初回サイクル' ,
+        collectMore: '追加徴収',
+        collectedMoreOk: '追加項目を登録しました',
+        errExtraRequired: '名称と金額を両方入力してください',
+        shareText: '共有（メッセージ）',
+        thank: 'ありがとうございます！',
+        openingCycle: '初回サイクル',
         errVarRequired: '“{{name}}”の現在の検針値を入力してください。',
         errVarLessThanStart:
           '“{{name}}”の現在の検針値は開始値（{{start}}）以上（≥）である必要があります。',
@@ -5057,6 +5092,11 @@ const resources = {
         finalBalance: '최종 잔액',
       },
       cycleDetail: {
+        collectMore: '추가 수금',
+        collectedMoreOk: '추가 항목이 등록되었습니다',
+        errExtraRequired: '이름과 금액을 모두 입력하세요',
+        shareText: '공유(메시지)',
+        thank: '감사합니다!',
         openingCycle: '초기 주기',
         errVarRequired: '“{{name}}”의 현재 검침값을 입력하세요.',
         errVarLessThanStart:
@@ -5627,6 +5667,11 @@ const resources = {
         finalBalance: 'Финальный баланс',
       },
       cycleDetail: {
+        collectMore: 'Взыскать дополнительно',
+        collectedMoreOk: 'Добавлена дополнительная позиция',
+        errExtraRequired: 'Введите имя и сумму',
+        shareText: 'Поделиться (сообщением)',
+        thank: 'Спасибо!',
         openingCycle: 'Начальный цикл',
         errVarRequired: 'Введите текущее показание для «{{name}}».',
         errVarLessThanStart:
@@ -6246,6 +6291,11 @@ const resources = {
         finalBalance: 'الرصيد النهائي',
       },
       cycleDetail: {
+        collectMore: 'تحصيل إضافي',
+        collectedMoreOk: 'تمت إضافة بند إضافي',
+        errExtraRequired: 'يرجى إدخال الاسم والمبلغ معًا',
+        shareText: 'مشاركة (رسالة)',
+        thank: 'شكرًا لك!',
         openingCycle: 'الدورة الافتتاحية',
         errVarRequired: 'يُرجى إدخال القراءة الحالية لـ “{{name}}”.',
         errVarLessThanStart:
@@ -6785,6 +6835,11 @@ const resources = {
         finalBalance: 'ยอดสุทธิ',
       },
       cycleDetail: {
+        collectMore: 'เก็บเงินเพิ่ม',
+        collectedMoreOk: 'เพิ่มรายการเพิ่มเติมแล้ว',
+        errExtraRequired: 'โปรดกรอกทั้งชื่อและจำนวนเงิน',
+        shareText: 'แชร์ (ข้อความ)',
+        thank: 'ขอบคุณ!',
         openingCycle: 'รอบเริ่มต้น',
         errVarRequired: 'โปรดกรอกค่ามิเตอร์ปัจจุบันสำหรับ “{{name}}”',
         errVarLessThanStart:
@@ -7441,6 +7496,11 @@ const resources = {
         finalBalance: 'Saldo akhir',
       },
       cycleDetail: {
+        collectMore: 'Tagih tambahan',
+        collectedMoreOk: 'Item tambahan ditambahkan',
+        errExtraRequired: 'Harap isi nama dan jumlah',
+        shareText: 'Bagikan (pesan)',
+        thank: 'Terima kasih!',
         openingCycle: 'Siklus awal',
         errVarRequired: 'Harap masukkan pembacaan saat ini untuk “{{name}}”.',
         errVarLessThanStart:
@@ -8126,6 +8186,11 @@ const resources = {
         finalBalance: 'Baki akhir',
       },
       cycleDetail: {
+        collectMore: 'Kutip tambahan',
+        collectedMoreOk: 'Item tambahan telah ditambah',
+        errExtraRequired: 'Sila isi nama dan jumlah',
+        shareText: 'Kongsi (mesej)',
+        thank: 'Terima kasih!',
         openingCycle: 'Kitaran awal',
         errVarRequired: 'Sila masukkan bacaan semasa untuk “{{name}}”.',
         errVarLessThanStart:
@@ -8829,6 +8894,11 @@ const resources = {
         finalBalance: 'Huling balanse',
       },
       cycleDetail: {
+        collectMore: 'Maningil pa',
+        collectedMoreOk: 'Naidagdag ang dagdag na item',
+        errExtraRequired: 'Pakilagay ang pangalan at halaga pareho',
+        shareText: 'Ibahagi (mensahe)',
+        thank: 'Salamat!',
         openingCycle: 'Paunang siklo',
         errVarRequired: 'Pakilagay ang kasalukuyang basa para sa “{{name}}”.',
         errVarLessThanStart:
@@ -9398,6 +9468,11 @@ const resources = {
         finalBalance: 'Saldo final',
       },
       cycleDetail: {
+        collectMore: 'Cobrar adicional',
+        collectedMoreOk: 'Item adicional adicionado',
+        errExtraRequired: 'Informe o nome e o valor',
+        shareText: 'Compartilhar (mensagem)',
+        thank: 'Obrigado!',
         openingCycle: 'Ciclo inicial',
         errVarRequired: 'Por favor, informe a leitura atual de “{{name}}”.',
         errVarLessThanStart:
@@ -9954,6 +10029,11 @@ const resources = {
         finalBalance: 'अंतिम शेष',
       },
       cycleDetail: {
+        collectMore: 'अतिरिक्त वसूली करें',
+        collectedMoreOk: 'अतिरिक्त आइटम जोड़ा गया',
+        errExtraRequired: 'कृपया नाम और राशि दोनों दर्ज करें',
+        shareText: 'साझा करें (संदेश)',
+        thank: 'धन्यवाद!',
         openingCycle: 'प्रारंभिक चक्र',
         errVarRequired: 'कृपया “{{name}}” की वर्तमान रीडिंग दर्ज करें।',
         errVarLessThanStart:

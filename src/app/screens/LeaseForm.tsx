@@ -98,6 +98,10 @@ export default function LeaseForm({ route, navigation }: Props) {
     setCharges(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const delCharge = (i: number) => setCharges(p => p.filter((_, idx) => idx !== i));
 
+  // ⬇️ Modal xác nhận
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmData, setConfirmData] = useState<any>(null);
+
   const durationHint = useMemo(() => {
     if (term === 'open') return t('leaseForm.noTerm') ?? 'Không kỳ hạn';
     if (mode === 'daily') {
@@ -108,35 +112,89 @@ export default function LeaseForm({ route, navigation }: Props) {
     return m > 0 ? `${m} ${t('leaseForm.months')}` : '—';
   }, [term, mode, days, months, t]);
 
-function validate(): string | null {
-  if (!roomId) return t('leaseForm.errorMissingRoomId');
-  if (!startISO) return t('leaseForm.errorMissingStart');
+  function validate(): string | null {
+    if (!roomId) return t('leaseForm.errorMissingRoomId');
+    if (!startISO) return t('leaseForm.errorMissingStart');
 
-  // ✅ Bắt buộc tên người thuê
-  if (!fullName.trim()) return t('leaseForm.errorTenantName') || 'Vui lòng nhập tên người thuê';
+    // ✅ Bắt buộc tên người thuê
+    if (!fullName.trim()) return t('leaseForm.errorTenantName') || 'Vui lòng nhập tên người thuê';
 
-  if (term === 'fixed') {
-    if (mode === 'monthly') {
-      const m = parseAmount(months);
-      if (m <= 0) return t('leaseForm.errorMonths');
-    } else {
-      const d = parseAmount(days);
-      if (d <= 0) return t('leaseForm.errorDays');
+    if (term === 'fixed') {
+      if (mode === 'monthly') {
+        const m = parseAmount(months);
+        if (m <= 0) return t('leaseForm.errorMonths');
+      } else {
+        const d = parseAmount(days);
+        if (d <= 0) return t('leaseForm.errorDays');
+      }
     }
-  }
 
-  // ✅ Nếu bật trọn gói: bắt buộc nhập số tiền trọn gói
-  if (allInclusive) {
-    const pack = parseAmount(allInclusiveAmount);
-    if (pack <= 0) return t('leaseForm.errorAllInclusive') || 'Vui lòng nhập số tiền trọn gói';
+    // ✅ Nếu bật trọn gói: bắt buộc nhập số tiền trọn gói
+    if (allInclusive) {
+      const pack = parseAmount(allInclusiveAmount);
+      if (pack <= 0) return t('leaseForm.errorAllInclusive') || 'Vui lòng nhập số tiền trọn gói';
+      return null;
+    }
+
+    // ✅ Nếu KHÔNG trọn gói: bắt buộc giá thuê cơ bản
+    const base = parseAmount(baseRentText);
+    if (base <= 0) return t('leaseForm.errorBaseRent') || 'Vui lòng nhập giá thuê cơ bản';
     return null;
   }
 
-  // ✅ Nếu KHÔNG trọn gói: bắt buộc giá thuê cơ bản
-  const base = parseAmount(baseRentText);
-  if (base <= 0) return t('leaseForm.errorBaseRent') || 'Vui lòng nhập giá thuê cơ bản';
-  return null;
-}
+  // Mở popup xác nhận
+  function openConfirm() {
+    const err = validate();
+    if (err) {
+      Alert.alert(t('common.missingInfo'), err);
+      return;
+    }
+
+    const baseRent = allInclusive ? parseAmount(allInclusiveAmount) : parseAmount(baseRentText);
+    const deposit = parseAmount(depositText);
+
+    const outCharges =
+      !allInclusive
+        ? charges
+            .filter(ch => ch.name.trim() && parseAmount(ch.price || '') > 0)
+            .map(ch => ({
+              name: ch.name.trim(),
+              unit: ch.unit || (ch.isVariable ? t('rent.unit') : t('rent.month')),
+              unitPrice: parseDecimalCommaStrict(ch.price || ''),
+              isVariable: !!ch.isVariable,
+            }))
+        : [];
+
+    const endDateISO =
+      term === 'fixed' && mode === 'monthly'
+        ? (() => {
+            const s = new Date(startISO);
+            const m = parseAmount(months);
+            const end = new Date(s);
+            end.setMonth(end.getMonth() + m);
+            end.setDate(end.getDate() - 1);
+            return end.toISOString().slice(0, 10);
+          })()
+        : undefined;
+
+    const durationDaysCalc = term === 'fixed' && mode === 'daily' ? parseAmount(days) || 1 : undefined;
+
+    setConfirmData({
+      tenant: { fullName: fullName.trim(), phone: phone.trim(), idNumber: idNumber.trim() },
+      mode,
+      term,
+      startISO,
+      endDateISO,
+      durationDays: durationDaysCalc,
+      collect,
+      baseRent,
+      deposit,
+      allInclusive,
+      charges: outCharges,
+      totalDueNow: deposit + (collect === 'start' ? baseRent : 0),
+    });
+    setConfirmVisible(true);
+  }
 
   function submit() {
     const err = validate();
@@ -176,25 +234,25 @@ function validate(): string | null {
 
     const durationDays = term === 'fixed' && mode === 'daily' ? parseAmount(days) || 1 : undefined;
 
-const payload = {
-  roomId,
-  leaseType: 'long_term' as const,
-  billing: mode,
-  startDateISO: startISO,
-  baseRent,
-  baseRentCollect: collect,
-  deposit,
-  durationDays,
-  endDateISO,
-  // ✅ luôn có tenant vì fullName đã bắt buộc
-  tenant: {
-    full_name: fullName.trim(),
-    id_number: idNumber.trim(),
-    phone: phone.trim(),
-  },
-  charges: outCharges,
-  isAllInclusive: allInclusive,
-};
+    const payload = {
+      roomId,
+      leaseType: 'long_term' as const,
+      billing: mode,
+      startDateISO: startISO,
+      baseRent,
+      baseRentCollect: collect,
+      deposit,
+      durationDays,
+      endDateISO,
+      // ✅ luôn có tenant vì fullName đã bắt buộc
+      tenant: {
+        full_name: fullName.trim(),
+        id_number: idNumber.trim(),
+        phone: phone.trim(),
+      },
+      charges: outCharges,
+      isAllInclusive: allInclusive,
+    };
 
     try {
       const leaseId = startLeaseAdvanced(payload as any);
@@ -552,9 +610,104 @@ const payload = {
           }}
         >
           <Button title={t('common.cancel')} variant="ghost" onPress={() => navigation.goBack()} />
-          <Button title={t('leaseForm.createLease')} onPress={submit} />
+          {/* đổi submit → openConfirm */}
+          <Button title={t('leaseForm.createLease')} onPress={openConfirm} />
         </View>
       </ScrollView>
+
+      {/* Modal xác nhận tạo hợp đồng */}
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 20 }}>
+          <View
+            style={{
+              backgroundColor: (c as any).bg || 'white',
+              borderRadius: 14,
+              padding: 16,
+              maxHeight: '85%',
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 18, marginBottom: 8 }}>
+              {t('common.confirm') || 'Xác nhận tạo hợp đồng'}
+            </Text>
+
+            <ScrollView style={{ maxHeight: 420 }}>
+              <Text style={{ color: c.text, marginBottom: 4 }}>
+                {t('leaseForm.tenantName')}: <Text style={{ fontWeight: '700' }}>{confirmData?.tenant?.fullName}</Text>
+              </Text>
+              {!!confirmData?.tenant?.phone && (
+                <Text style={{ color: c.subtext, marginBottom: 8 }}>{confirmData.tenant.phone}</Text>
+              )}
+
+              <Text style={{ color: c.text }}>
+                {t('leaseForm.startDate')}: {formatDateISO(confirmData?.startISO, dateFormat, language)}
+              </Text>
+              <Text style={{ color: c.text }}>
+                {t('leaseForm.contractType')}:{' '}
+                {confirmData?.mode === 'monthly' ? (t('leaseForm.monthly') || 'Theo tháng') : (t('leaseForm.daily') || 'Theo ngày')}
+              </Text>
+              <Text style={{ color: c.text }}>
+                {t('leaseForm.duration')}: {durationHint}
+              </Text>
+              {!!confirmData?.endDateISO && (
+                <Text style={{ color: c.text }}>
+                  {t('leaseHistoryDetail.end') || 'Kết thúc'}: {formatDateISO(confirmData.endDateISO, dateFormat, language)}
+                </Text>
+              )}
+              <Text style={{ color: c.text }}>
+                {t('leaseForm.collectRent')}: {confirmData?.collect === 'start'
+                  ? (t('leaseForm.collectStart') || 'Thu đầu kỳ')
+                  : (t('leaseForm.collectEnd') || 'Thu cuối kỳ')}
+              </Text>
+
+              <View style={{ height: 8 }} />
+
+              <Text style={{ color: c.text }}>
+                {(confirmData?.allInclusive ? (t('leaseForm.allInclusiveAmount') || 'Gói trọn gói') : (t('leaseForm.baseRent') || 'Giá thuê cơ bản')) + ': '}
+                <Text style={{ fontWeight: '700' }}>{format(confirmData?.baseRent || 0)}</Text>
+              </Text>
+              <Text style={{ color: c.text }}>
+                {t('leaseForm.deposit')}: <Text style={{ fontWeight: '700' }}>{format(confirmData?.deposit || 0)}</Text>
+              </Text>
+
+              {!!confirmData?.charges?.length && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: c.text, fontWeight: '600', marginBottom: 4 }}>
+                    {t('leaseHistoryDetail.adjustments') || 'Các khoản phí'}
+                  </Text>
+                  {confirmData.charges.map((ch: any, idx: number) => (
+                    <Text key={idx} style={{ color: c.text }}>
+                      • {ch.name} — {format(Number(ch.unitPrice || 0))}{ch.unit ? `/${ch.unit}` : ''}
+                    </Text>
+                  ))}
+                </View>
+              )}
+
+              <View style={{ borderTopWidth: 1, borderColor: c.card, marginTop: 12, paddingTop: 8 }}>
+                <Text style={{ color: c.text, fontWeight: '800' }}>
+                  {(t('leaseForm.collectNow') || 'Thu ngay khi tạo') + ': '}
+                  {format(confirmData?.totalDueNow || 0)}
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
+              <Button title={t('common.edit') || 'Chỉnh sửa'} variant="ghost" onPress={() => setConfirmVisible(false)} />
+              <Button
+                title={t('common.confirm') || 'Xác nhận'}
+                onPress={() => {
+                  setConfirmVisible(false);
+                  submit(); // tạo hợp đồng thật sự
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }

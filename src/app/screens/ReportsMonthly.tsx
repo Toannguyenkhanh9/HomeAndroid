@@ -1,12 +1,32 @@
+// src/app/screens/ReportsMonthly.tsx
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import Card from '../components/Card';
+import Button from '../components/Button';
 import { useThemeColors } from '../theme';
 import { useTranslation } from 'react-i18next';
-import { revenueAndExpenseByApartmentForMonth } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
+
+// Tổng hợp Thu/Chi/LN (đã loại cọc) – cùng nguồn với màn chi tiết
+import { revenueAndExpenseByApartmentForMonth } from '../../services/rent';
+
+// 👇 Optional (debug) – không bắt buộc có export
+let __rentDebug: any;
+try {
+  __rentDebug = require('../../services/rent');
+} catch {}
+const debugMonthRevenueRows: undefined | ((y: number, m: number) => any[]) =
+  __rentDebug?.debugMonthRevenueRows;
+const markContractDepositItems: undefined | (() => void) =
+  __rentDebug?.markContractDepositItems;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportsMonthly'>;
 
@@ -20,7 +40,20 @@ export default function ReportsMonthly({ navigation }: Props) {
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(thisYear);
 
-  // Lấy Thu/Chi/Lợi nhuận theo tháng từ cùng 1 hàm (đảm bảo nhất quán với màn chi tiết)
+  // ===== Debug panel state =====
+  const [showDbg, setShowDbg] = useState(false);
+  const [dbgMonth, setDbgMonth] = useState<number | null>(null);
+  const [dbgRows, setDbgRows] = useState<any[]>([]);
+
+  const openDbgFor = (m: number) => {
+    try { markContractDepositItems?.(); } catch {}
+    const rows = debugMonthRevenueRows ? debugMonthRevenueRows(year, m) : [];
+    setDbgRows(rows);
+    setDbgMonth(m);
+    setShowDbg(true);
+  };
+
+  // Lấy Thu/Chi/Lợi nhuận theo tháng (đồng bộ với màn chi tiết)
   const { revenue, expense, profit, maxAbs } = useMemo(() => {
     const rev: number[] = [];
     const exp: number[] = [];
@@ -134,13 +167,16 @@ export default function ReportsMonthly({ navigation }: Props) {
           </View>
         </Card>
 
-        {/* SUMMARY: Thu / Chi / Lợi nhuận (đã đồng bộ nguồn dữ liệu) */}
+        {/* SUMMARY: Thu / Chi / Lợi nhuận */}
         <Card>
           <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('reports.summary')}</Text>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderLeftWidth: 1, borderColor: '#ddd', flexWrap: 'wrap' }}>
             {MONTHS.map((m, i) => (
-              <View
+              <TouchableOpacity
                 key={i}
+                activeOpacity={0.9}
+                onPress={() => (navigation as any).navigate('ReportMonthDetail', { year, month: i + 1 })}
+                onLongPress={() => openDbgFor(i + 1)} // 🧪 giữ lâu để debug
                 style={{
                   width: '50%',
                   borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#ddd',
@@ -162,11 +198,54 @@ export default function ReportsMonthly({ navigation }: Props) {
                     {format(profit[i] || 0)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </Card>
       </ScrollView>
+
+      {/* 🧪 DEBUG MODAL */}
+      <Modal visible={showDbg} animationType="slide" onRequestClose={() => setShowDbg(false)}>
+        <View style={{ flex: 1, backgroundColor: 'white' }}>
+          <View style={{ padding: 12, gap: 6 }}>
+            <Text style={{ fontWeight: '800', fontSize: 16 }}>
+              🧪 Dòng tính doanh thu {dbgMonth ? `• Tháng ${dbgMonth}/${year}` : ''}
+            </Text>
+            <Text style={{ color: '#6b7280' }}>
+              Các dòng có <Text style={{ fontWeight: '700' }}>excludedBecauseDeposit = true</Text> đã bị loại khỏi doanh thu.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button
+                title="Đánh dấu lại các dòng đặt cọc"
+                variant="ghost"
+                onPress={() => {
+                  try { markContractDepositItems?.(); } catch {}
+                  if (dbgMonth) openDbgFor(dbgMonth);
+                }}
+              />
+              <Button title="Đóng" onPress={() => setShowDbg(false)} />
+            </View>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 24 }}>
+            {dbgRows.map((r, idx) => (
+              <View key={idx} style={{ marginBottom: 12, padding: 10, borderRadius: 8, backgroundColor: '#f8fafc' }}>
+                <Text style={{ fontWeight: '700' }}>{String(r.description || '—')}</Text>
+                <Text>Số tiền: {format(Number(r.amount) || 0)}</Text>
+                <Text>Kỳ: {r.period_start} → {r.period_end}</Text>
+                {'overlapDays' in r ? <Text>overlapDays: {r.overlapDays}</Text> : null}
+                <Text>Bị loại vì cọc: {String(r.excludedBecauseDeposit)}</Text>
+                {r.reason ? <Text>Lý do: {r.reason}</Text> : null}
+              </View>
+            ))}
+            {dbgRows.length === 0 && (
+              <Text style={{ padding: 12, color: '#6b7280' }}>
+                Không có dòng nào rơi vào tháng này (hoặc bạn chưa thêm hàm debugMonthRevenueRows trong rent.ts).
+              </Text>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }

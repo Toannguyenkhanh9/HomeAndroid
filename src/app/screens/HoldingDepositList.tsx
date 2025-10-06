@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, FlatList } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -19,6 +19,7 @@ export default function HoldingDepositList({ route }: Props) {
   const { format } = useCurrency();
   const [rows, setRows] = useState<any[]>([]);
   const { t } = useTranslation();
+
   useEffect(() => {
     const list = query<any>(
       `
@@ -39,8 +40,26 @@ export default function HoldingDepositList({ route }: Props) {
     setRows(list);
   }, [apartmentId]);
 
+  // 🧮 Tổng tiền đặt cọc
+  const totalDeposit = useMemo(
+    () =>
+      rows.reduce(
+        (sum, r) => sum + (Number(r?.deposit_amount) || 0),
+        0,
+      ),
+    [rows],
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: 'transparent', padding: 16, gap: 12 }}>
+      {/* Tổng các khoản đặt cọc */}
+      <Card style={{ padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ color: c.text, fontWeight: '800' }}>
+          {t('cycleDetail.total') || 'Tổng đặt cọc'}
+        </Text>
+        <Text style={{ color: c.text, fontWeight: '800' }}>{format(totalDeposit)}</Text>
+      </Card>
+
       <FlatList
         data={rows}
         contentContainerStyle={{ gap: 12, paddingVertical: 8 }}
@@ -54,11 +73,10 @@ export default function HoldingDepositList({ route }: Props) {
               {item.tenant_phone || '—'}
             </Text>
             <Text style={{ color: c.text, marginTop: 6 }}>
-               {t('holdingDeposits.amount')}: <Text style={{ fontWeight: '800' }}>{format(Number(item.deposit_amount) || 0)}</Text>
+              {t('holdingDeposits.amount')}: <Text style={{ fontWeight: '800' }}>{format(Number(item.deposit_amount) || 0)}</Text>
             </Text>
             <Text style={{ color: c.subtext }}>
-               {t('holdingDeposits.start')}: {formatDateISO(item.start_date, dateFormat, language)}
-
+              {t('holdingDeposits.start')}: {formatDateISO(item.start_date, dateFormat, language)}
             </Text>
           </View>
         )}

@@ -304,7 +304,7 @@ export default function TenantsList({navigation}: Props) {
 
   return (
     <View style={{flex: 1, backgroundColor: 'transparent'}}>
-      <Header title={t('tenantsList.title')} />
+      {/* <Header title={t('tenantsList.title')} /> */}
       <View style={{paddingHorizontal: 12, paddingBottom: 12}}>
         {/* Search */}
         <TextInput

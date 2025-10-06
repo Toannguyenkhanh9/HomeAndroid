@@ -673,12 +673,12 @@ export default function ApartmentsList({
                     label={t('stat_overdue')}
                     value={s.overdue}
                   />
-                  <StatBox
+                  {/* <StatBox
                     icon="💳"
                     iconBg="#EAF7EE"
                     label={t('stat_unpaid')}
                     value={s.unpaid}
-                  />
+                  /> */}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <StatBox

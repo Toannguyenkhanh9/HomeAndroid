@@ -3,12 +3,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   Alert,
   ScrollView,
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -29,6 +29,7 @@ import {
   isLastCycle,
   endLeaseWithSettlement,
   extendLeaseAndAddCycles,
+  addSupplementChargesToCycle,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -42,16 +43,9 @@ import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 import Share from 'react-native-share';
-
-// 🔔 notifications
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createInvoicePdfFile } from '../../services/invoicePdf';
-import { Dimensions } from 'react-native';
-import {
-  createInvoiceHtmlFile,
-  createInvoiceDocFile,
-} from '../../services/invoiceHtml';
+import { createInvoiceHtmlFile } from '../../services/invoiceHtml';
 import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
 
@@ -76,8 +70,6 @@ function parseAmountInt(s: string) {
   const digits = (s || '').replace(/[^\d]/g, '');
   return digits ? Number(digits) : 0;
 }
-
-// ➕ Format tiền VN khi đang gõ: ngăn nghìn bằng ".", thập phân bằng ","
 function formatVNMoneyTyping(input: string) {
   if (!input) return '';
   let s = input.replace(/[^\d,]/g, '');
@@ -108,37 +100,40 @@ export default function CycleDetail({ route, navigation }: Props) {
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
-  const [period, setPeriod] = useState<{ s: string; e: string }>({
-    s: '',
-    e: '',
-  });
+  const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
 
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
   const [settledItems, setSettledItems] = useState<any[]>([]);
-  const [currentReadings, setCurrentReadings] = useState<Record<string, number>>(
-    {},
-  );
+  const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
 
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
   const updateExtra = (i: number, patch: Partial<ExtraItem>) =>
-    setExtras(prev =>
-      prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)),
-    );
-  const removeExtra = (i: number) =>
-    setExtras(prev => prev.filter((_, idx) => idx !== i));
+    setExtras(prev => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  const removeExtra = (i: number) => setExtras(prev => prev.filter((_, idx) => idx !== i));
+
+  // Thu bổ sung (sau settle)
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [suppItems, setSuppItems] = useState<ExtraItem[]>([]);
+  const addSupp = () => setSuppItems(p => [...p, { name: '', amount: '' }]);
+  const updSupp = (i: number, patch: Partial<ExtraItem>) =>
+    setSuppItems(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  const delSupp = (i: number) => setSuppItems(p => p.filter((_, idx) => idx !== i));
+  const suppTotal = useMemo(
+    () => suppItems.reduce((s, it) => s + parseAmountInt(it.amount), 0),
+    [suppItems],
+  );
 
   const [showEndModal, setShowEndModal] = useState(false);
   const [endExtras, setEndExtras] = useState<ExtraItem[]>([]);
   const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
   const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delEndExtra = (i: number) =>
-    setEndExtras(p => p.filter((_, idx) => idx !== i));
+  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
     () => endExtras.reduce((s, it) => s + parseAmountInt(it.amount), 0),
     [endExtras],
@@ -207,9 +202,7 @@ export default function CycleDetail({ route, navigation }: Props) {
           is_variable: Number(it.is_variable),
           unit_price: Number(it.unit_price) || 0,
           meter_start: Number(it.meter_start) || 0,
-          value: it.is_variable
-            ? ''
-            : formatVNMoneyTyping(String(it.unit_price ?? '')),
+          value: it.is_variable ? '' : formatVNMoneyTyping(String(it.unit_price ?? '')),
         }));
         setRows(normalized);
       }
@@ -249,81 +242,66 @@ export default function CycleDetail({ route, navigation }: Props) {
     return sum;
   }, [rows, extras]);
 
-  const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
-    useMemo(() => {
-      const isWater = (u?: string | null) =>
-        (u || '').toLowerCase().includes('m3') || (u || '').includes('m³');
-      const isElec = (u?: string | null) => (u || '').toLowerCase().includes('kwh');
-      let _elec = 0,
-        _water = 0,
-        _pElec = 0,
-        _pWater = 0;
+  const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } = useMemo(() => {
+    const isWater = (u?: string | null) => (u || '').toLowerCase().includes('m3') || (u || '').includes('m³');
+    const isElec = (u?: string | null) => (u || '').toLowerCase().includes('kwh');
+    let _elec = 0,
+      _water = 0,
+      _pElec = 0,
+      _pWater = 0;
 
-      if (status === 'settled' && invId) {
-        const items = getInvoiceItems(invId) as any[];
-        for (const it of items) {
-          const unit = (it.unit || '').toLowerCase();
-          if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
-          if (unit.includes('m3') || unit.includes('m³')) _water += Number(it.amount) || 0;
-        }
-      } else {
-        for (const r of rows) {
-          if (r.is_variable !== 1) continue;
-          const current = parseAmountInt(r.value);
-          const consumed = Math.max(0, current - (r.meter_start || 0));
-          const money = consumed * (r.unit_price || 0);
-          if (isElec(r.unit)) _pElec += money;
-          if (isWater(r.unit)) _pWater += money;
-        }
+    if (status === 'settled' && invId) {
+      const items = getInvoiceItems(invId) as any[];
+      for (const it of items) {
+        const unit = (it.unit || '').toLowerCase();
+        if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
+        if (unit.includes('m3') || unit.includes('m³')) _water += Number(it.amount) || 0;
       }
-      return {
-        elecTotal: _elec,
-        waterTotal: _water,
-        previewElecTotal: _pElec,
-        previewWaterTotal: _pWater,
-      };
-    }, [rows, status, invId]);
+    } else {
+      for (const r of rows) {
+        if (r.is_variable !== 1) continue;
+        const current = parseAmountInt(r.value);
+        const consumed = Math.max(0, current - (r.meter_start || 0));
+        const money = consumed * (r.unit_price || 0);
+        if (isElec(r.unit)) _pElec += money;
+        if (isWater(r.unit)) _pWater += money;
+      }
+    }
+    return {
+      elecTotal: _elec,
+      waterTotal: _water,
+      previewElecTotal: _pElec,
+      previewWaterTotal: _pWater,
+    };
+  }, [rows, status, invId]);
 
   const onChangeVarValue = (id: string, text: string) => {
     setRows(prev =>
-      prev.map(r =>
-        r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r,
-      ),
+      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r)),
     );
   };
-
   const onChangeFixedValue = (id: string, text: string) => {
     const formatted = formatVNMoneyTyping(text);
-    setRows(prev =>
-      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)),
-    );
+    setRows(prev => prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)));
   };
 
   function validateBeforeSettle(): string | null {
     for (const r of rows) {
       if (r.is_variable === 1) {
         const raw = (r.value || '').replace(/[^\d]/g, '');
-        if (!raw) {
-          return t('cycleDetail.errVarRequired', { name: r.name });
-        }
+        if (!raw) return t('cycleDetail.errVarRequired', { name: r.name });
         const cur = Number(raw);
         const start = Number(r.meter_start || 0);
-        if (cur < start) {
-          return t('cycleDetail.errVarLessThanStart', { name: r.name, start });
-        }
+        if (cur < start) return t('cycleDetail.errVarLessThanStart', { name: r.name, start });
       } else {
-        if ((r.value || '').trim() === '') {
-          return t('cycleDetail.errFixedRequired', { name: r.name });
-        }
+        if ((r.value || '').trim() === '') return t('cycleDetail.errFixedRequired', { name: r.name });
       }
     }
     for (let i = 0; i < extras.length; i++) {
       const ex = extras[i];
       const hasName = ex.name.trim().length > 0;
       const hasAmt = (ex.amount || '').replace(/[^\d,]/g, '').trim().length > 0;
-      if (hasName !== hasAmt) {
-        return t('cycleDetail.errExtraIncomplete', { index: i + 1 });
-      }
+      if (hasName !== hasAmt) return t('cycleDetail.errExtraIncomplete', { index: i + 1 });
     }
     return null;
   }
@@ -333,9 +311,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       for (const r of rows) {
         if (r.is_variable === 0) {
           const newPrice = parseDecimalCommaStrict(r.value);
-          if (newPrice !== r.unit_price) {
-            updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
-          }
+          if (newPrice !== r.unit_price) updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
         }
       }
       Alert.alert(t('cycleDetail.saved'), t('cycleDetail.fixedPriceUpdated'));
@@ -363,17 +339,12 @@ export default function CycleDetail({ route, navigation }: Props) {
       } else {
         const newPrice = parseDecimalCommaStrict(r.value);
         const delta = newPrice - (r.unit_price || 0);
-        if (delta !== 0)
-          adjustments.push({
-            name: `${t('cycleDetail.adjust')} ${r.name}`,
-            amount: delta,
-          });
+        if (delta !== 0) adjustments.push({ name: `${t('cycleDetail.adjust')} ${r.name}`, amount: delta });
       }
     }
     for (const ex of extras) {
       const amt = parseAmountInt(ex.amount);
-      if (ex.name.trim() && amt > 0)
-        adjustments.push({ name: ex.name.trim(), amount: amt });
+      if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
     const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
@@ -386,11 +357,8 @@ export default function CycleDetail({ route, navigation }: Props) {
     try {
       const billing = String(leaseInfo?.billing_cycle);
       const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
-      const isOpenDaily =
-        billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
-      if (isOpenMonthly || isOpenDaily) {
-        extendLeaseAndAddCycles(leaseId, 1);
-      }
+      const isOpenDaily = billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
+      if (isOpenMonthly || isOpenDaily) extendLeaseAndAddCycles(leaseId, 1);
     } catch {}
 
     reload();
@@ -412,41 +380,12 @@ export default function CycleDetail({ route, navigation }: Props) {
 
     if (isFixedTerm && isLastCycle(cycleId)) {
       Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
-        {
-          text: t('cycleDetail.endLease'),
-          onPress: () => setShowEndModal(true),
-        },
-        {
-          text: t('cycleDetail.keepLease'),
-          onPress: () => setShowExtendModal(true),
-        },
+        { text: t('cycleDetail.endLease'), onPress: () => setShowEndModal(true) },
+        { text: t('cycleDetail.keepLease'), onPress: () => setShowExtendModal(true) },
         { text: t('common.close'), style: 'cancel' },
       ]);
     } else {
-      Alert.alert(
-        t('common.done'),
-        t('cycleDetail.settledOkLocked') ||
-          'Đã tất toán. Dữ liệu đã bị khóa và không thể thay đổi.',
-      );
-    }
-  }
-
-  async function shareImage() {
-    try {
-      if (!shotRef.current) {
-        Alert.alert('Lỗi', 'Không tìm thấy nội dung để chụp.');
-        return;
-      }
-      setCapturing(true);
-      await new Promise(res => requestAnimationFrame(() => setTimeout(res, 0)));
-      const path = await shotRef.current?.capture?.({ result: 'tmpfile' });
-      setCapturing(false);
-      if (!path) throw new Error('Capture failed');
-      const uri = path.startsWith('file://') ? path : `file://${path}`;
-      await Share.open({ url: uri, type: 'image/png', failOnCancel: false });
-    } catch (e: any) {
-      setCapturing(false);
-      Alert.alert(t('cycleDetail.shareFail'), e?.message || t('common.tryAgain'));
+      Alert.alert(t('common.done'), t('cycleDetail.settledOkLocked') || 'Đã tất toán. Dữ liệu đã bị khóa.');
     }
   }
 
@@ -474,43 +413,19 @@ export default function CycleDetail({ route, navigation }: Props) {
       total: rawInv?.total,
       notes: rawInv?.notes || '',
     };
-
     try {
       const path = await createInvoiceHtmlFile(invForDoc, items, t, format, {
         lang: language,
         dir: language === 'ar' ? 'rtl' : 'ltr',
         branding,
       });
-      await Share.open({
-        url: `file://${path}`,
-        type: 'text/html',
-        failOnCancel: false,
-      });
+      await Share.open({ url: `file://${path}`, type: 'text/html', failOnCancel: false });
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to create document');
     }
   }
 
-  async function sharePdfFromCapture() {
-    try {
-      if (!shotRef.current) return Alert.alert('Lỗi', 'Không thấy nội dung');
-      setCapturing(true);
-      await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
-      const pngPath = await shotRef.current?.capture?.({
-        result: 'tmpfile',
-        quality: 1,
-      });
-      setCapturing(false);
-      if (!pngPath) throw new Error('Capture failed');
-      const pdfPath = await createPdfFromImageFile(pngPath, { page: 'A4', margin: 24 });
-      await Share.open({ url: `file://${pdfPath}`, type: 'application/pdf', failOnCancel: false });
-    } catch (e: any) {
-      setCapturing(false);
-      Alert.alert('Error', e?.message || 'Failed to create PDF');
-    }
-  }
-
-  // 🟢 Phân tách "Kỳ mở đầu" (opening) ra khỏi các item thường khi đã settle
+  // Phân tách "Kỳ mở đầu" ra khỏi items thường (khi đã settle)
   const { openingItems, openingMeta, openingAmount, normalItems } = useMemo(() => {
     const open: any[] = [];
     const rest: any[] = [];
@@ -532,96 +447,126 @@ export default function CycleDetail({ route, navigation }: Props) {
     return { openingItems: open, openingMeta: meta, openingAmount: amt, normalItems: rest };
   }, [settledItems]);
 
-  // 📨 Chia sẻ văn bản thuần (đẹp, gọn cho tin nhắn)
-  const sharePlainText = async () => {
-    try {
-      const lines: string[] = [];
-      const titleRoom = roomCode ? `Phòng ${roomCode}` : 'Hóa đơn';
-      lines.push(`🧾 ${titleRoom}`);
-      if (tenantName) lines.push(`👤 Người thuê: ${tenantName}`);
-      lines.push(
-        `📅 Kỳ: ${formatDateISO(period.s, dateFormat, language)} – ${formatDateISO(
-          period.e,
-          dateFormat,
-          language,
-        )}`,
-      );
-      lines.push(''); // spacer
+const sharePlainText = async () => {
+  try {
+    // ⬇️ Lấy cấu hình thông tin thanh toán (brand/bank/QR)
+    let branding: any = {};
+    try { branding = await loadPaymentProfile(); } catch {}
 
-      if (status === 'settled' && invId) {
-        // Opening (nếu có)
-        if (openingItems.length > 0) {
-          lines.push(`• Kỳ Mở Đầu: ${format(openingAmount)}`);
-        }
-        // Các khoản phí kỳ này
-        for (const it of normalItems) {
-          let meta: any = null;
-          try {
-            meta = it.meta_json ? JSON.parse(it.meta_json) : null;
-          } catch {}
-          const name =
-            it.description === 'rent.roomprice' ? (t('leaseForm.baseRent') || 'Giá thuê') : it.description;
-          const qty = it.quantity != null ? Number(it.quantity) : undefined;
-          const unitPrice = it.unit_price != null ? Number(it.unit_price) : undefined;
+    const lines: string[] = [];
+    const titleRoom = roomCode ? t('common.room') + ` ${roomCode}` : t('invoice.title');
+    lines.push(`🧾 ${titleRoom}`);
+    if (tenantName) lines.push(`👤 ${t('tenants')}: ${tenantName}`);
+    lines.push(`📅 ${t('cycleDetail.period')}: ${formatDateISO(period.s, dateFormat, language)} – ${formatDateISO(period.e, dateFormat, language)}`);
+    lines.push('');
 
-          // thêm gợi ý chỉ số
-          const meterStr =
-            meta && (meta.meter_start != null || meta.meter_end != null)
-              ? ` (${groupVN(String(meta.meter_start ?? 0))}→${groupVN(String(meta.meter_end ?? 0))})`
-              : '';
-
-          let detail = '';
-          if (qty != null && unitPrice != null) detail = ` (${qty} × ${format(unitPrice)})`;
-
-          lines.push(`• ${name}: ${format(it.amount)}${detail}${meterStr}`);
-        }
-        lines.push('— — —');
-        lines.push(`🔢 Tổng: ${format(invTotal)}`);
-
-        // Thông tin thanh toán (nếu có)
-        const pay = await loadPaymentProfile();
-        if (pay && (pay.bankName || pay.accountNumber || pay.accountName || pay.note || pay.brandName)) {
-          lines.push('');
-          lines.push('💳 Thanh toán:');
-          if (pay.brandName) lines.push(`• Tên thương hiệu: ${pay.brandName}`);
-          if (pay.bankName) lines.push(`• Ngân hàng: ${pay.bankName}`);
-          if (pay.accountName) lines.push(`• Chủ tài khoản: ${pay.accountName}`);
-          if (pay.accountNumber) lines.push(`• Số tài khoản: ${pay.accountNumber}`);
-          if (pay.note) lines.push(`• Nội dung CK: ${pay.note}`);
-        }
-      } else {
-        // Chưa tất toán → dùng dữ liệu preview hiện tại
-        for (const r of rows) {
-          if (r.is_variable === 1) {
-            const current = parseAmountInt(r.value);
-            const consumed = Math.max(0, current - (r.meter_start || 0));
-            const money = consumed * (r.unit_price || 0);
-            const meterStr = ` (${groupVN(String(r.meter_start || 0))}→${groupVN(String(current || 0))})`;
-            lines.push(`• ${r.name}: ${format(money)} (${consumed} × ${format(r.unit_price)})${meterStr}`);
-          } else {
-            const amt = parseDecimalCommaStrict(r.value || String(r.unit_price));
-            lines.push(`• ${r.name}: ${format(amt)}`);
-          }
-        }
-        if (extras.length > 0) {
-          for (const ex of extras) {
-            const amt = parseAmountInt(ex.amount);
-            if (ex.name.trim() && amt > 0) lines.push(`• ${ex.name.trim()}: ${format(amt)}`);
-          }
-        }
-        lines.push('— — —');
-        lines.push(`🔢 Tạm tính: ${format(previewTotal)}`);
+    if (status === 'settled' && invId) {
+      if (openingItems.length > 0) {
+        lines.push(`• ${t('cycleDetail.openingCycle')}: ${format(openingAmount)}`);
       }
+      for (const it of normalItems) {
+        const name = it.description === 'rent.roomprice'
+          ? (t('leaseForm.baseRent') || 'Giá thuê')
+          : it.description;
+        lines.push(`• ${name}: ${format(it.amount)}`);
+      }
+      lines.push('— — —');
+      lines.push(`🔢 ${t('cycleDetail.total')}: ${format(invTotal)}`);
 
+      // (nếu bạn đã thêm phần liệt kê thanh toán của invoice theo gợi ý trước, giữ nguyên ở đây)
+      try {
+        const pays = listPaymentsForInvoice(invId) as any[];
+        if (pays.length) {
+          lines.push('');
+          lines.push(`💳 ${t('invoice.payments') || 'Thanh toán'}`);
+          let paidSum = 0;
+          for (const p of pays) {
+            const amt = Number(p.amount || 0);
+            paidSum += amt;
+            lines.push(
+              `• ${format(amt)} — ${p.method || (t('invoice.cash') || 'Tiền mặt')} — ${formatDateISO(p.payment_date, dateFormat, language)}`
+            );
+          }
+          lines.push(`= ${t('invoice.paidTotal') || 'Đã thanh toán'}: ${format(paidSum)}`);
+          const bal = (invTotal || 0) - paidSum;
+          lines.push(
+            `${bal > 0 ? '⚖️ ' + (t('invoice.balance') || 'Còn lại') : '✅ ' + (t('invoice.fullyPaid') || 'Đã thanh toán đủ')}: ${format(Math.max(bal, 0))}`
+          );
+        }
+      } catch {}
+    } else {
+      for (const r of rows) {
+        if (r.is_variable === 1) {
+          const current = parseAmountInt(r.value);
+          const consumed = Math.max(0, current - (r.meter_start || 0));
+          const money = consumed * (r.unit_price || 0);
+          lines.push(`• ${r.name}: ${format(money)} (${consumed} × ${format(r.unit_price)})`);
+        } else {
+          const amt = parseDecimalCommaStrict(r.value || String(r.unit_price));
+          lines.push(`• ${r.name}: ${format(amt)}`);
+        }
+      }
+      for (const ex of extras) {
+        const amt = parseAmountInt(ex.amount);
+        if (ex.name.trim() && amt > 0) lines.push(`• ${ex.name.trim()}: ${format(amt)}`);
+      }
+      lines.push('— — —');
+      lines.push(`🔢 ${t('invoice.subtotal')}: ${format(previewTotal)}`);
+    }
+
+    // ⬇️ THÔNG TIN THANH TOÁN từ PaymentProfile (brand/bank/ghi chú)
+    if (
+      branding?.brandName ||
+      branding?.bankName ||
+      branding?.accountName ||
+      branding?.accountNumber ||
+      branding?.note
+    ) {
       lines.push('');
-      lines.push('Cảm ơn bạn!');
+      lines.push(`🏦 ${t('payment.title') || 'Thông tin thanh toán'}`);
+      if (branding.brandName)     lines.push(`• ${branding.brandName}`);
+      if (branding.bankName)      lines.push(`• ${t('payment.bankName') || 'Ngân hàng'}: ${branding.bankName}`);
+      if (branding.accountName)   lines.push(`• ${t('payment.accountName') || 'Tên TK'}: ${branding.accountName}`);
+      if (branding.accountNumber) lines.push(`• ${t('payment.accountNumber') || 'Số TK'}: ${branding.accountNumber}`);
+      if (branding.note)          lines.push(`• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`);
+    }
 
-      const message = lines.join('\n');
-      await Share.open({
-        message,
-        subject: `Hóa đơn ${titleRoom}`,
-        failOnCancel: false,
-      });
+    lines.push('');
+    lines.push(t('cycleDetail.thank'));
+
+    // Gói share: kèm QR/logo nếu có (tùy app nhận tin nhắn có hỗ trợ đính kèm)
+    const payload: any = {
+      message: lines.join('\n'),
+      subject: `${t('invoice.title')} ${titleRoom}`,
+      failOnCancel: false,
+    };
+    // Đính kèm ảnh QR trước (ưu tiên)
+    if (branding?.qrPath) payload.url = branding.qrPath;
+    // hoặc muốn kèm thêm logo, dùng `urls`:
+    // if (branding?.qrPath || branding?.logoPath) {
+    //   payload.urls = [branding.qrPath, branding.logoPath].filter(Boolean);
+    // }
+
+    await Share.open(payload);
+  } catch (e: any) {
+    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+  }
+};
+
+  const saveSupplemental = () => {
+    const valids = suppItems
+      .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount) }))
+      .filter(it => it.name && it.amount > 0);
+    if (valids.length === 0) {
+      Alert.alert(t('common.missingInfo'), t('cycleDetail.errExtraIncomplete') || 'Vui lòng nhập đủ tên & số tiền');
+      return;
+    }
+    try {
+      addSupplementChargesToCycle(cycleId, valids);
+      setShowAddModal(false);
+      setSuppItems([]);
+      reload();
+      Alert.alert(t('common.success'), t('common.success') || 'Đã thêm khoản thu bổ sung');
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
@@ -636,18 +581,15 @@ export default function CycleDetail({ route, navigation }: Props) {
             onContentSizeChange={(_, h) => setContentH(h)}
             scrollEnabled={!capturing}
             style={capturing ? { height: Math.max(contentH, Dimensions.get('window').height) } : undefined}
-            contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 100, gap: 12 }}
+            contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 64, gap: 12 }}
             showsVerticalScrollIndicator
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
           >
+            {/* Room & tenant */}
             <Card>
-              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>
-                {t('cycleDetail.roomInfo')}
-              </Text>
-              <Text style={{ color: roomCode ? c.text : c.subtext }}>
-                {t('common.room')}: {roomCode || '—'}
-              </Text>
+              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.roomInfo')}</Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>{t('common.room')}: {roomCode || '—'}</Text>
 
               <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>
                 {t('cycleDetail.tenant')}
@@ -662,10 +604,10 @@ export default function CycleDetail({ route, navigation }: Props) {
               )}
             </Card>
 
+            {/* Period & invoice state */}
             <Card>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)} -{' '}
-                {formatDateISO(period.e, dateFormat, language)}
+                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)} - {formatDateISO(period.e, dateFormat, language)}
               </Text>
               <Text style={{ color: c.text }}>
                 {t('cycleDetail.status')}: {status === 'open' ? t('common.open') : t('common.close')}{' '}
@@ -677,12 +619,13 @@ export default function CycleDetail({ route, navigation }: Props) {
               ) : null}
             </Card>
 
+            {/* Fees */}
             <Card style={{ gap: 10 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
 
               {status === 'settled' && settledItems.length > 0 ? (
                 <>
-                  {/* ✅ Kỳ mở đầu (nếu có) */}
+                  {/* Opening cycle block */}
                   {openingItems.length > 0 && (
                     <View style={{ borderRadius: 10, padding: 10 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -706,7 +649,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     </View>
                   )}
 
-                  {/* Các item thông thường của kỳ */}
+                  {/* Normal items */}
                   {normalItems.map(it => {
                     let meterInfo: { start?: number; end?: number } = {};
                     let forStart: string | undefined;
@@ -815,42 +758,55 @@ export default function CycleDetail({ route, navigation }: Props) {
               )}
             </Card>
 
+            {/* ⬆️ Thu bổ sung: đặt TRÊN cụm share */}
             {status === 'settled' ? (
-              <View
-                style={{
-                  justifyContent: 'flex-end',
-                  position: 'absolute',
-                  left: 12,
-                  right: 12,
-                  bottom: insets.bottom + 12,
-                  flexDirection: 'row',
-                  gap: 12,
-                }}
-              >
-                <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
-                {/* 🔹 Share plain text */}
-                <Button title={t('cycleDetail.shareText')} variant="ghost" onPress={sharePlainText} />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <Button
+                  title={t('cycleDetail.collectMore') || 'Thu bổ sung'}
+                  onPress={() => {
+                    setSuppItems([{ name: '', amount: '' }]);
+                    setShowAddModal(true);
+                  }}
+                />
               </View>
-            ) : (
-              <View
-                style={{
-                  justifyContent: 'flex-end',
-                  position: 'absolute',
-                  left: 12,
-                  right: 12,
-                  bottom: insets.bottom + 12,
-                  flexDirection: 'row',
-                  gap: 12,
-                }}
-              >
-                <Button title={t('cycleDetail.settleNow')} onPress={() => setEditMode(true)} />
-              </View>
-            )}
+            ) : null}
           </ScrollView>
+
+          {/* Bottom action bar */}
+          {status === 'settled' ? (
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 8,
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button title={t('cycleDetail.shareText')} variant="ghost" onPress={sharePlainText} />
+              <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
+            </View>
+          ) : (
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 8,
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              <Button title={t('cycleDetail.settleNow')} onPress={() => setEditMode(true)} />
+            </View>
+          )}
         </ViewShot>
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 100, gap: 12 }}
+          contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 64, gap: 12 }}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
         >
@@ -981,7 +937,7 @@ export default function CycleDetail({ route, navigation }: Props) {
               position: 'absolute',
               left: 12,
               right: 12,
-              bottom: insets.bottom + 12,
+              bottom: insets.bottom + 8,
               flexDirection: 'row',
               gap: 12,
             }}
@@ -998,11 +954,8 @@ export default function CycleDetail({ route, navigation }: Props) {
               title={t('cycleDetail.settleNow')}
               onPress={() => {
                 const err = validateBeforeSettle();
-                if (err) {
-                  Alert.alert(t('common.missingInfo'), err);
-                } else {
-                  setShowConfirmSettle(true);
-                }
+                if (err) Alert.alert(t('common.missingInfo'), err);
+                else setShowConfirmSettle(true);
               }}
             />
           </View>
@@ -1081,7 +1034,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                 position: 'absolute',
                 left: 12,
                 right: 12,
-                bottom: insets.bottom + 12,
+                bottom: insets.bottom + 8,
                 flexDirection: 'row',
                 gap: 12,
               }}
@@ -1094,9 +1047,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     .filter(it => it.name.trim())
                     .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount || '') }));
                   const res = endLeaseWithSettlement(leaseId, payload);
-                  try {
-                    cancelReminder(`lease_end_${leaseId}`);
-                  } catch {}
+                  try { cancelReminder(`lease_end_${leaseId}`); } catch {}
                   setShowEndModal(false);
                   Alert.alert(
                     t('cycleDetail.ended'),
@@ -1145,7 +1096,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                 position: 'absolute',
                 left: 12,
                 right: 12,
-                bottom: insets.bottom + 12,
+                bottom: insets.bottom + 8,
                 flexDirection: 'row',
                 gap: 12,
               }}
@@ -1229,6 +1180,82 @@ export default function CycleDetail({ route, navigation }: Props) {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Modal THU BỔ SUNG */}
+      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={insets.top + 8}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+            <View
+              style={{
+                backgroundColor: c.bg,
+                paddingTop: 16,
+                paddingHorizontal: 16,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              }}
+            >
+              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16, marginBottom: 10 }}>
+                {t('cycleDetail.collectMore') || 'Thu bổ sung'}
+              </Text>
+
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                contentInsetAdjustmentBehavior="automatic"
+                style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
+                contentContainerStyle={{ gap: 10, paddingBottom: insets.bottom + 84 }}
+              >
+                <Card style={{ gap: 8 }}>
+                  {suppItems.map((ex, idx) => (
+                    <View key={idx} style={{ gap: 6 }}>
+                      <FormInput
+                        placeholder={t('cycleDetail.itemName')}
+                        placeholderTextColor={c.subtext}
+                        value={ex.name}
+                        onChangeText={t2 => updSupp(idx, { name: t2 })}
+                        style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+                      />
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <FormInput
+                          style={{ flex: 1 }}
+                          placeholder={t('cycleDetail.amountWithHint')}
+                          keyboardType="decimal-pad"
+                          value={ex.amount}
+                          onChangeText={t2 => updSupp(idx, { amount: formatDecimalTypingVNStrict(t2) })}
+                        />
+                        <Button title={t('common.delete')} variant="ghost" onPress={() => delSupp(idx)} />
+                      </View>
+                    </View>
+                  ))}
+                  <Button title={t('cycleDetail.addItem')} variant="ghost" onPress={addSupp} />
+                </Card>
+
+                <Text style={{ color: c.text }}>
+                  {t('cycleDetail.extraTotal')}: {format(suppTotal)}
+                </Text>
+              </ScrollView>
+
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 16,
+                  right: 16,
+                  bottom: insets.bottom + 8,
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 12,
+                }}
+              >
+                <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowAddModal(false)} />
+                <Button title={t('common.save')} onPress={saveSupplemental} />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </KeyboardAvoidingView>
   );
