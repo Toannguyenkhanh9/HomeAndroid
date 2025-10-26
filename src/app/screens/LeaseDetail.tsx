@@ -8,7 +8,7 @@ import {
   Modal,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,7 +22,7 @@ import {
   formatNumber as groupVN,
   onlyDigits,
   formatDecimalTypingVNStrict,
-  parseDecimalCommaStrict,   // ✅ parser chuẩn VN
+  parseDecimalCommaStrict, // ✅ parser chuẩn VN
 } from '../../utils/number';
 import {
   getLease,
@@ -33,12 +33,13 @@ import {
   updateLeaseBaseRent,
   listCycles,
   endLeaseWithSettlement,
+  getRoom,
 } from '../../services/rent';
 import { useSettings } from '../state/SettingsContext';
 import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import Share from 'react-native-share';
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
 type NewItem = {
@@ -75,18 +76,26 @@ export default function LeaseDetail({ route, navigation }: Props) {
   const [charges, setCharges] = useState<any[]>([]);
   const [cycles, setCycles] = useState<any[]>([]);
   const [editMode, setEditMode] = useState(false);
+  const [roomCode, setRoomCode] = useState<string>('');
 
   // fixed: { charge_type_id: "1.000,25" }
   const [fixed, setFixed] = useState<Record<string, string>>({});
   // vars: { charge_type_id: { price: "0,26", meter: "1.000" } }
-  const [vars, setVars] = useState<Record<string, { price: string; meter: string }>>({});
+  const [vars, setVars] = useState<
+    Record<string, { price: string; meter: string }>
+  >({});
   const [baseRentText, setBaseRentText] = useState('');
 
   const [newItems, setNewItems] = useState<NewItem[]>([]);
   const addEmptyItem = () =>
-    setNewItems(prev => [...prev, { name: '', isVariable: false, unit: '', price: '', meterStart: '' }]);
+    setNewItems(prev => [
+      ...prev,
+      { name: '', isVariable: false, unit: '', price: '', meterStart: '' },
+    ]);
   const updateItem = (idx: number, patch: Partial<NewItem>) =>
-    setNewItems(prev => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+    setNewItems(prev =>
+      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+    );
   const removeItem = (idx: number) =>
     setNewItems(prev => prev.filter((_, i) => i !== idx));
 
@@ -95,9 +104,14 @@ export default function LeaseDetail({ route, navigation }: Props) {
 
   // ----- Modal kết thúc trước hạn -----
   const [showEndModal, setShowEndModal] = useState(false);
-  const [endExtras, setEndExtras] = useState<Array<{ name: string; amount: string }>>([]);
+  const [endExtras, setEndExtras] = useState<
+    Array<{ name: string; amount: string }>
+  >([]);
   const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
-  const updEndExtra = (i: number, patch: Partial<{ name: string; amount: string }>) =>
+  const updEndExtra = (
+    i: number,
+    patch: Partial<{ name: string; amount: string }>,
+  ) =>
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const delEndExtra = (i: number) =>
     setEndExtras(p => p.filter((_, idx) => idx !== i));
@@ -114,6 +128,11 @@ export default function LeaseDetail({ route, navigation }: Props) {
     setLease(l);
     setBaseRentText(groupVN(String(l?.base_rent || 0)));
     setTenant(l?.tenant_id ? getTenant(l.tenant_id) : null);
+    try {
+      // ⬅️ lấy mã phòng nếu có
+      const r = l?.room_id ? getRoom(l.room_id) : null;
+      setRoomCode(r?.code || '');
+    } catch {}
 
     const list = listChargesForLease(leaseId) as any[];
     setCharges(list);
@@ -142,13 +161,109 @@ export default function LeaseDetail({ route, navigation }: Props) {
       setCycles(listCycles(leaseId) || []);
     } catch {}
   };
+  const sharePlainText = async () => {
+    try {
+      if (!lease) return;
+
+      const lines: string[] = [];
+      const titleRoom = roomCode
+        ? `${t('common.room')} ${roomCode}`
+        : t('leaseDetail.title') || 'Hợp đồng';
+
+      // Tiêu đề + người thuê
+      lines.push(`🧾 ${titleRoom}`);
+      if (tenant?.full_name) {
+        const phone = tenant.phone ? ` — ${tenant.phone}` : '';
+        lines.push(`👤 ${tenant.full_name}${phone}`);
+      }
+
+      // Thông tin HĐ
+      lines.push(
+        `📅 ${t('leaseDetail.start')}: ${formatDateISO(
+          lease.start_date,
+          dateFormat,
+          language,
+        )}`,
+      );
+      if (lease.end_date) {
+        lines.push(
+          `🏁 ${t('leaseDetail.end')}: ${formatDateISO(
+            lease.end_date,
+            dateFormat,
+            language,
+          )}`,
+        );
+      }
+      lines.push(
+        `${t('leaseDetail.cycle')}: ${
+          lease.billing_cycle === 'monthly'
+            ? t('common.monthly')
+            : t('leaseDetail.daily')
+        }`,
+      );
+      lines.push(
+        `${t('leaseDetail.baseRent')}: ${format(lease.base_rent || 0)} ${
+          lease.base_rent_collect === 'start'
+            ? `(${t('leaseForm.collectStart')})`
+            : `(${t('leaseForm.collectEnd')})`
+        }`,
+      );
+      lines.push(
+        `${t('leaseDetail.deposit')}: ${format(lease.deposit_amount || 0)}`,
+      );
+      lines.push('');
+
+      // Các khoản phí áp dụng
+      lines.push(`${t('leaseDetail.activeCharges')}:`);
+      for (const it of charges) {
+        const isVar = Number(it.is_variable) === 1;
+        const unitLabel = isVar
+          ? it.unit || t('units.unitShort')
+          : t('units.month');
+        const priceStr = format(Number(it.unit_price) || 0);
+
+        if (isVar) {
+          lines.push(
+            `• ${it.name}: ${priceStr}/${unitLabel} — ${t(
+              'leaseDetail.meterStart',
+            )}: ${groupVN(String(it.meter_start || 0))}`,
+          );
+        } else {
+          lines.push(`• ${it.name}: ${priceStr}/${unitLabel}`);
+        }
+      }
+
+      lines.push('');
+      lines.push(t('cycleDetail.thank'));
+
+      await Share.open({
+        message: lines.join('\n'),
+        subject: `${t('invoice.title') || 'Hóa đơn'} ${titleRoom}`,
+        failOnCancel: false,
+      });
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    }
+  };
 
   useEffect(reload, [leaseId]);
-  useFocusEffect(React.useCallback(() => { reload(); }, [leaseId]));
+  useFocusEffect(
+    React.useCallback(() => {
+      reload();
+    }, [leaseId]),
+  );
 
   // Helpers
-  const addMonths = (d: Date, n: number) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
-  const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const addMonths = (d: Date, n: number) => {
+    const x = new Date(d);
+    x.setMonth(x.getMonth() + n);
+    return x;
+  };
+  const addDays = (d: Date, n: number) => {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+  };
   const toYMD = (d: Date) => d.toISOString().slice(0, 10);
 
   // Kết thúc dự kiến & số kỳ còn lại (monthly)
@@ -168,12 +283,16 @@ export default function LeaseDetail({ route, navigation }: Props) {
       const days = Number(lease.duration_days || 1);
       projected = toYMD(addDays(s, Math.max(1, days) - 1));
     } else {
-      projected = toYMD(addDays(new Date(s.getFullYear() + 1, s.getMonth(), s.getDate()), -1));
+      projected = toYMD(
+        addDays(new Date(s.getFullYear() + 1, s.getMonth(), s.getDate()), -1),
+      );
     }
 
     if (billing !== 'monthly' || totalPlanned <= 0)
       return { endProjected: projected, cyclesLeft: '—' };
-    const settled = cycles.filter((c: any) => String(c.status) === 'settled').length;
+    const settled = cycles.filter(
+      (c: any) => String(c.status) === 'settled',
+    ).length;
     const hasOpen = cycles.some((c: any) => String(c.status) !== 'settled');
     const used = settled + (hasOpen ? 1 : 0);
     const left = Math.max(0, totalPlanned - used);
@@ -190,7 +309,11 @@ export default function LeaseDetail({ route, navigation }: Props) {
       if (removed[ctId]) {
         updateRecurringChargePrice(leaseId, ctId, 0);
       } else {
-        updateRecurringChargePrice(leaseId, ctId, parseDecimalCommaStrict(text));
+        updateRecurringChargePrice(
+          leaseId,
+          ctId,
+          parseDecimalCommaStrict(text),
+        );
       }
     }
 
@@ -199,19 +322,29 @@ export default function LeaseDetail({ route, navigation }: Props) {
       if (removed[ctId]) {
         updateRecurringChargePrice(leaseId, ctId, 0);
       } else {
-        updateRecurringChargePrice(leaseId, ctId, parseDecimalCommaStrict(val.price));
+        updateRecurringChargePrice(
+          leaseId,
+          ctId,
+          parseDecimalCommaStrict(val.price),
+        );
       }
     }
 
     // New items → upsert
     const toCreate = newItems
-      .filter(it => it.name.trim() && parseDecimalCommaStrict(it.price || '') > 0)
+      .filter(
+        it => it.name.trim() && parseDecimalCommaStrict(it.price || '') > 0,
+      )
       .map(it => ({
         name: it.name.trim(),
         isVariable: !!it.isVariable,
-        unit: (it.unit || '').trim() || (it.isVariable ? t('units.unitShort') : t('units.month')),
+        unit:
+          (it.unit || '').trim() ||
+          (it.isVariable ? t('units.unitShort') : t('units.month')),
         price: parseDecimalCommaStrict(it.price || ''),
-        meterStart: it.isVariable ? parseAmount(it.meterStart || '') : undefined,
+        meterStart: it.isVariable
+          ? parseAmount(it.meterStart || '')
+          : undefined,
       }));
     if (toCreate.length) addOrUpdateRecurringCharges(leaseId, toCreate);
 
@@ -223,10 +356,17 @@ export default function LeaseDetail({ route, navigation }: Props) {
 
   const attemptEndEarly = () => {
     const today = toYMD(new Date());
-    const openCycles = (cycles || []).filter((c: any) => String(c.status) !== 'settled');
-    const blocking = openCycles.find((c: any) => today >= c.period_start && today <= c.period_end);
+    const openCycles = (cycles || []).filter(
+      (c: any) => String(c.status) !== 'settled',
+    );
+    const blocking = openCycles.find(
+      (c: any) => today >= c.period_start && today <= c.period_end,
+    );
     if (blocking) {
-      Alert.alert(t('leaseDetail.cannotEnd'), t('leaseDetail.mustSettleCurrent'));
+      Alert.alert(
+        t('leaseDetail.cannotEnd'),
+        t('leaseDetail.mustSettleCurrent'),
+      );
       return;
     }
     Alert.alert(t('leaseDetail.confirm'), t('leaseDetail.endNowConfirm'), [
@@ -235,33 +375,60 @@ export default function LeaseDetail({ route, navigation }: Props) {
     ]);
   };
 
-  const SegBtn = ({ active, title, onPress }: { active: boolean; title: string; onPress: () => void; }) => (
+  const SegBtn = ({
+    active,
+    title,
+    onPress,
+  }: {
+    active: boolean;
+    title: string;
+    onPress: () => void;
+  }) => (
     <TouchableOpacity
       onPress={onPress}
-      style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: active ? c.primary : c.card }}
+      style={{
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: active ? c.primary : c.card,
+      }}
     >
-      <Text style={{ color: c.text, fontWeight: active ? '800' : '600' }}>{title}</Text>
+      <Text style={{ color: c.text, fontWeight: active ? '800' : '600' }}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 
   return (
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {!editMode ? (
-      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
-       contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{
+            padding: 12,
+            paddingBottom: insets.bottom + 100,
+            gap: 12,
+          }}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+        >
           <Card>
             <Text style={{ color: c.text, fontWeight: '800', marginBottom: 8 }}>
               {t('leaseDetail.tenant')}
             </Text>
             {tenant ? (
               <>
-                <Text style={{ color: c.text }}>{t('leaseDetail.name')}: {tenant.full_name}</Text>
-                <Text style={{ color: c.text }}>{t('leaseDetail.idNumber')}: {tenant.id_number || '—'}</Text>
-                <Text style={{ color: c.text }}>{t('leaseDetail.phone')}: {tenant.phone || '—'}</Text>
+                <Text style={{ color: c.text }}>
+                  {t('leaseDetail.name')}: {tenant.full_name}
+                </Text>
+                <Text style={{ color: c.text }}>
+                  {t('leaseDetail.idNumber')}: {tenant.id_number || '—'}
+                </Text>
+                <Text style={{ color: c.text }}>
+                  {t('leaseDetail.phone')}: {tenant.phone || '—'}
+                </Text>
               </>
             ) : (
               <Text style={{ color: c.subtext }}>—</Text>
@@ -270,13 +437,22 @@ export default function LeaseDetail({ route, navigation }: Props) {
 
           <Card>
             <Text style={{ color: c.text }}>
-              {t('leaseDetail.start')}: {lease?.start_date ? formatDateISO(lease?.start_date, dateFormat, language) : '—'}
+              {t('leaseDetail.start')}:{' '}
+              {lease?.start_date
+                ? formatDateISO(lease?.start_date, dateFormat, language)
+                : '—'}
             </Text>
             <Text style={{ color: c.text }}>
-              {t('leaseDetail.end')}: {lease?.end_date ? formatDateISO(lease?.end_date, dateFormat, language) : '—'}
+              {t('leaseDetail.end')}:{' '}
+              {lease?.end_date
+                ? formatDateISO(lease?.end_date, dateFormat, language)
+                : '—'}
             </Text>
             <Text style={{ color: c.text }}>
-              {t('leaseDetail.cycle')}: {lease?.billing_cycle === 'monthly' ? t('common.monthly') : t('leaseDetail.daily')}
+              {t('leaseDetail.cycle')}:{' '}
+              {lease?.billing_cycle === 'monthly'
+                ? t('common.monthly')
+                : t('leaseDetail.daily')}
             </Text>
             <Text style={{ color: c.text }}>
               {t('leaseDetail.baseRent')}: {format(lease?.base_rent || 0)}
@@ -285,16 +461,28 @@ export default function LeaseDetail({ route, navigation }: Props) {
               {t('leaseDetail.deposit')}: {format(lease?.deposit_amount || 0)}
             </Text>
             <Text style={{ color: c.text }}>
-              {t('leaseDetail.status')}: {lease?.status === 'active' ? t('common.active') : t('leaseDetail.ended')}{' '}
+              {t('leaseDetail.status')}:{' '}
+              {lease?.status === 'active'
+                ? t('common.active')
+                : t('leaseDetail.ended')}{' '}
             </Text>
           </Card>
 
           <Card style={{ gap: 8 }}>
-            <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseDetail.activeCharges')}</Text>
+            <Text style={{ color: c.text, fontWeight: '800' }}>
+              {t('leaseDetail.activeCharges')}
+            </Text>
             {charges.map(it => (
               <View key={it.id} style={{ borderRadius: 10, padding: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: c.text, fontWeight: '700' }}>{it.name}</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ color: c.text, fontWeight: '700' }}>
+                    {it.name}
+                  </Text>
                   <Text style={{ color: c.subtext }}>
                     {Number(it.is_variable) === 1
                       ? `${t('leaseDetail.variable')} (${t('units.unitShort')})`
@@ -302,35 +490,59 @@ export default function LeaseDetail({ route, navigation }: Props) {
                   </Text>
                 </View>
                 <Text style={{ color: c.subtext }}>
-                  {t('leaseDetail.unitPrice')}: <Text style={{ color: c.text }}>{format(it.unit_price || 0)}</Text>
+                  {t('leaseDetail.unitPrice')}:{' '}
+                  <Text style={{ color: c.text }}>
+                    {format(it.unit_price || 0)}
+                  </Text>
                   {Number(it.is_variable) === 1 && ` / ${t('units.unitShort')}`}
                 </Text>
                 {Number(it.is_variable) === 1 && (
                   <Text style={{ color: c.subtext }}>
-                    {t('leaseDetail.meterStart')}: <Text style={{ color: c.text }}>{groupVN(String(it.meter_start || 0))}</Text>
+                    {t('leaseDetail.meterStart')}:{' '}
+                    <Text style={{ color: c.text }}>
+                      {groupVN(String(it.meter_start || 0))}
+                    </Text>
                   </Text>
                 )}
               </View>
             ))}
           </Card>
 
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
-            <Button title={t('leaseDetail.endEarly')} onPress={attemptEndEarly} />
-            <Button title={t('common.edit')} onPress={() => setEditMode(true)} />
+          <View
+            style={{
+              justifyContent: 'flex-end',
+              position: 'absolute',
+              left: 12,
+              right: 12,
+              bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+              flexDirection: 'row',
+              gap: 12,
+            }}
+          >
+            <Button
+              title={t('cycleDetail.shareText') || 'Chia sẻ (tin nhắn)'}
+              onPress={sharePlainText}
+            />
+            <Button
+              title={t('leaseDetail.endEarly')}
+              onPress={attemptEndEarly}
+            />
+            <Button
+              title={t('common.edit')}
+              onPress={() => setEditMode(true)}
+            />
           </View>
         </ScrollView>
       ) : (
-      <ScrollView contentContainerStyle={{ padding: 12,paddingBottom: insets.bottom + 100,  gap: 12  }}
-       contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{
+            padding: 12,
+            paddingBottom: insets.bottom + 100,
+            gap: 12,
+          }}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+        >
           <Card>
             <Text style={{ color: c.text, fontWeight: '800', marginBottom: 8 }}>
               {t('leaseDetail.baseRentNext')}
@@ -338,7 +550,9 @@ export default function LeaseDetail({ route, navigation }: Props) {
             <FormInput
               keyboardType="decimal-pad"
               value={baseRentText}
-              onChangeText={(txt) => setBaseRentText(formatDecimalTypingVNStrict(txt))}
+              onChangeText={txt =>
+                setBaseRentText(formatDecimalTypingVNStrict(txt))
+              }
             />
           </Card>
 
@@ -346,94 +560,151 @@ export default function LeaseDetail({ route, navigation }: Props) {
             <Text style={{ color: c.text, fontWeight: '800' }}>
               {t('leaseDetail.fixedCharges')}
             </Text>
-            {charges.filter(i => Number(i.is_variable) !== 1).map(it => {
-              const ctId = it.charge_type_id;
-              const isRemoved = !!removed[ctId];
-              return (
-                <View key={it.id} style={{ gap: 6 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: isRemoved ? c.subtext : c.text, fontWeight: '700' }}>{it.name}</Text>
-                    <TouchableOpacity onPress={() => setRemoved(s => ({ ...s, [ctId]: !s[ctId] }))}>
-                      <Text style={{ color: isRemoved ? '#ef4444' : '#f43f5e', fontWeight: '700' }}>
-                        {isRemoved ? t('common.undo') : t('common.delete')}
+            {charges
+              .filter(i => Number(i.is_variable) !== 1)
+              .map(it => {
+                const ctId = it.charge_type_id;
+                const isRemoved = !!removed[ctId];
+                return (
+                  <View key={it.id} style={{ gap: 6 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isRemoved ? c.subtext : c.text,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {it.name}
                       </Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setRemoved(s => ({ ...s, [ctId]: !s[ctId] }))
+                        }
+                      >
+                        <Text
+                          style={{
+                            color: isRemoved ? '#ef4444' : '#f43f5e',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {isRemoved ? t('common.undo') : t('common.delete')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <FormInput
+                      editable={!isRemoved}
+                      keyboardType="decimal-pad"
+                      value={fixed[ctId] ?? ''}
+                      onChangeText={txt =>
+                        setFixed(s => ({
+                          ...s,
+                          [ctId]: formatDecimalTypingVNStrict(txt),
+                        }))
+                      }
+                    />
                   </View>
-                  <FormInput
-                    editable={!isRemoved}
-                    keyboardType="decimal-pad"
-                    value={fixed[ctId] ?? ''}
-                    onChangeText={(txt) =>
-                      setFixed(s => ({ ...s, [ctId]: formatDecimalTypingVNStrict(txt) }))
-                    }
-                  />
-                </View>
-              );
-            })}
+                );
+              })}
           </Card>
 
           <Card style={{ gap: 8 }}>
             <Text style={{ color: c.text, fontWeight: '800' }}>
               {t('leaseDetail.variableCharges')}
             </Text>
-            {charges.filter(i => Number(i.is_variable) === 1).map(it => {
-              const ctId = it.charge_type_id;
-              const isRemoved = !!removed[ctId];
-              return (
-                <View key={it.id} style={{ gap: 6 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: isRemoved ? c.subtext : c.text, fontWeight: '700' }}>
-                      {it.name} ({it.unit || t('units.unitShort')})
-                    </Text>
-                    <TouchableOpacity onPress={() => setRemoved(s => ({ ...s, [ctId]: !s[ctId] }))}>
-                      <Text style={{ color: isRemoved ? '#ef4444' : '#f43f5e', fontWeight: '700' }}>
-                        {isRemoved ? t('common.undo') : t('common.delete')}
+            {charges
+              .filter(i => Number(i.is_variable) === 1)
+              .map(it => {
+                const ctId = it.charge_type_id;
+                const isRemoved = !!removed[ctId];
+                return (
+                  <View key={it.id} style={{ gap: 6 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isRemoved ? c.subtext : c.text,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {it.name} ({it.unit || t('units.unitShort')})
                       </Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setRemoved(s => ({ ...s, [ctId]: !s[ctId] }))
+                        }
+                      >
+                        <Text
+                          style={{
+                            color: isRemoved ? '#ef4444' : '#f43f5e',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {isRemoved ? t('common.undo') : t('common.delete')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Đơn giá */}
+                    <FormInput
+                      editable={!isRemoved}
+                      keyboardType="decimal-pad"
+                      value={vars[ctId]?.price ?? ''}
+                      onChangeText={txt =>
+                        setVars(s => ({
+                          ...s,
+                          [ctId]: {
+                            ...(s[ctId] || { meter: '0' }),
+                            price: formatDecimalTypingVNStrict(txt),
+                          },
+                        }))
+                      }
+                      placeholder="0,00"
+                    />
+
+                    {/* Meter start: giữ định dạng số nguyên (nhóm nghìn) */}
+                    <Text style={{ color: c.subtext }}>
+                      {t('leaseDetail.meterStart')}
+                    </Text>
+                    <FormInput
+                      editable={!isRemoved}
+                      keyboardType="numeric"
+                      value={vars[ctId]?.meter ?? ''}
+                      onChangeText={txt =>
+                        setVars(s => ({
+                          ...s,
+                          [ctId]: {
+                            ...(s[ctId] || { price: '' }),
+                            meter: formatTypingInt(txt),
+                          },
+                        }))
+                      }
+                      placeholder="0"
+                    />
                   </View>
-
-                  {/* Đơn giá */}
-                  <FormInput
-                    editable={!isRemoved}
-                    keyboardType="decimal-pad"
-                    value={vars[ctId]?.price ?? ''}
-                    onChangeText={(txt) =>
-                      setVars(s => ({
-                        ...s,
-                        [ctId]: {
-                          ...(s[ctId] || { meter: '0' }),
-                          price: formatDecimalTypingVNStrict(txt),
-                        },
-                      }))
-                    }
-                    placeholder="0,00"
-                  />
-
-                  {/* Meter start: giữ định dạng số nguyên (nhóm nghìn) */}
-                  <Text style={{ color: c.subtext }}>{t('leaseDetail.meterStart')}</Text>
-                  <FormInput
-                    editable={!isRemoved}
-                    keyboardType="numeric"
-                    value={vars[ctId]?.meter ?? ''}
-                    onChangeText={(txt) =>
-                      setVars(s => ({
-                        ...s,
-                        [ctId]: {
-                          ...(s[ctId] || { price: '' }),
-                          meter: formatTypingInt(txt),
-                        },
-                      }))
-                    }
-                    placeholder="0"
-                  />
-                </View>
-              );
-            })}
+                );
+              })}
           </Card>
 
           {/* ==== Thêm khoản phí khác ==== */}
           <Card style={{ gap: 10 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <Text style={{ color: c.text, fontWeight: '800' }}>
                 {t('leaseDetail.addOtherCharge')}
               </Text>
@@ -441,7 +712,10 @@ export default function LeaseDetail({ route, navigation }: Props) {
             </View>
 
             {newItems.map((it, idx) => (
-              <View key={idx} style={{ borderRadius: 10, padding: 10, gap: 10 }}>
+              <View
+                key={idx}
+                style={{ borderRadius: 10, padding: 10, gap: 10 }}
+              >
                 <FormInput
                   placeholder={t('leaseDetail.chargeNamePh')}
                   value={it.name}
@@ -468,10 +742,16 @@ export default function LeaseDetail({ route, navigation }: Props) {
                 />
 
                 <FormInput
-                  placeholder={it.isVariable ? t('leaseDetail.pricePerUnitPh') : t('leaseDetail.pricePerCyclePh')}
+                  placeholder={
+                    it.isVariable
+                      ? t('leaseDetail.pricePerUnitPh')
+                      : t('leaseDetail.pricePerCyclePh')
+                  }
                   keyboardType="decimal-pad"
                   value={it.price}
-                  onChangeText={t_ => updateItem(idx, { price: formatDecimalTypingVNStrict(t_) })}
+                  onChangeText={t_ =>
+                    updateItem(idx, { price: formatDecimalTypingVNStrict(t_) })
+                  }
                 />
 
                 {it.isVariable && (
@@ -479,24 +759,32 @@ export default function LeaseDetail({ route, navigation }: Props) {
                     placeholder={t('leaseDetail.meterStartPh')}
                     keyboardType="numeric"
                     value={it.meterStart}
-                    onChangeText={t_ => updateItem(idx, { meterStart: formatTypingInt(t_) })}
+                    onChangeText={t_ =>
+                      updateItem(idx, { meterStart: formatTypingInt(t_) })
+                    }
                   />
                 )}
 
-                <Button title={t('common.remove')} variant="ghost" onPress={() => removeItem(idx)} />
+                <Button
+                  title={t('common.remove')}
+                  variant="ghost"
+                  onPress={() => removeItem(idx)}
+                />
               </View>
             ))}
           </Card>
 
-        <View  style={{
-          justifyContent: 'flex-end',
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
-          flexDirection: 'row',
-          gap: 12,
-        }}>
+          <View
+            style={{
+              justifyContent: 'flex-end',
+              position: 'absolute',
+              left: 12,
+              right: 12,
+              bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+              flexDirection: 'row',
+              gap: 12,
+            }}
+          >
             <Button
               title={t('common.cancel')}
               variant="ghost"
@@ -524,7 +812,13 @@ export default function LeaseDetail({ route, navigation }: Props) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={insets.top + 8}
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              justifyContent: 'flex-end',
+            }}
+          >
             <View
               style={{
                 backgroundColor: c.bg,
@@ -535,7 +829,14 @@ export default function LeaseDetail({ route, navigation }: Props) {
                 maxHeight: '90%',
               }}
             >
-              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16, marginBottom: 8 }}>
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: '800',
+                  fontSize: 16,
+                  marginBottom: 8,
+                }}
+              >
                 {t('leaseDetail.endEarly')}
               </Text>
               <Text style={{ color: c.text, marginBottom: 8 }}>
@@ -545,7 +846,10 @@ export default function LeaseDetail({ route, navigation }: Props) {
               <ScrollView
                 keyboardShouldPersistTaps="handled"
                 contentInsetAdjustmentBehavior="automatic"
-                contentContainerStyle={{ gap: 10, paddingBottom: insets.bottom + 84 }}
+                contentContainerStyle={{
+                  gap: 10,
+                  paddingBottom: insets.bottom + 84,
+                }}
               >
                 <Card style={{ gap: 8 }}>
                   <Text style={{ color: c.text, fontWeight: '700' }}>
@@ -564,13 +868,25 @@ export default function LeaseDetail({ route, navigation }: Props) {
                           placeholder={t('leaseDetail.amountPlusPh')}
                           keyboardType="decimal-pad"
                           value={ex.amount}
-                          onChangeText={t_ => updEndExtra(idx, { amount: formatDecimalTypingVNStrict(t_) })}
+                          onChangeText={t_ =>
+                            updEndExtra(idx, {
+                              amount: formatDecimalTypingVNStrict(t_),
+                            })
+                          }
                         />
-                        <Button title={t('common.remove')} variant="ghost" onPress={() => delEndExtra(idx)} />
+                        <Button
+                          title={t('common.remove')}
+                          variant="ghost"
+                          onPress={() => delEndExtra(idx)}
+                        />
                       </View>
                     </View>
                   ))}
-                  <Button title={t('common.addItem')} variant="ghost" onPress={addEndExtra} />
+                  <Button
+                    title={t('common.addItem')}
+                    variant="ghost"
+                    onPress={addEndExtra}
+                  />
                 </Card>
 
                 <Card>
@@ -584,11 +900,14 @@ export default function LeaseDetail({ route, navigation }: Props) {
                   )}
                   {finalBalance < 0 && (
                     <Text style={{ color: c.text }}>
-                      {t('leaseDetail.collectMore')}: {format(Math.abs(finalBalance))}
+                      {t('leaseDetail.collectMore')}:{' '}
+                      {format(Math.abs(finalBalance))}
                     </Text>
                   )}
                   {finalBalance === 0 && (
-                    <Text style={{ color: c.text }}>{t('leaseDetail.noFurther')}</Text>
+                    <Text style={{ color: c.text }}>
+                      {t('leaseDetail.noFurther')}
+                    </Text>
                   )}
                 </Card>
               </ScrollView>
@@ -605,7 +924,11 @@ export default function LeaseDetail({ route, navigation }: Props) {
                   gap: 10,
                 }}
               >
-                <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
+                <Button
+                  title={t('common.cancel')}
+                  variant="ghost"
+                  onPress={() => setShowEndModal(false)}
+                />
                 <Button
                   title={t('leaseDetail.finish')}
                   onPress={() => {
@@ -619,12 +942,19 @@ export default function LeaseDetail({ route, navigation }: Props) {
                     setShowEndModal(false);
                     const msg =
                       res.finalBalance > 0
-                        ? `${t('leaseDetail.refundToTenant')} ${format(res.finalBalance)}`
+                        ? `${t('leaseDetail.refundToTenant')} ${format(
+                            res.finalBalance,
+                          )}`
                         : res.finalBalance < 0
-                        ? `${t('leaseDetail.collectMore')} ${format(Math.abs(res.finalBalance))}`
+                        ? `${t('leaseDetail.collectMore')} ${format(
+                            Math.abs(res.finalBalance),
+                          )}`
                         : t('leaseDetail.noFurther');
                     Alert.alert(t('leaseDetail.ended'), msg, [
-                      { text: t('common.ok'), onPress: () => navigation.goBack() },
+                      {
+                        text: t('common.ok'),
+                        onPress: () => navigation.goBack(),
+                      },
                     ]);
                   }}
                 />
@@ -633,6 +963,6 @@ export default function LeaseDetail({ route, navigation }: Props) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 }

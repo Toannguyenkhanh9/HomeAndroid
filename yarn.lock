@@ -5627,6 +5627,11 @@ react-native-image-picker@^8.2.1:
   resolved "https://registry.yarnpkg.com/react-native-image-picker/-/react-native-image-picker-8.2.1.tgz#1ac7826563cbaa5d5298d9f2acc53c69805e5393"
   integrity sha512-FBeGYJGFDjMdGCcyubDJgBAPCQ4L1D3hwLXyUU91jY9ahOZMTbluceVvRmrEKqnDPFJ0gF1NVhJ0nr1nROFLdg==
 
+react-native-in-app-review@^4.4.2:
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/react-native-in-app-review/-/react-native-in-app-review-4.4.2.tgz#eaa908cdc7adee26158903a0e6f22ca6af415f7b"
+  integrity sha512-iUoZnP4cgpbiNMLpqPgK40AcT7xluJhlwEPKFEfcCZsWT4MzGygS8p1dxf6e1NH/LUgUEtjsZQ8ka/SbF1pE8Q==
+
 react-native-is-edge-to-edge@^1.2.1:
   version "1.2.1"
   resolved "https://registry.npmjs.org/react-native-is-edge-to-edge/-/react-native-is-edge-to-edge-1.2.1.tgz"

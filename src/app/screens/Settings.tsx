@@ -13,6 +13,7 @@ import { useI18n } from '../../i18n';
 import { useSettings } from '../state/SettingsContext'; // << dùng context mới
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { maybeAskForReview } from '../../services/rateApp';
 
 export default function Settings() {
   const c = useThemeColors();
@@ -153,7 +154,12 @@ export default function Settings() {
             }}
           />
         </Card>
-
+        <Card>
+          <Button
+            title= {t('ratetitle')}
+            onPress={() => maybeAskForReview(true)}
+          />
+        </Card>
         {/* Backup / Restore */}
         <Card>
           <Text style={{ color: c.text, fontWeight: '700' }}>

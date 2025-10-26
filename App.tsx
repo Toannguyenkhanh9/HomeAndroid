@@ -12,6 +12,7 @@ import i18n from './src/app/i18n';
 import {I18nextProvider} from 'react-i18next';
 import {ThemeProvider} from './src/app/theme';
 import PushNotification from 'react-native-push-notification';
+import { onAppOpened } from './src/services/rateApp';
 // ❌ KHÔNG import NavigationContainer ở đây
 // import {NavigationContainer} from '@react-navigation/native';
 
@@ -20,6 +21,7 @@ import RootNavigator from './src/app/navigation/RootNavigator';
 function LanguageSync({children}: {children: React.ReactNode}) {
   const {language} = useSettings();
   React.useEffect(() => {
+    onAppOpened();
     if (language) i18n.changeLanguage(language);
   }, [language]);
   return <>{children}</>;

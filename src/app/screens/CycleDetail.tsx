@@ -30,6 +30,8 @@ import {
   endLeaseWithSettlement,
   extendLeaseAndAddCycles,
   addSupplementChargesToCycle,
+  recordPayment,
+  queryPaymentsOfInvoice,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -48,7 +50,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoiceHtmlFile } from '../../services/invoiceHtml';
 import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
-
+import { markHappyEvent, maybeAskForReview } from '../../services/rateApp';
+//import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
 };
@@ -100,21 +103,29 @@ export default function CycleDetail({ route, navigation }: Props) {
   const [invId, setInvId] = useState<string | undefined>();
   const [invTotal, setInvTotal] = useState<number>(0);
   const [status, setStatus] = useState<'open' | 'settled'>('open');
-  const [period, setPeriod] = useState<{ s: string; e: string }>({ s: '', e: '' });
+  const [period, setPeriod] = useState<{ s: string; e: string }>({
+    s: '',
+    e: '',
+  });
 
   const [roomCode, setRoomCode] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
   const [settledItems, setSettledItems] = useState<any[]>([]);
-  const [currentReadings, setCurrentReadings] = useState<Record<string, number>>({});
+  const [currentReadings, setCurrentReadings] = useState<
+    Record<string, number>
+  >({});
 
   const [editMode, setEditMode] = useState(false);
   const [extras, setExtras] = useState<ExtraItem[]>([]);
   const addExtra = () => setExtras(prev => [...prev, { name: '', amount: '' }]);
   const updateExtra = (i: number, patch: Partial<ExtraItem>) =>
-    setExtras(prev => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const removeExtra = (i: number) => setExtras(prev => prev.filter((_, idx) => idx !== i));
+    setExtras(prev =>
+      prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)),
+    );
+  const removeExtra = (i: number) =>
+    setExtras(prev => prev.filter((_, idx) => idx !== i));
 
   // Thu bổ sung (sau settle)
   const [showAddModal, setShowAddModal] = useState(false);
@@ -122,7 +133,8 @@ export default function CycleDetail({ route, navigation }: Props) {
   const addSupp = () => setSuppItems(p => [...p, { name: '', amount: '' }]);
   const updSupp = (i: number, patch: Partial<ExtraItem>) =>
     setSuppItems(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delSupp = (i: number) => setSuppItems(p => p.filter((_, idx) => idx !== i));
+  const delSupp = (i: number) =>
+    setSuppItems(p => p.filter((_, idx) => idx !== i));
   const suppTotal = useMemo(
     () => suppItems.reduce((s, it) => s + parseAmountInt(it.amount), 0),
     [suppItems],
@@ -133,7 +145,8 @@ export default function CycleDetail({ route, navigation }: Props) {
   const addEndExtra = () => setEndExtras(p => [...p, { name: '', amount: '' }]);
   const updEndExtra = (i: number, patch: Partial<ExtraItem>) =>
     setEndExtras(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delEndExtra = (i: number) => setEndExtras(p => p.filter((_, idx) => idx !== i));
+  const delEndExtra = (i: number) =>
+    setEndExtras(p => p.filter((_, idx) => idx !== i));
   const endExtrasTotal = useMemo(
     () => endExtras.reduce((s, it) => s + parseAmountInt(it.amount), 0),
     [endExtras],
@@ -142,6 +155,20 @@ export default function CycleDetail({ route, navigation }: Props) {
 
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extendCount, setExtendCount] = useState<string>('');
+
+  // ====== NEW: Thu tiền nhiều lần ======
+  const [showPay, setShowPay] = useState(false);
+  const [payAmt, setPayAmt] = useState('');
+  const [payMethod, setPayMethod] = useState('cash');
+  const [payments, setPayments] = useState<any[]>([]);
+  const loadPayments = () => {
+    if (!invId) return;
+    try {
+      const p = queryPaymentsOfInvoice ? queryPaymentsOfInvoice(invId) : [];
+      setPayments(p || []);
+    } catch {}
+  };
+  // =====================================
 
   const isFixedTerm = useMemo(() => {
     if (!leaseInfo) return false;
@@ -185,7 +212,8 @@ export default function CycleDetail({ route, navigation }: Props) {
         if (it.charge_type_id && it.meta_json) {
           try {
             const m = JSON.parse(it.meta_json);
-            if (typeof m?.meter_end === 'number') map[it.charge_type_id] = m.meter_end;
+            if (typeof m?.meter_end === 'number')
+              map[it.charge_type_id] = m.meter_end;
           } catch {}
         }
       }
@@ -202,7 +230,9 @@ export default function CycleDetail({ route, navigation }: Props) {
           is_variable: Number(it.is_variable),
           unit_price: Number(it.unit_price) || 0,
           meter_start: Number(it.meter_start) || 0,
-          value: it.is_variable ? '' : formatVNMoneyTyping(String(it.unit_price ?? '')),
+          value: it.is_variable
+            ? ''
+            : formatVNMoneyTyping(String(it.unit_price ?? '')),
         }));
         setRows(normalized);
       }
@@ -215,7 +245,9 @@ export default function CycleDetail({ route, navigation }: Props) {
         is_variable: Number(it.is_variable),
         unit_price: Number(it.unit_price) || 0,
         meter_start: Number(it.meter_start) || 0,
-        value: it.is_variable ? '' : formatVNMoneyTyping(String(it.unit_price ?? '')),
+        value: it.is_variable
+          ? ''
+          : formatVNMoneyTyping(String(it.unit_price ?? '')),
       }));
       setRows(normalized);
       setInvId(undefined);
@@ -226,6 +258,9 @@ export default function CycleDetail({ route, navigation }: Props) {
   };
 
   useEffect(reload, [cycleId]);
+  useEffect(() => {
+    if (invId) loadPayments();
+  }, [invId, status]);
 
   const previewTotal = useMemo(() => {
     let sum = 0;
@@ -242,47 +277,55 @@ export default function CycleDetail({ route, navigation }: Props) {
     return sum;
   }, [rows, extras]);
 
-  const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } = useMemo(() => {
-    const isWater = (u?: string | null) => (u || '').toLowerCase().includes('m3') || (u || '').includes('m³');
-    const isElec = (u?: string | null) => (u || '').toLowerCase().includes('kwh');
-    let _elec = 0,
-      _water = 0,
-      _pElec = 0,
-      _pWater = 0;
+  const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
+    useMemo(() => {
+      const isWater = (u?: string | null) =>
+        (u || '').toLowerCase().includes('m3') || (u || '').includes('m³');
+      const isElec = (u?: string | null) =>
+        (u || '').toLowerCase().includes('kwh');
+      let _elec = 0,
+        _water = 0,
+        _pElec = 0,
+        _pWater = 0;
 
-    if (status === 'settled' && invId) {
-      const items = getInvoiceItems(invId) as any[];
-      for (const it of items) {
-        const unit = (it.unit || '').toLowerCase();
-        if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
-        if (unit.includes('m3') || unit.includes('m³')) _water += Number(it.amount) || 0;
+      if (status === 'settled' && invId) {
+        const items = getInvoiceItems(invId) as any[];
+        for (const it of items) {
+          const unit = (it.unit || '').toLowerCase();
+          if (unit.includes('kwh')) _elec += Number(it.amount) || 0;
+          if (unit.includes('m3') || unit.includes('m³'))
+            _water += Number(it.amount) || 0;
+        }
+      } else {
+        for (const r of rows) {
+          if (r.is_variable !== 1) continue;
+          const current = parseAmountInt(r.value);
+          const consumed = Math.max(0, current - (r.meter_start || 0));
+          const money = consumed * (r.unit_price || 0);
+          if (isElec(r.unit)) _pElec += money;
+          if (isWater(r.unit)) _pWater += money;
+        }
       }
-    } else {
-      for (const r of rows) {
-        if (r.is_variable !== 1) continue;
-        const current = parseAmountInt(r.value);
-        const consumed = Math.max(0, current - (r.meter_start || 0));
-        const money = consumed * (r.unit_price || 0);
-        if (isElec(r.unit)) _pElec += money;
-        if (isWater(r.unit)) _pWater += money;
-      }
-    }
-    return {
-      elecTotal: _elec,
-      waterTotal: _water,
-      previewElecTotal: _pElec,
-      previewWaterTotal: _pWater,
-    };
-  }, [rows, status, invId]);
+      return {
+        elecTotal: _elec,
+        waterTotal: _water,
+        previewElecTotal: _pElec,
+        previewWaterTotal: _pWater,
+      };
+    }, [rows, status, invId]);
 
   const onChangeVarValue = (id: string, text: string) => {
     setRows(prev =>
-      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r)),
+      prev.map(r =>
+        r.charge_type_id === id ? { ...r, value: formatIntTyping(text) } : r,
+      ),
     );
   };
   const onChangeFixedValue = (id: string, text: string) => {
     const formatted = formatVNMoneyTyping(text);
-    setRows(prev => prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)));
+    setRows(prev =>
+      prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)),
+    );
   };
 
   function validateBeforeSettle(): string | null {
@@ -292,16 +335,19 @@ export default function CycleDetail({ route, navigation }: Props) {
         if (!raw) return t('cycleDetail.errVarRequired', { name: r.name });
         const cur = Number(raw);
         const start = Number(r.meter_start || 0);
-        if (cur < start) return t('cycleDetail.errVarLessThanStart', { name: r.name, start });
+        if (cur < start)
+          return t('cycleDetail.errVarLessThanStart', { name: r.name, start });
       } else {
-        if ((r.value || '').trim() === '') return t('cycleDetail.errFixedRequired', { name: r.name });
+        if ((r.value || '').trim() === '')
+          return t('cycleDetail.errFixedRequired', { name: r.name });
       }
     }
     for (let i = 0; i < extras.length; i++) {
       const ex = extras[i];
       const hasName = ex.name.trim().length > 0;
       const hasAmt = (ex.amount || '').replace(/[^\d,]/g, '').trim().length > 0;
-      if (hasName !== hasAmt) return t('cycleDetail.errExtraIncomplete', { index: i + 1 });
+      if (hasName !== hasAmt)
+        return t('cycleDetail.errExtraIncomplete', { index: i + 1 });
     }
     return null;
   }
@@ -311,7 +357,8 @@ export default function CycleDetail({ route, navigation }: Props) {
       for (const r of rows) {
         if (r.is_variable === 0) {
           const newPrice = parseDecimalCommaStrict(r.value);
-          if (newPrice !== r.unit_price) updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
+          if (newPrice !== r.unit_price)
+            updateRecurringChargePrice(leaseId, r.charge_type_id, newPrice);
         }
       }
       Alert.alert(t('cycleDetail.saved'), t('cycleDetail.fixedPriceUpdated'));
@@ -339,12 +386,17 @@ export default function CycleDetail({ route, navigation }: Props) {
       } else {
         const newPrice = parseDecimalCommaStrict(r.value);
         const delta = newPrice - (r.unit_price || 0);
-        if (delta !== 0) adjustments.push({ name: `${t('cycleDetail.adjust')} ${r.name}`, amount: delta });
+        if (delta !== 0)
+          adjustments.push({
+            name: `${t('cycleDetail.adjust')} ${r.name}`,
+            amount: delta,
+          });
       }
     }
     for (const ex of extras) {
       const amt = parseAmountInt(ex.amount);
-      if (ex.name.trim() && amt > 0) adjustments.push({ name: ex.name.trim(), amount: amt });
+      if (ex.name.trim() && amt > 0)
+        adjustments.push({ name: ex.name.trim(), amount: amt });
     }
 
     const inv = settleCycleWithInputs(cycleId, variableInputs, adjustments);
@@ -357,7 +409,8 @@ export default function CycleDetail({ route, navigation }: Props) {
     try {
       const billing = String(leaseInfo?.billing_cycle);
       const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
-      const isOpenDaily = billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
+      const isOpenDaily =
+        billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
       if (isOpenMonthly || isOpenDaily) extendLeaseAndAddCycles(leaseId, 1);
     } catch {}
 
@@ -373,25 +426,40 @@ export default function CycleDetail({ route, navigation }: Props) {
       scheduleReminder(
         `lease_${leaseId}_cycle_settle_${nextISO}`,
         t('notify.settleTitle') || 'Tất toán kỳ',
-        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        t('notify.settleMsg') ||
+          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
         nextISO,
       );
     } catch {}
 
     if (isFixedTerm && isLastCycle(cycleId)) {
       Alert.alert(t('cycleDetail.lastCycle'), t('cycleDetail.lastCycleAsk'), [
-        { text: t('cycleDetail.endLease'), onPress: () => setShowEndModal(true) },
-        { text: t('cycleDetail.keepLease'), onPress: () => setShowExtendModal(true) },
+        {
+          text: t('cycleDetail.endLease'),
+          onPress: () => setShowEndModal(true),
+        },
+        {
+          text: t('cycleDetail.keepLease'),
+          onPress: () => setShowExtendModal(true),
+        },
         { text: t('common.close'), style: 'cancel' },
       ]);
     } else {
-      Alert.alert(t('common.done'), t('cycleDetail.settledOkLocked') || 'Đã tất toán. Dữ liệu đã bị khóa.');
+      Alert.alert(
+        t('common.done'),
+        t('cycleDetail.settledOkLocked') || 'Đã tất toán. Dữ liệu đã bị khóa.',
+      );
+      markHappyEvent();
+      setTimeout(() => maybeAskForReview(), 800);
     }
   }
 
   async function shareInvoiceHtml() {
     if (!invId) {
-      Alert.alert(t('common.error'), t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn');
+      Alert.alert(
+        t('common.error'),
+        t('cycleDetail.noInvoiceYet') || 'Chưa có hóa đơn',
+      );
       return;
     }
     const rawInv = getInvoice(invId);
@@ -419,146 +487,197 @@ export default function CycleDetail({ route, navigation }: Props) {
         dir: language === 'ar' ? 'rtl' : 'ltr',
         branding,
       });
-      await Share.open({ url: `file://${path}`, type: 'text/html', failOnCancel: false });
+      await Share.open({
+        url: `file://${path}`,
+        type: 'text/html',
+        failOnCancel: false,
+      });
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to create document');
     }
   }
 
-  // Phân tách "Kỳ mở đầu" ra khỏi items thường (khi đã settle)
-  const { openingItems, openingMeta, openingAmount, normalItems } = useMemo(() => {
-    const open: any[] = [];
-    const rest: any[] = [];
-    let meta: any = null;
-    for (const it of settledItems || []) {
-      try {
-        const m = it.meta_json ? JSON.parse(it.meta_json) : null;
-        if (m?.opening === true) {
-          open.push(it);
-          if (!meta) meta = m;
-        } else {
+  // Phân tách "Kỳ mở đầu"
+  const { openingItems, openingMeta, openingAmount, normalItems } =
+    useMemo(() => {
+      const open: any[] = [];
+      const rest: any[] = [];
+      let meta: any = null;
+      for (const it of settledItems || []) {
+        try {
+          const m = it.meta_json ? JSON.parse(it.meta_json) : null;
+          if (m?.opening === true) {
+            open.push(it);
+            if (!meta) meta = m;
+          } else rest.push(it);
+        } catch {
           rest.push(it);
         }
-      } catch {
-        rest.push(it);
       }
-    }
-    const amt = open.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-    return { openingItems: open, openingMeta: meta, openingAmount: amt, normalItems: rest };
-  }, [settledItems]);
+      const amt = open.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      return {
+        openingItems: open,
+        openingMeta: meta,
+        openingAmount: amt,
+        normalItems: rest,
+      };
+    }, [settledItems]);
 
-const sharePlainText = async () => {
-  try {
-    // ⬇️ Lấy cấu hình thông tin thanh toán (brand/bank/QR)
-    let branding: any = {};
-    try { branding = await loadPaymentProfile(); } catch {}
-
-    const lines: string[] = [];
-    const titleRoom = roomCode ? t('common.room') + ` ${roomCode}` : t('invoice.title');
-    lines.push(`🧾 ${titleRoom}`);
-    if (tenantName) lines.push(`👤 ${t('tenants')}: ${tenantName}`);
-    lines.push(`📅 ${t('cycleDetail.period')}: ${formatDateISO(period.s, dateFormat, language)} – ${formatDateISO(period.e, dateFormat, language)}`);
-    lines.push('');
-
-    if (status === 'settled' && invId) {
-      if (openingItems.length > 0) {
-        lines.push(`• ${t('cycleDetail.openingCycle')}: ${format(openingAmount)}`);
-      }
-      for (const it of normalItems) {
-        const name = it.description === 'rent.roomprice'
-          ? (t('leaseForm.baseRent') || 'Giá thuê')
-          : it.description;
-        lines.push(`• ${name}: ${format(it.amount)}`);
-      }
-      lines.push('— — —');
-      lines.push(`🔢 ${t('cycleDetail.total')}: ${format(invTotal)}`);
-
-      // (nếu bạn đã thêm phần liệt kê thanh toán của invoice theo gợi ý trước, giữ nguyên ở đây)
+  const sharePlainText = async () => {
+    try {
+      let branding: any = {};
       try {
-        const pays = listPaymentsForInvoice(invId) as any[];
-        if (pays.length) {
-          lines.push('');
-          lines.push(`💳 ${t('invoice.payments') || 'Thanh toán'}`);
-          let paidSum = 0;
-          for (const p of pays) {
-            const amt = Number(p.amount || 0);
-            paidSum += amt;
+        branding = await loadPaymentProfile();
+      } catch {}
+
+      const lines: string[] = [];
+      const titleRoom = roomCode
+        ? t('common.room') + ` ${roomCode}`
+        : t('invoice.title');
+      lines.push(`🧾 ${titleRoom}`);
+      if (tenantName) lines.push(`👤 ${t('tenants')}: ${tenantName}`);
+      lines.push(
+        `📅 ${t('cycleDetail.period')}: ${formatDateISO(
+          period.s,
+          dateFormat,
+          language,
+        )} – ${formatDateISO(period.e, dateFormat, language)}`,
+      );
+      lines.push('');
+
+      if (status === 'settled' && invId) {
+        if (openingItems.length > 0)
+          lines.push(
+            `• ${t('cycleDetail.openingCycle')}: ${format(openingAmount)}`,
+          );
+        for (const it of normalItems) {
+          const name =
+            it.description === 'rent.roomprice'
+              ? t('leaseForm.baseRent') || 'Giá thuê'
+              : it.description;
+          lines.push(`• ${name}: ${format(it.amount)}`);
+        }
+        lines.push('— — —');
+        lines.push(`🔢 ${t('cycleDetail.total')}: ${format(invTotal)}`);
+
+        // Thêm lịch sử thanh toán
+        try {
+          const pays = queryPaymentsOfInvoice
+            ? queryPaymentsOfInvoice(invId)
+            : [];
+          if (pays.length) {
+            lines.push('');
+            lines.push(`💳 ${t('invoice.payments') || 'Thanh toán'}`);
+            let paidSum = 0;
+            for (const p of pays) {
+              const amt = Number(p.amount || 0);
+              paidSum += amt;
+              lines.push(
+                `• ${format(amt)} — ${
+                  p.method || t('invoice.cash') || 'Tiền mặt'
+                } — ${formatDateISO(p.payment_date, dateFormat, language)}`,
+              );
+            }
             lines.push(
-              `• ${format(amt)} — ${p.method || (t('invoice.cash') || 'Tiền mặt')} — ${formatDateISO(p.payment_date, dateFormat, language)}`
+              `= ${t('invoice.paidTotal') || 'Đã thanh toán'}: ${format(
+                paidSum,
+              )}`,
+            );
+            const bal = (invTotal || 0) - paidSum;
+            lines.push(
+              `${
+                bal > 0
+                  ? '⚖️ ' + (t('invoice.balance') || 'Còn lại')
+                  : '✅ ' + (t('invoice.fullyPaid') || 'Đã thanh toán đủ')
+              }: ${format(Math.max(bal, 0))}`,
             );
           }
-          lines.push(`= ${t('invoice.paidTotal') || 'Đã thanh toán'}: ${format(paidSum)}`);
-          const bal = (invTotal || 0) - paidSum;
+        } catch {}
+      } else {
+        for (const r of rows) {
+          if (r.is_variable === 1) {
+            const current = parseAmountInt(r.value);
+            const consumed = Math.max(0, current - (r.meter_start || 0));
+            const money = consumed * (r.unit_price || 0);
+            lines.push(
+              `• ${r.name}: ${format(money)} (${consumed} × ${format(
+                r.unit_price,
+              )})`,
+            );
+          } else {
+            const amt = parseDecimalCommaStrict(
+              r.value || String(r.unit_price),
+            );
+            lines.push(`• ${r.name}: ${format(amt)}`);
+          }
+        }
+        for (const ex of extras) {
+          const amt = parseAmountInt(ex.amount);
+          if (ex.name.trim() && amt > 0)
+            lines.push(`• ${ex.name.trim()}: ${format(amt)}`);
+        }
+        lines.push('— — —');
+        lines.push(`🔢 ${t('invoice.subtotal')}: ${format(previewTotal)}`);
+      }
+
+      // Thông tin thanh toán (PaymentProfile)
+      if (
+        branding?.brandName ||
+        branding?.bankName ||
+        branding?.accountName ||
+        branding?.accountNumber ||
+        branding?.note
+      ) {
+        lines.push('');
+        lines.push(`🏦 ${t('payment.title') || 'Thông tin thanh toán'}`);
+        if (branding.brandName) lines.push(`• ${branding.brandName}`);
+        if (branding.bankName)
           lines.push(
-            `${bal > 0 ? '⚖️ ' + (t('invoice.balance') || 'Còn lại') : '✅ ' + (t('invoice.fullyPaid') || 'Đã thanh toán đủ')}: ${format(Math.max(bal, 0))}`
+            `• ${t('payment.bankName') || 'Ngân hàng'}: ${branding.bankName}`,
           );
-        }
-      } catch {}
-    } else {
-      for (const r of rows) {
-        if (r.is_variable === 1) {
-          const current = parseAmountInt(r.value);
-          const consumed = Math.max(0, current - (r.meter_start || 0));
-          const money = consumed * (r.unit_price || 0);
-          lines.push(`• ${r.name}: ${format(money)} (${consumed} × ${format(r.unit_price)})`);
-        } else {
-          const amt = parseDecimalCommaStrict(r.value || String(r.unit_price));
-          lines.push(`• ${r.name}: ${format(amt)}`);
-        }
+        if (branding.accountName)
+          lines.push(
+            `• ${t('payment.accountName') || 'Tên TK'}: ${
+              branding.accountName
+            }`,
+          );
+        if (branding.accountNumber)
+          lines.push(
+            `• ${t('payment.accountNumber') || 'Số TK'}: ${
+              branding.accountNumber
+            }`,
+          );
+        if (branding.note)
+          lines.push(
+            `• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`,
+          );
       }
-      for (const ex of extras) {
-        const amt = parseAmountInt(ex.amount);
-        if (ex.name.trim() && amt > 0) lines.push(`• ${ex.name.trim()}: ${format(amt)}`);
-      }
-      lines.push('— — —');
-      lines.push(`🔢 ${t('invoice.subtotal')}: ${format(previewTotal)}`);
-    }
 
-    // ⬇️ THÔNG TIN THANH TOÁN từ PaymentProfile (brand/bank/ghi chú)
-    if (
-      branding?.brandName ||
-      branding?.bankName ||
-      branding?.accountName ||
-      branding?.accountNumber ||
-      branding?.note
-    ) {
       lines.push('');
-      lines.push(`🏦 ${t('payment.title') || 'Thông tin thanh toán'}`);
-      if (branding.brandName)     lines.push(`• ${branding.brandName}`);
-      if (branding.bankName)      lines.push(`• ${t('payment.bankName') || 'Ngân hàng'}: ${branding.bankName}`);
-      if (branding.accountName)   lines.push(`• ${t('payment.accountName') || 'Tên TK'}: ${branding.accountName}`);
-      if (branding.accountNumber) lines.push(`• ${t('payment.accountNumber') || 'Số TK'}: ${branding.accountNumber}`);
-      if (branding.note)          lines.push(`• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`);
+      lines.push(t('cycleDetail.thank'));
+
+      const payload: any = {
+        message: lines.join('\n'),
+        subject: `${t('invoice.title')} ${titleRoom}`,
+        failOnCancel: false,
+      };
+      if (branding?.qrPath) payload.url = branding.qrPath;
+
+      await Share.open(payload);
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
-
-    lines.push('');
-    lines.push(t('cycleDetail.thank'));
-
-    // Gói share: kèm QR/logo nếu có (tùy app nhận tin nhắn có hỗ trợ đính kèm)
-    const payload: any = {
-      message: lines.join('\n'),
-      subject: `${t('invoice.title')} ${titleRoom}`,
-      failOnCancel: false,
-    };
-    // Đính kèm ảnh QR trước (ưu tiên)
-    if (branding?.qrPath) payload.url = branding.qrPath;
-    // hoặc muốn kèm thêm logo, dùng `urls`:
-    // if (branding?.qrPath || branding?.logoPath) {
-    //   payload.urls = [branding.qrPath, branding.logoPath].filter(Boolean);
-    // }
-
-    await Share.open(payload);
-  } catch (e: any) {
-    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
-  }
-};
+  };
 
   const saveSupplemental = () => {
     const valids = suppItems
       .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount) }))
       .filter(it => it.name && it.amount > 0);
     if (valids.length === 0) {
-      Alert.alert(t('common.missingInfo'), t('cycleDetail.errExtraIncomplete') || 'Vui lòng nhập đủ tên & số tiền');
+      Alert.alert(
+        t('common.missingInfo'),
+        t('cycleDetail.errExtraIncomplete') || 'Vui lòng nhập đủ tên & số tiền',
+      );
       return;
     }
     try {
@@ -566,32 +685,67 @@ const sharePlainText = async () => {
       setShowAddModal(false);
       setSuppItems([]);
       reload();
-      Alert.alert(t('common.success'), t('common.success') || 'Đã thêm khoản thu bổ sung');
+      Alert.alert(
+        t('common.success'),
+        t('common.success') || 'Đã thêm khoản thu bổ sung',
+      );
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
   };
 
+  // ======= RENDER =======
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {!editMode ? (
-        <ViewShot ref={shotRef} options={{ format: 'png', quality: 1 }} collapsable={false} style={{ flex: 1 }}>
+        <ViewShot
+          ref={shotRef}
+          options={{ format: 'png', quality: 1 }}
+          collapsable={false}
+          style={{ flex: 1 }}
+        >
           <ScrollView
             ref={scrollRef}
             onContentSizeChange={(_, h) => setContentH(h)}
             scrollEnabled={!capturing}
-            style={capturing ? { height: Math.max(contentH, Dimensions.get('window').height) } : undefined}
-            contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 64, gap: 12 }}
+            style={
+              capturing
+                ? {
+                    height: Math.max(contentH, Dimensions.get('window').height),
+                  }
+                : undefined
+            }
+            contentContainerStyle={{
+              padding: 12,
+              paddingBottom: insets.bottom + 64,
+              gap: 12,
+            }}
             showsVerticalScrollIndicator
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
           >
             {/* Room & tenant */}
             <Card>
-              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>{t('cycleDetail.roomInfo')}</Text>
-              <Text style={{ color: roomCode ? c.text : c.subtext }}>{t('common.room')}: {roomCode || '—'}</Text>
+              <Text
+                style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+              >
+                {t('cycleDetail.roomInfo')}
+              </Text>
+              <Text style={{ color: roomCode ? c.text : c.subtext }}>
+                {t('common.room')}: {roomCode || '—'}
+              </Text>
 
-              <Text style={{ color: c.text, fontWeight: '700', marginTop: 10, marginBottom: 6 }}>
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: '700',
+                  marginTop: 10,
+                  marginBottom: 6,
+                }}
+              >
                 {t('cycleDetail.tenant')}
               </Text>
               {tenantName || tenantPhone ? (
@@ -600,17 +754,22 @@ const sharePlainText = async () => {
                   {tenantPhone ? ` — ${tenantPhone}` : ''}
                 </Text>
               ) : (
-                <Text style={{ color: c.subtext }}>{t('cycleDetail.noTenant')}</Text>
+                <Text style={{ color: c.subtext }}>
+                  {t('cycleDetail.noTenant')}
+                </Text>
               )}
             </Card>
 
-            {/* Period & invoice state */}
+            {/* Period & invoice */}
             <Card>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)} - {formatDateISO(period.e, dateFormat, language)}
+                {t('cycleDetail.period')}:{' '}
+                {formatDateISO(period.s, dateFormat, language)} -{' '}
+                {formatDateISO(period.e, dateFormat, language)}
               </Text>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.status')}: {status === 'open' ? t('common.open') : t('common.close')}{' '}
+                {t('cycleDetail.status')}:{' '}
+                {status === 'open' ? t('common.open') : t('common.close')}{' '}
               </Text>
               {invId ? (
                 <Text style={{ color: c.text }}>
@@ -621,30 +780,50 @@ const sharePlainText = async () => {
 
             {/* Fees */}
             <Card style={{ gap: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
+              <Text style={{ color: c.text, fontWeight: '700' }}>
+                {t('cycleDetail.fees')}
+              </Text>
 
               {status === 'settled' && settledItems.length > 0 ? (
                 <>
-                  {/* Opening cycle block */}
+                  {/* Opening cycle */}
                   {openingItems.length > 0 && (
                     <View style={{ borderRadius: 10, padding: 10 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
                         <Text style={{ color: c.text, fontWeight: '700' }}>
                           {t('cycleDetail.openingCycle') || 'Kỳ mở đầu'}
                         </Text>
                       </View>
-
-                      {openingMeta?.for_period_start && openingMeta?.for_period_end ? (
+                      {openingMeta?.for_period_start &&
+                      openingMeta?.for_period_end ? (
                         <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.forPeriod')}: <Text style={{ color: c.text }}>
-                            {formatDateISO(openingMeta.for_period_start, dateFormat, language)} -{' '}
-                            {formatDateISO(openingMeta.for_period_end, dateFormat, language)}
+                          {t('cycleDetail.forPeriod')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {formatDateISO(
+                              openingMeta.for_period_start,
+                              dateFormat,
+                              language,
+                            )}{' '}
+                            -{' '}
+                            {formatDateISO(
+                              openingMeta.for_period_end,
+                              dateFormat,
+                              language,
+                            )}
                           </Text>
                         </Text>
                       ) : null}
-
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(openingAmount)}</Text>{' '}
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(openingAmount)}
+                        </Text>{' '}
                       </Text>
                     </View>
                   )}
@@ -657,49 +836,83 @@ const sharePlainText = async () => {
                     if (it.meta_json) {
                       try {
                         const m = JSON.parse(it.meta_json);
-                        if (typeof m?.meter_start === 'number') meterInfo.start = m.meter_start;
-                        if (typeof m?.meter_end === 'number') meterInfo.end = m.meter_end;
+                        if (typeof m?.meter_start === 'number')
+                          meterInfo.start = m.meter_start;
+                        if (typeof m?.meter_end === 'number')
+                          meterInfo.end = m.meter_end;
                         if (m?.for_period_start) forStart = m.for_period_start;
                         if (m?.for_period_end) forEnd = m.for_period_end;
                       } catch {}
                     }
                     return (
-                      <View key={it.id} style={{ borderRadius: 10, padding: 10 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <View
+                        key={it.id}
+                        style={{ borderRadius: 10, padding: 10 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            marginBottom: 6,
+                          }}
+                        >
                           <Text style={{ color: c.text, fontWeight: '700' }}>
-                            {it.description === 'rent.roomprice' ? t('leaseForm.baseRent') : it.description}
+                            {it.description === 'rent.roomprice'
+                              ? t('leaseForm.baseRent')
+                              : it.description}
                           </Text>
                           <Text style={{ color: c.subtext }}>
                             {it.unit
-                              ? `(${it.unit === 'rent.month' ? t('rent.month') : it.unit === 'tháng' ? t('rent.month') : t('rent.unit')})`
+                              ? `(${
+                                  it.unit === 'rent.month'
+                                    ? t('rent.month')
+                                    : it.unit === 'tháng'
+                                    ? t('rent.month')
+                                    : t('rent.unit')
+                                })`
                               : t('cycleDetail.fixed')}
                           </Text>
                         </View>
 
                         {forStart && forEnd ? (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.forPeriod')}: <Text style={{ color: c.text }}>
-                              {formatDateISO(forStart, dateFormat, language)} - {formatDateISO(forEnd, dateFormat, language)}
+                            {t('cycleDetail.forPeriod')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {formatDateISO(forStart, dateFormat, language)} -{' '}
+                              {formatDateISO(forEnd, dateFormat, language)}
                             </Text>
                           </Text>
                         ) : null}
 
-                        {!!(meterInfo.start != null || meterInfo.end != null) && (
+                        {!!(
+                          meterInfo.start != null || meterInfo.end != null
+                        ) && (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.prevIndex')}: <Text style={{ color: c.text }}>
+                            {t('cycleDetail.prevIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.start ?? 0))}
                             </Text>
                             {'  '}•{'  '}
-                            {t('cycleDetail.currIndex')}: <Text style={{ color: c.text }}>
+                            {t('cycleDetail.currIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.end ?? 0))}
                             </Text>
                           </Text>
                         )}
 
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.qtyShort')}: <Text style={{ color: c.text }}>{it.quantity ?? 1}</Text>{' '}
-                          • {t('cycleDetail.unitPrice')}: <Text style={{ color: c.text }}>{format(it.unit_price)}</Text>{' '}
-                          • {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(it.amount)}</Text>
+                          {t('cycleDetail.qtyShort')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {it.quantity ?? 1}
+                          </Text>{' '}
+                          • {t('cycleDetail.unitPrice')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.unit_price)}
+                          </Text>{' '}
+                          • {t('cycleDetail.amount')}:{' '}
+                          <Text style={{ color: c.text }}>
+                            {format(it.amount)}
+                          </Text>
                         </Text>
                       </View>
                     );
@@ -708,31 +921,67 @@ const sharePlainText = async () => {
               ) : (
                 <>
                   {rows.map(r => (
-                    <View key={r.charge_type_id} style={{ borderRadius: 10, padding: 10 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
+                    <View
+                      key={r.charge_type_id}
+                      style={{ borderRadius: 10, padding: 10 }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text style={{ color: c.text, fontWeight: '700' }}>
+                          {r.name}
+                        </Text>
                         <Text style={{ color: c.subtext }}>
-                          {r.is_variable ? `${t('cycleDetail.variable')} (${r.unit || ''})` : t('cycleDetail.fixed')}
+                          {r.is_variable
+                            ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                            : t('cycleDetail.fixed')}
                         </Text>
                       </View>
 
                       {r.is_variable === 1 ? (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.unitPrice')}: <Text style={{ color: c.text }}>{format(r.unit_price)}</Text>{' '}
+                            {t('cycleDetail.unitPrice')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(r.unit_price)}
+                            </Text>{' '}
                             / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.startIndex')}: <Text style={{ color: c.text }}>
+                            {t('cycleDetail.startIndex')}:{' '}
+                            <Text style={{ color: c.text }}>
                               {groupVN(String(r.meter_start || 0))}
                             </Text>
                           </Text>
-
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
-                            <Text style={{ color: r.value ? c.text : c.subtext, textAlign: 'right' }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginTop: 8,
+                            }}
+                          >
+                            <Text style={{ color: c.subtext, flex: 1 }}>
+                              {t('cycleDetail.currentIndex')}
+                            </Text>
+                            <Text
+                              style={{
+                                color: r.value ? c.text : c.subtext,
+                                textAlign: 'right',
+                              }}
+                            >
                               {r.value
-                                ? groupVN(String(parseInt((r.value || '').replace(/\D/g, ''), 10) || 0))
+                                ? groupVN(
+                                    String(
+                                      parseInt(
+                                        (r.value || '').replace(/\D/g, ''),
+                                        10,
+                                      ) || 0,
+                                    ),
+                                  )
                                 : t('cycleDetail.notEntered')}
                             </Text>
                           </View>
@@ -740,14 +989,27 @@ const sharePlainText = async () => {
                       ) : (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>
+                            {t('cycleDetail.contractBase')}:{' '}
+                            <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
                             </Text>
                           </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                            <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginTop: 8,
+                            }}
+                          >
+                            <Text style={{ color: c.subtext, flex: 1 }}>
+                              {t('cycleDetail.priceThisCycle')}
+                            </Text>
                             <Text style={{ color: c.text, textAlign: 'right' }}>
-                              {format(parseDecimalCommaStrict(r.value || String(r.unit_price)))}
+                              {format(
+                                parseDecimalCommaStrict(
+                                  r.value || String(r.unit_price),
+                                ),
+                              )}
                             </Text>
                           </View>
                         </>
@@ -758,9 +1020,58 @@ const sharePlainText = async () => {
               )}
             </Card>
 
-            {/* ⬆️ Thu bổ sung: đặt TRÊN cụm share */}
+            {/* Lịch sử thanh toán */}
+            {invId && payments.length > 0 && (
+              <Card>
+                <Text
+                  style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+                >
+                  {t('invoice.payments') || 'Thanh toán'}
+                </Text>
+                {payments.map((p, i) => (
+                  <Text key={i} style={{ color: c.text }}>
+                    • {format(Number(p.amount) || 0)} —{' '}
+                    {p.method || t('invoice.cash') || 'cash'} —{' '}
+                    {formatDateISO(p.payment_date, dateFormat, language)}
+                  </Text>
+                ))}
+                {(() => {
+                  const paid = payments.reduce(
+                    (s, p) => s + (Number(p.amount) || 0),
+                    0,
+                  );
+                  const bal = Math.max((invTotal || 0) - paid, 0);
+                  return (
+                    <>
+                      <Text style={{ color: c.text, marginTop: 4 }}>
+                        {t('invoice.paidTotal') || 'Đã thanh toán'}:{' '}
+                        {format(paid)}
+                      </Text>
+                      <Text style={{ color: c.text }}>
+                        {t('invoice.balance') || 'Còn lại'}: {format(bal)}
+                      </Text>
+                    </>
+                  );
+                })()}
+              </Card>
+            )}
+
+            {/* Thu bổ sung */}
             {status === 'settled' ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 8,
+                }}
+              >
+                                            {invId ? (
+                <Button
+                  title={t('invoice.collect')}
+                  variant="ghost"
+                  onPress={() => setShowPay(true)}
+                />
+              ) : null}
                 <Button
                   title={t('cycleDetail.collectMore') || 'Thu bổ sung'}
                   onPress={() => {
@@ -785,8 +1096,15 @@ const sharePlainText = async () => {
                 gap: 12,
               }}
             >
-              <Button title={t('cycleDetail.shareText')} variant="ghost" onPress={sharePlainText} />
-              <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
+              <Button
+                title={t('cycleDetail.shareText')}
+                variant="ghost"
+                onPress={sharePlainText}
+              />
+              <Button
+                title={t('cycleDetail.share')}
+                onPress={shareInvoiceHtml}
+              />
             </View>
           ) : (
             <View
@@ -800,87 +1118,161 @@ const sharePlainText = async () => {
                 gap: 12,
               }}
             >
-              <Button title={t('cycleDetail.settleNow')} onPress={() => setEditMode(true)} />
+              <Button
+                title={t('cycleDetail.settleNow')}
+                onPress={() => setEditMode(true)}
+              />
             </View>
           )}
         </ViewShot>
       ) : (
+        // ===== Edit mode =====
         <ScrollView
-          contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 64, gap: 12 }}
+          contentContainerStyle={{
+            padding: 12,
+            paddingBottom: insets.bottom + 64,
+            gap: 12,
+          }}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
         >
           <Card style={{ gap: 10 }}>
-            <Text style={{ color: c.text, fontWeight: '700' }}>{t('cycleDetail.fees')}</Text>
+            <Text style={{ color: c.text, fontWeight: '700' }}>
+              {t('cycleDetail.fees')}
+            </Text>
 
             {rows.map(r => {
               const isVar = r.is_variable === 1;
               const current = parseAmountInt(r.value);
-              const consumed = isVar ? Math.max(0, current - (r.meter_start || 0)) : 0;
-              const partial = isVar ? consumed * (r.unit_price || 0) : parseDecimalCommaStrict(r.value);
+              const consumed = isVar
+                ? Math.max(0, current - (r.meter_start || 0))
+                : 0;
+              const partial = isVar
+                ? consumed * (r.unit_price || 0)
+                : parseDecimalCommaStrict(r.value);
 
               return (
-                <View key={r.charge_type_id} style={{ borderRadius: 10, padding: 10 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ color: c.text, fontWeight: '700' }}>{r.name}</Text>
+                <View
+                  key={r.charge_type_id}
+                  style={{ borderRadius: 10, padding: 10 }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ color: c.text, fontWeight: '700' }}>
+                      {r.name}
+                    </Text>
                     <Text style={{ color: c.subtext }}>
-                      {isVar ? `${t('cycleDetail.variable')} (${r.unit || ''})` : t('cycleDetail.fixed')}
+                      {isVar
+                        ? `${t('cycleDetail.variable')} (${r.unit || ''})`
+                        : t('cycleDetail.fixed')}
                     </Text>
                   </View>
 
                   {isVar ? (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.unitPrice')}: <Text style={{ color: c.text }}>
+                        {t('cycleDetail.unitPrice')}:{' '}
+                        <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>{' '}
                         / {r.unit || t('cycleDetail.unitShort')}
                       </Text>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.prevIndex')}: <Text style={{ color: c.text }}>
+                        {t('cycleDetail.prevIndex')}:{' '}
+                        <Text style={{ color: c.text }}>
                           {groupVN(String(r.meter_start || 0))}
                         </Text>
                       </Text>
 
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                        <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.currentIndex')}</Text>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text style={{ color: c.subtext, flex: 1 }}>
+                          {t('cycleDetail.currentIndex')}
+                        </Text>
                         <FormInput
                           style={{ flex: 1 }}
                           keyboardType="numeric"
                           value={r.value}
-                          onChangeText={t2 => onChangeVarValue(r.charge_type_id, t2)}
+                          onChangeText={t2 =>
+                            onChangeVarValue(r.charge_type_id, t2)
+                          }
                         />
+                        {/* <Button
+                          title={t('cycleDetail.scanMeter') || 'Chụp đồng hồ'}
+                          variant="ghost"
+                          onPress={async () => {
+                            const { uri } = await pickMeterImage();
+                            if (!uri) return;
+                            const { reading } = await ocrDigitsFromImage(uri);
+                            if (reading != null)
+                              onChangeVarValue(
+                                r.charge_type_id,
+                                String(reading),
+                              );
+                            // (tuỳ chọn) lưu đường dẫn ảnh vào state để nhét vào meta khi settle:
+                            setRows(prev =>
+                              prev.map(x =>
+                                x.charge_type_id === r.charge_type_id
+                                  ? { ...x, _photoUri: uri }
+                                  : x,
+                              ),
+                            );
+                          }}
+                        /> */}
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.consumed')}: <Text style={{ color: c.text }}>
+                        {t('cycleDetail.consumed')}:{' '}
+                        <Text style={{ color: c.text }}>
                           {groupVN(String(consumed))}
                         </Text>{' '}
-                        {r.unit || t('cycleDetail.unitShort')} — {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>
-                          {format(partial)}
-                        </Text>
+                        {r.unit || t('cycleDetail.unitShort')} —{' '}
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
                   ) : (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.contractBase')}: <Text style={{ color: c.text }}>
+                        {t('cycleDetail.contractBase')}:{' '}
+                        <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>
                       </Text>
 
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                        <Text style={{ color: c.subtext, flex: 1 }}>{t('cycleDetail.priceThisCycle')}</Text>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text style={{ color: c.subtext, flex: 1 }}>
+                          {t('cycleDetail.priceThisCycle')}
+                        </Text>
                         <FormInput
                           style={{ flex: 1 }}
                           keyboardType="decimal-pad"
                           value={r.value}
-                          onChangeText={t2 => onChangeFixedValue(r.charge_type_id, t2)}
+                          onChangeText={t2 =>
+                            onChangeFixedValue(r.charge_type_id, t2)
+                          }
                         />
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.amount')}: <Text style={{ color: c.text }}>{format(partial)}</Text>
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
                   )}
@@ -888,9 +1280,11 @@ const sharePlainText = async () => {
               );
             })}
 
-            {/* Phụ phí phát sinh của kỳ */}
+            {/* Phụ phí phát sinh */}
             <View style={{ marginTop: 4 }}>
-              <Text style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}>
+              <Text
+                style={{ color: c.text, fontWeight: '700', marginBottom: 6 }}
+              >
                 {t('cycleDetail.extraFees')}
               </Text>
               {extras.map((ex, idx) => (
@@ -900,7 +1294,12 @@ const sharePlainText = async () => {
                     placeholderTextColor={c.subtext}
                     value={ex.name}
                     onChangeText={t2 => updateExtra(idx, { name: t2 })}
-                    style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+                    style={{
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
                   />
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <FormInput
@@ -909,14 +1308,24 @@ const sharePlainText = async () => {
                       keyboardType="decimal-pad"
                       value={ex.amount}
                       onChangeText={t2 =>
-                        updateExtra(idx, { amount: formatDecimalTypingVNStrict(t2) })
+                        updateExtra(idx, {
+                          amount: formatDecimalTypingVNStrict(t2),
+                        })
                       }
                     />
-                    <Button title={t('common.delete')} variant="ghost" onPress={() => removeExtra(idx)} />
+                    <Button
+                      title={t('common.delete')}
+                      variant="ghost"
+                      onPress={() => removeExtra(idx)}
+                    />
                   </View>
                 </View>
               ))}
-              <Button title={t('cycleDetail.addExtra')} variant="ghost" onPress={addExtra} />
+              <Button
+                title={t('cycleDetail.addExtra')}
+                variant="ghost"
+                onPress={addExtra}
+              />
             </View>
 
             <View style={{ marginTop: 10 }}>
@@ -969,7 +1378,13 @@ const sharePlainText = async () => {
         animationType="slide"
         onRequestClose={() => setShowEndModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'flex-end',
+          }}
+        >
           <View
             style={{
               backgroundColor: c.bg,
@@ -997,7 +1412,12 @@ const sharePlainText = async () => {
                     placeholderTextColor={c.subtext}
                     value={ex.name}
                     onChangeText={t2 => updEndExtra(idx, { name: t2 })}
-                    style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+                    style={{
+                      borderRadius: 10,
+                      padding: 10,
+                      color: c.text,
+                      backgroundColor: c.card,
+                    }}
                   />
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <FormInput
@@ -1005,26 +1425,43 @@ const sharePlainText = async () => {
                       placeholder={t('cycleDetail.amountWithHint')}
                       keyboardType="decimal-pad"
                       value={ex.amount}
-                      onChangeText={t2 => updEndExtra(idx, { amount: formatDecimalTypingVNStrict(t2) })}
+                      onChangeText={t2 =>
+                        updEndExtra(idx, {
+                          amount: formatDecimalTypingVNStrict(t2),
+                        })
+                      }
                     />
-                    <Button title={t('common.delete')} variant="ghost" onPress={() => delEndExtra(idx)} />
+                    <Button
+                      title={t('common.delete')}
+                      variant="ghost"
+                      onPress={() => delEndExtra(idx)}
+                    />
                   </View>
                 </View>
               ))}
-              <Button title={t('cycleDetail.addItem')} variant="ghost" onPress={addEndExtra} />
+              <Button
+                title={t('cycleDetail.addItem')}
+                variant="ghost"
+                onPress={addEndExtra}
+              />
             </Card>
 
             <Text style={{ color: c.text }}>
               {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
             </Text>
             <Text style={{ color: c.text, fontWeight: '700' }}>
-              {t('cycleDetail.balanceAfter')}: {format(depositPreview - endExtrasTotal)}
+              {t('cycleDetail.balanceAfter')}:{' '}
+              {format(depositPreview - endExtrasTotal)}
             </Text>
             <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
-                ? `- ${t('cycleDetail.refundToTenant')}: ${format(depositPreview - endExtrasTotal)}`
+                ? `- ${t('cycleDetail.refundToTenant')}: ${format(
+                    depositPreview - endExtrasTotal,
+                  )}`
                 : depositPreview - endExtrasTotal < 0
-                ? `- ${t('cycleDetail.collectFromTenant')}: ${format(Math.abs(depositPreview - endExtrasTotal))}`
+                ? `- ${t('cycleDetail.collectFromTenant')}: ${format(
+                    Math.abs(depositPreview - endExtrasTotal),
+                  )}`
                 : `- ${t('cycleDetail.noFurther')}`}
             </Text>
 
@@ -1039,22 +1476,35 @@ const sharePlainText = async () => {
                 gap: 12,
               }}
             >
-              <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowEndModal(false)} />
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => setShowEndModal(false)}
+              />
               <Button
                 title={t('cycleDetail.finish')}
                 onPress={() => {
                   const payload = endExtras
                     .filter(it => it.name.trim())
-                    .map(it => ({ name: it.name.trim(), amount: parseAmountInt(it.amount || '') }));
+                    .map(it => ({
+                      name: it.name.trim(),
+                      amount: parseAmountInt(it.amount || ''),
+                    }));
                   const res = endLeaseWithSettlement(leaseId, payload);
-                  try { cancelReminder(`lease_end_${leaseId}`); } catch {}
+                  try {
+                    cancelReminder(`lease_end_${leaseId}`);
+                  } catch {}
                   setShowEndModal(false);
                   Alert.alert(
                     t('cycleDetail.ended'),
                     res.finalBalance > 0
-                      ? `${t('cycleDetail.refundToTenant')} ${format(res.finalBalance)}`
+                      ? `${t('cycleDetail.refundToTenant')} ${format(
+                          res.finalBalance,
+                        )}`
                       : res.finalBalance < 0
-                      ? `${t('cycleDetail.collectFromTenant')} ${format(Math.abs(res.finalBalance))}`
+                      ? `${t('cycleDetail.collectFromTenant')} ${format(
+                          Math.abs(res.finalBalance),
+                        )}`
                       : t('cycleDetail.noFurther'),
                     [{ text: 'OK', onPress: () => navigation.goBack() }],
                   );
@@ -1072,23 +1522,49 @@ const sharePlainText = async () => {
         animationType="fade"
         onRequestClose={() => setShowExtendModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 16 }}>
-          <View style={{ backgroundColor: c.bg, borderRadius: 12, padding: 16, gap: 10 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
             <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
               {t('cycleDetail.extendLease')}
             </Text>
             <Text style={{ color: c.subtext }}>
               {t('cycleDetail.extendHint', {
-                unit: leaseInfo?.billing_cycle === 'daily' ? t('common.days') : t('common.months'),
+                unit:
+                  leaseInfo?.billing_cycle === 'daily'
+                    ? t('common.days')
+                    : t('common.months'),
               })}
             </Text>
             <FormInput
               keyboardType="numeric"
               value={extendCount}
               onChangeText={setExtendCount}
-              placeholder={leaseInfo?.billing_cycle === 'daily' ? t('cycleDetail.daysExample') : t('cycleDetail.monthsExample')}
+              placeholder={
+                leaseInfo?.billing_cycle === 'daily'
+                  ? t('cycleDetail.daysExample')
+                  : t('cycleDetail.monthsExample')
+              }
               placeholderTextColor={c.subtext}
-              style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+              style={{
+                borderRadius: 10,
+                padding: 10,
+                color: c.text,
+                backgroundColor: c.card,
+              }}
             />
             <View
               style={{
@@ -1114,7 +1590,10 @@ const sharePlainText = async () => {
                 onPress={() => {
                   const n = Number(extendCount);
                   if (!n || n <= 0) {
-                    Alert.alert(t('common.error'), t('cycleDetail.enterValidNumber'));
+                    Alert.alert(
+                      t('common.error'),
+                      t('cycleDetail.enterValidNumber'),
+                    );
                     return;
                   }
                   try {
@@ -1122,9 +1601,13 @@ const sharePlainText = async () => {
                     setShowExtendModal(false);
                     setExtendCount('');
                     reload();
-                    Alert.alert(t('common.success'), t('cycleDetail.extendedOk'));
+                    Alert.alert(
+                      t('common.success'),
+                      t('cycleDetail.extendedOk'),
+                    );
                     try {
-                      const isMonthly = String(leaseInfo?.billing_cycle) === 'monthly';
+                      const isMonthly =
+                        String(leaseInfo?.billing_cycle) === 'monthly';
                       const next = new Date(period.e);
                       if (isMonthly) next.setMonth(next.getMonth() + 1);
                       else next.setDate(next.getDate() + 1);
@@ -1132,12 +1615,16 @@ const sharePlainText = async () => {
                       scheduleReminder(
                         `lease_${leaseId}_cycle_settle_${nextISO}`,
                         t('notify.settleTitle') || 'Tất toán kỳ',
-                        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+                        t('notify.settleMsg') ||
+                          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
                         nextISO,
                       );
                     } catch {}
                   } catch (e: any) {
-                    Alert.alert(t('common.error'), e?.message || t('cycleDetail.extendFail'));
+                    Alert.alert(
+                      t('common.error'),
+                      e?.message || t('cycleDetail.extendFail'),
+                    );
                   }
                 }}
               />
@@ -1153,8 +1640,22 @@ const sharePlainText = async () => {
         animationType="fade"
         onRequestClose={() => setShowConfirmSettle(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 16 }}>
-          <View style={{ backgroundColor: c.bg, borderRadius: 12, padding: 16, gap: 10 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
             <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
               {t('cycleDetail.confirmSettleTitle') || 'Xác nhận tất toán'}
             </Text>
@@ -1163,8 +1664,19 @@ const sharePlainText = async () => {
                 'Sau khi tất toán, dữ liệu sẽ bị khóa và KHÔNG thể chỉnh sửa.'}
             </Text>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
-              <Button title={t('common.cancel') || 'Hủy'} variant="ghost" onPress={() => setShowConfirmSettle(false)} />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 12,
+                marginTop: 8,
+              }}
+            >
+              <Button
+                title={t('common.cancel') || 'Hủy'}
+                variant="ghost"
+                onPress={() => setShowConfirmSettle(false)}
+              />
               <Button
                 title={t('common.confirm') || 'Xác nhận'}
                 onPress={() => {
@@ -1183,13 +1695,24 @@ const sharePlainText = async () => {
       </Modal>
 
       {/* Modal THU BỔ SUNG */}
-      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={insets.top + 8}
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              justifyContent: 'flex-end',
+            }}
+          >
             <View
               style={{
                 backgroundColor: c.bg,
@@ -1199,7 +1722,15 @@ const sharePlainText = async () => {
                 borderTopRightRadius: 16,
               }}
             >
-              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16, marginBottom: 10 }}>
+
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: '800',
+                  fontSize: 16,
+                  marginBottom: 10,
+                }}
+              >
                 {t('cycleDetail.collectMore') || 'Thu bổ sung'}
               </Text>
 
@@ -1207,7 +1738,10 @@ const sharePlainText = async () => {
                 keyboardShouldPersistTaps="handled"
                 contentInsetAdjustmentBehavior="automatic"
                 style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
-                contentContainerStyle={{ gap: 10, paddingBottom: insets.bottom + 84 }}
+                contentContainerStyle={{
+                  gap: 10,
+                  paddingBottom: insets.bottom + 84,
+                }}
               >
                 <Card style={{ gap: 8 }}>
                   {suppItems.map((ex, idx) => (
@@ -1217,7 +1751,12 @@ const sharePlainText = async () => {
                         placeholderTextColor={c.subtext}
                         value={ex.name}
                         onChangeText={t2 => updSupp(idx, { name: t2 })}
-                        style={{ borderRadius: 10, padding: 10, color: c.text, backgroundColor: c.card }}
+                        style={{
+                          borderRadius: 10,
+                          padding: 10,
+                          color: c.text,
+                          backgroundColor: c.card,
+                        }}
                       />
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <FormInput
@@ -1225,13 +1764,25 @@ const sharePlainText = async () => {
                           placeholder={t('cycleDetail.amountWithHint')}
                           keyboardType="decimal-pad"
                           value={ex.amount}
-                          onChangeText={t2 => updSupp(idx, { amount: formatDecimalTypingVNStrict(t2) })}
+                          onChangeText={t2 =>
+                            updSupp(idx, {
+                              amount: formatDecimalTypingVNStrict(t2),
+                            })
+                          }
                         />
-                        <Button title={t('common.delete')} variant="ghost" onPress={() => delSupp(idx)} />
+                        <Button
+                          title={t('common.delete')}
+                          variant="ghost"
+                          onPress={() => delSupp(idx)}
+                        />
                       </View>
                     </View>
                   ))}
-                  <Button title={t('cycleDetail.addItem')} variant="ghost" onPress={addSupp} />
+                  <Button
+                    title={t('cycleDetail.addItem')}
+                    variant="ghost"
+                    onPress={addSupp}
+                  />
                 </Card>
 
                 <Text style={{ color: c.text }}>
@@ -1250,12 +1801,102 @@ const sharePlainText = async () => {
                   gap: 12,
                 }}
               >
-                <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowAddModal(false)} />
+                <Button
+                  title={t('common.cancel')}
+                  variant="ghost"
+                  onPress={() => setShowAddModal(false)}
+                />
                 <Button title={t('common.save')} onPress={saveSupplemental} />
               </View>
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal THU TIỀN (payments) */}
+      <Modal
+        visible={showPay}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPay(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 12,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
+              {t('invoice.collect') || 'Thu tiền'}
+            </Text>
+            <FormInput
+              keyboardType="decimal-pad"
+              value={payAmt}
+              onChangeText={setPayAmt}
+              placeholder={t('cycleDetail.amountPlaceholder') || '0,00'}
+              placeholderTextColor={c.subtext}
+            />
+            <FormInput
+              value={payMethod}
+              onChangeText={setPayMethod}
+              placeholder={t('invoice.method') || 'Phương thức (cash/bank...)'}
+              placeholderTextColor={c.subtext}
+            />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                gap: 12,
+              }}
+            >
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => setShowPay(false)}
+              />
+              <Button
+                title={t('common.save')}
+                onPress={() => {
+                  try {
+                    if (!invId) return;
+                    const amt = parseDecimalCommaStrict(payAmt);
+                    if (!amt || amt <= 0) {
+                      Alert.alert(
+                        t('common.error'),
+                        t('cycleDetail.enterValidNumber'),
+                      );
+                      return;
+                    }
+                    recordPayment(invId, amt, payMethod || 'cash');
+                    setShowPay(false);
+                    setPayAmt('');
+                    loadPayments();
+                    reload();
+                    Alert.alert(
+                      t('common.success'),
+                      t('invoice.collected') || 'Đã ghi nhận thanh toán',
+                    );
+                  } catch (e: any) {
+                    Alert.alert(
+                      t('common.error'),
+                      e?.message || t('common.tryAgain'),
+                    );
+                  }
+                }}
+              />
+            </View>
+          </View>
+        </View>
       </Modal>
     </KeyboardAvoidingView>
   );

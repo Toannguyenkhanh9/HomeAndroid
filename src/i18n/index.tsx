@@ -12,6 +12,7 @@ const LANG_KEY = 'app_lang';
 
 const dict = {
   vi: {
+     ratetitle: 'Đánh giá ứng dụng',
     // common
     add: 'Thêm',
     delete: 'Xoá',
@@ -122,6 +123,7 @@ const dict = {
     },
   },
   en: {
+    ratetitle: 'Rate the app',
     add: 'Add',
     delete: 'Delete',
     apartments: 'Apartments',
@@ -211,6 +213,7 @@ const dict = {
     close: 'Close',
   },
   es: {
+    ratetitle: 'Valorar la aplicación',
     add: 'Agregar',
     delete: 'Eliminar',
     apartments: 'Apartamentos',
@@ -301,6 +304,7 @@ const dict = {
   },
 
   fr: {
+    ratetitle: 'Noter l’app',
     add: 'Ajouter',
     delete: 'Supprimer',
     apartments: 'Appartements',
@@ -391,6 +395,7 @@ const dict = {
   },
 
   de: {
+    ratetitle: 'App bewerten',
     add: 'Hinzufügen',
     delete: 'Löschen',
     apartments: 'Wohnungen',
@@ -481,6 +486,7 @@ const dict = {
   },
 
   zh: {
+    ratetitle: '为应用评分',
     add: '添加',
     delete: '删除',
     apartments: '公寓',
@@ -571,6 +577,7 @@ const dict = {
   },
 
   ja: {
+    ratetitle: 'アプリを評価する',
     add: '追加',
     delete: '削除',
     apartments: 'アパート',
@@ -661,6 +668,7 @@ const dict = {
   },
 
   ko: {
+    ratetitle: '앱 평가하기',
     add: '추가',
     delete: '삭제',
     apartments: '아파트',
@@ -751,6 +759,7 @@ const dict = {
   },
 
   ru: {
+    ratetitle: 'Оценить приложение',
     add: 'Добавить',
     delete: 'Удалить',
     apartments: 'Квартиры',
@@ -841,6 +850,7 @@ const dict = {
   },
 
   ar: {
+    ratetitle: 'قيّم التطبيق',
     add: 'إضافة',
     delete: 'حذف',
     apartments: 'شقق',
@@ -931,6 +941,7 @@ const dict = {
   },
 
   hi: {
+    ratetitle: 'ऐप को रेट करें',
     add: 'जोड़ें',
     delete: 'हटाएं',
     apartments: 'अपार्टमेंट',
@@ -1021,6 +1032,7 @@ const dict = {
   },
 
   th: {
+    ratetitle:'ให้คะแนนแอป',
     add: 'เพิ่ม',
     delete: 'ลบ',
     apartments: 'อพาร์ตเมนต์',
@@ -1111,6 +1123,7 @@ const dict = {
   },
 
   id: {
+    ratetitle: 'Beri rating aplikasi',
     add: 'Tambah',
     delete: 'Hapus',
     apartments: 'Apartemen',
@@ -1201,6 +1214,7 @@ const dict = {
   },
 
   ms: {
+    ratetitle: 'Nilaikan aplikasi',
     add: 'Tambah',
     delete: 'Padam',
     apartments: 'Pangsapuri',
@@ -1291,6 +1305,7 @@ const dict = {
   },
 
   fil: {
+    ratetitle:  'I-rate ang app',
     add: 'Magdagdag',
     delete: 'Tanggalin',
     apartments: 'Mga apartment',
@@ -1381,6 +1396,7 @@ const dict = {
   },
 
   pt: {
+    ratetitle:  'Avaliar o aplicativo',
     add: 'Adicionar',
     delete: 'Excluir',
     apartments: 'Apartamentos',

@@ -7,6 +7,13 @@ import { setTranslator } from '../utils/i18nProxy';
 const resources = {
   vi: {
     translation: {
+      rate: {
+        title: 'Đánh giá ứng dụng',
+        message: 'Bạn thấy app hữu ích chứ? Vui lòng đánh giá để ủng hộ nhé!',
+        later: 'Để sau',
+        never: 'Không hỏi lại',
+        now: 'Đánh giá ngay',
+      },
       payment: {
         invoiceInfoTitle: 'Lưu ý hóa đơn',
         invoiceInfo:
@@ -37,6 +44,20 @@ const resources = {
         total: 'Tổng cộng',
         notes: 'Ghi chú',
         footer: 'Xin cảm ơn quý khách!',
+        payments: 'Thanh toán',
+        collect: 'Thu tiền',
+        collected: 'Đã ghi nhận thanh toán',
+        paidTotal: 'Đã thanh toán',
+        balance: 'Còn lại',
+        fullyPaid: 'Đã thanh toán đủ',
+        method: 'Phương thức',
+        methodcash: 'Tiền mặt',
+        methodbank: 'Chuyển khoản',
+        methodcard: 'Thẻ',
+        methodqr: 'QR',
+        reference: 'Mã tham chiếu',
+        paymentDate: 'Ngày thanh toán',
+        addPayment: 'Thêm thanh toán',
       },
       brand: {
         nameslogan: 'Leasea-Quản lý nhà/phòng trọ thông minh',
@@ -836,6 +857,13 @@ const resources = {
   },
   en: {
     translation: {
+      rate: {
+        title: 'Rate the app',
+        message: 'Finding the app useful? Please consider leaving a review!',
+        later: 'Later',
+        never: "Don't ask again",
+        now: 'Rate now',
+      },
       payment: {
         invoiceInfoTitle: 'Invoice note',
         invoiceInfo:
@@ -866,6 +894,20 @@ const resources = {
         total: 'Total',
         notes: 'Notes',
         footer: 'Thank you!',
+        payments: 'Payments',
+        collect: 'Collect',
+        collected: 'Payment recorded',
+        paidTotal: 'Total paid',
+        balance: 'Balance',
+        fullyPaid: 'Fully paid',
+        method: 'Payment method',
+        methodcash: 'Cash',
+        methodbank: 'Bank transfer',
+        methodcard: 'Card',
+        methodqr: 'QR',
+        reference: 'Reference',
+        paymentDate: 'Payment date',
+        addPayment: 'Add payment',
       },
       brand: {
         nameslogan: 'Leasea-Smart rental & room management',
@@ -1668,6 +1710,13 @@ const resources = {
 
   es: {
     translation: {
+      rate: {
+        title: 'Valorar la aplicación',
+        message: '¿Te resulta útil la aplicación? ¡Considera dejar una reseña!',
+        later: 'Más tarde',
+        never: 'No volver a preguntar',
+        now: 'Valorar ahora',
+      },
       tenantForm: {
         addTenant: 'Agregar inquilino',
         fullName: 'Nombre completo',
@@ -1725,6 +1774,20 @@ const resources = {
         total: 'Total',
         notes: 'Notas',
         footer: '¡Gracias!',
+        payments: 'Pagos',
+        collect: 'Cobrar',
+        collected: 'Pago registrado',
+        paidTotal: 'Total pagado',
+        balance: 'Saldo',
+        fullyPaid: 'Pagado por completo',
+        method: 'Método de pago',
+        methodcash: 'Efectivo',
+        methodbank: 'Transferencia bancaria',
+        methodcard: 'Tarjeta',
+        methodqr: 'Código QR',
+        reference: 'Código de referencia',
+        paymentDate: 'Fecha de pago',
+        addPayment: 'Agregar pago',
       },
       variableFees: {
         title: 'Ingresar cargos variables',
@@ -2445,6 +2508,13 @@ const resources = {
   },
   fr: {
     translation: {
+      rate: {
+        title: 'Noter l’app',
+        message: 'L’application vous est utile ? Merci de laisser un avis !',
+        later: 'Plus tard',
+        never: 'Ne plus demander',
+        now: 'Noter maintenant',
+      },
       operatingCosts: {
         chooseMonthToAdd: 'Choisissez un mois à ajouter',
         tapToAdd: 'Appuyez pour ajouter',
@@ -2503,6 +2573,20 @@ const resources = {
         total: 'Total',
         notes: 'Notes',
         footer: 'Merci !',
+        payments: 'Paiements',
+        collect: 'Encaisser',
+        collected: 'Paiement enregistré',
+        paidTotal: 'Total payé',
+        balance: 'Solde',
+        fullyPaid: 'Payé intégralement',
+        method: 'Mode de paiement',
+        methodcash: 'Espèces',
+        methodbank: 'Virement bancaire',
+        methodcard: 'Carte',
+        methodqr: 'QR',
+        reference: 'Référence',
+        paymentDate: 'Date de paiement',
+        addPayment: 'Ajouter un paiement',
       },
       variableFees: {
         title: 'Saisir les frais variables',
@@ -3034,6 +3118,14 @@ const resources = {
 
   de: {
     translation: {
+      rate: {
+        title: 'App bewerten',
+        message:
+          'Findest du die App nützlich? Bitte hinterlasse eine Bewertung!',
+        later: 'Später',
+        never: 'Nicht mehr fragen',
+        now: 'Jetzt bewerten',
+      },
       operatingCosts: {
         chooseMonthToAdd: 'Monat zum Hinzufügen auswählen',
         tapToAdd: 'Zum Hinzufügen tippen',
@@ -3092,6 +3184,20 @@ const resources = {
         total: 'Gesamt',
         notes: 'Notizen',
         footer: 'Vielen Dank!',
+        payments: 'Zahlungen',
+        collect: 'Zahlung einziehen',
+        collected: 'Zahlung erfasst',
+        paidTotal: 'Insgesamt bezahlt',
+        balance: 'Restbetrag',
+        fullyPaid: 'Vollständig bezahlt',
+        method: 'Zahlungsmethode',
+        methodcash: 'Bar',
+        methodbank: 'Banküberweisung',
+        methodcard: 'Karte',
+        methodqr: 'QR',
+        reference: 'Referenzcode',
+        paymentDate: 'Zahlungsdatum',
+        addPayment: 'Zahlung hinzufügen',
       },
       variableFees: {
         title: 'Variable Gebühren eingeben',
@@ -3625,6 +3731,13 @@ const resources = {
 
   zh: {
     translation: {
+      rate: {
+        title: '为应用评分',
+        message: '觉得这个应用有用吗？请考虑给我们留下评价！',
+        later: '稍后',
+        never: '不再提醒',
+        now: '立即评分',
+      },
       operatingCosts: {
         chooseMonthToAdd: '选择要添加的月份',
         tapToAdd: '点击添加',
@@ -3681,6 +3794,20 @@ const resources = {
         total: '合计',
         notes: '备注',
         footer: '谢谢！',
+        payments: '付款',
+        collect: '收款',
+        collected: '已记录付款',
+        paidTotal: '已付总额',
+        balance: '余额',
+        fullyPaid: '已付清',
+        method: '付款方式',
+        methodcash: '现金',
+        methodbank: '银行转账',
+        methodcard: '银行卡',
+        methodqr: '二维码',
+        reference: '参考编号',
+        paymentDate: '付款日期',
+        addPayment: '添加付款',
       },
       variableFees: {
         title: '输入可变费用',
@@ -4195,6 +4322,14 @@ const resources = {
 
   ja: {
     translation: {
+      rate: {
+        title: 'アプリを評価する',
+        message:
+          'このアプリは役に立ちましたか？レビューのご協力をお願いします。',
+        later: 'あとで',
+        never: '今後は表示しない',
+        now: '今すぐ評価',
+      },
       operatingCosts: {
         chooseMonthToAdd: '追加する月を選択',
         tapToAdd: 'タップして追加',
@@ -4251,6 +4386,20 @@ const resources = {
         total: '合計',
         notes: '備考',
         footer: 'ありがとうございます。',
+        payments: '支払い',
+        collect: '集金',
+        collected: '支払いを記録しました',
+        paidTotal: '支払い合計',
+        balance: '残高',
+        fullyPaid: '全額支払済み',
+        method: '支払い方法',
+        methodcash: '現金',
+        methodbank: '振込',
+        methodcard: 'カード',
+        methodqr: 'QRコード',
+        reference: '参照コード',
+        paymentDate: '支払日',
+        addPayment: '支払いを追加',
       },
       variableFees: {
         title: '変動費を入力',
@@ -4776,6 +4925,13 @@ const resources = {
 
   ko: {
     translation: {
+      rate: {
+        title: '앱 평가하기',
+        message: '앱이 도움이 되셨나요? 리뷰를 남겨 주세요!',
+        later: '나중에',
+        never: '다시 묻지 않기',
+        now: '지금 평가',
+      },
       operatingCosts: {
         chooseMonthToAdd: '추가할 월을 선택',
         tapToAdd: '탭하여 추가',
@@ -4832,6 +4988,20 @@ const resources = {
         total: '합계',
         notes: '비고',
         footer: '감사합니다!',
+        payments: '결제',
+        collect: '수금',
+        collected: '결제 기록됨',
+        paidTotal: '총 결제금액',
+        balance: '잔액',
+        fullyPaid: '완납',
+        method: '결제 방법',
+        methodcash: '현금',
+        methodbank: '계좌이체',
+        methodcard: '카드',
+        methodqr: 'QR',
+        reference: '참조 코드',
+        paymentDate: '결제일',
+        addPayment: '결제 추가',
       },
       variableFees: {
         title: '변동 비용 입력',
@@ -5349,6 +5519,13 @@ const resources = {
   ru: {
     translation: {
       operatingCosts: {
+        rate: {
+          title: 'Оценить приложение',
+          message: 'Приложение оказалось полезным? Пожалуйста, оставьте отзыв!',
+          later: 'Позже',
+          never: 'Больше не спрашивать',
+          now: 'Оценить сейчас',
+        },
         chooseMonthToAdd: 'Выберите месяц для добавления',
         tapToAdd: 'Нажмите, чтобы добавить',
         setupCosts: 'Настройки расходов',
@@ -5405,6 +5582,20 @@ const resources = {
         total: 'Итого',
         notes: 'Примечания',
         footer: 'Спасибо!',
+        payments: 'Платежи',
+        collect: 'Принять оплату',
+        collected: 'Платёж зарегистрирован',
+        paidTotal: 'Оплачено всего',
+        balance: 'Остаток',
+        fullyPaid: 'Оплачено полностью',
+        method: 'Способ оплаты',
+        methodcash: 'Наличные',
+        methodbank: 'Банковский перевод',
+        methodcard: 'Карта',
+        methodqr: 'QR-код',
+        reference: 'Код платежа',
+        paymentDate: 'Дата платежа',
+        addPayment: 'Добавить платёж',
       },
       variableFees: {
         title: 'Ввести переменные сборы',
@@ -5934,6 +6125,13 @@ const resources = {
 
   ar: {
     translation: {
+      rate: {
+        title: 'قيّم التطبيق',
+        message: 'هل وجدت التطبيق مفيدًا؟ يُرجى ترك مراجعة!',
+        later: 'لاحقًا',
+        never: 'لا تسألني مرة أخرى',
+        now: 'قيّم الآن',
+      },
       tenantForm: {
         addTenant: 'إضافة مستأجر',
         fullName: 'الاسم الكامل',
@@ -6031,6 +6229,20 @@ const resources = {
         total: 'الإجمالي',
         notes: 'ملاحظات',
         footer: 'شكراً لكم!',
+        payments: 'المدفوعات',
+        collect: 'تحصيل',
+        collected: 'تم تسجيل الدفع',
+        paidTotal: 'إجمالي المدفوع',
+        balance: 'المتبقي',
+        fullyPaid: 'مدفوع بالكامل',
+        method: 'طريقة الدفع',
+        methodcash: 'نقدًا',
+        methodbank: 'تحويل بنكي',
+        methodcard: 'بطاقة',
+        methodqr: 'رمز QR',
+        reference: 'رمز مرجعي',
+        paymentDate: 'تاريخ الدفع',
+        addPayment: 'إضافة دفعة',
       },
       variableFees: {
         title: 'إدخال الرسوم المتغيرة',
@@ -6546,6 +6758,13 @@ const resources = {
   },
   th: {
     translation: {
+      rate: {
+        title: 'ให้คะแนนแอป',
+        message: 'แอปนี้มีประโยชน์หรือไม่? โปรดพิจารณาเขียนรีวิวให้เรา!',
+        later: 'ภายหลัง',
+        never: 'ไม่ต้องถามอีก',
+        now: 'ให้คะแนนตอนนี้',
+      },
       payment: {
         invoiceInfoTitle: 'หมายเหตุใบแจ้งหนี้',
         invoiceInfo: 'ข้อมูลการชำระเงินจะแสดงบนใบแจ้งหนี้ที่ส่งให้ผู้เช่า',
@@ -6575,6 +6794,20 @@ const resources = {
         total: 'ยอดรวม',
         notes: 'หมายเหตุ',
         footer: 'ขอบคุณครับ/ค่ะ!',
+        payments: 'การชำระเงิน',
+        collect: 'รับชำระ',
+        collected: 'บันทึกการชำระเงินแล้ว',
+        paidTotal: 'ชำระแล้วทั้งหมด',
+        balance: 'คงเหลือ',
+        fullyPaid: 'ชำระครบแล้ว',
+        method: 'วิธีชำระเงิน',
+        methodcash: 'เงินสด',
+        methodbank: 'โอนเงิน',
+        methodcard: 'บัตร',
+        methodqr: 'QR โค้ด',
+        reference: 'รหัสอ้างอิง',
+        paymentDate: 'วันที่ชำระเงิน',
+        addPayment: 'เพิ่มการชำระเงิน',
       },
       variableFees: {
         title: 'กรอกค่าธรรมเนียมแบบผันแปร',
@@ -7193,6 +7426,13 @@ const resources = {
   },
   id: {
     translation: {
+      rate: {
+        title: 'Beri rating aplikasi',
+        message: 'Aplikasi ini bermanfaat? Mohon tinggalkan ulasan!',
+        later: 'Nanti saja',
+        never: 'Jangan tanya lagi',
+        now: 'Beri rating sekarang',
+      },
       operatingCosts: {
         chooseMonthToAdd: 'Pilih bulan untuk ditambahkan',
         tapToAdd: 'Ketuk untuk menambahkan',
@@ -7234,6 +7474,20 @@ const resources = {
         total: 'Total',
         notes: 'Catatan',
         footer: 'Terima kasih!',
+        payments: 'Pembayaran',
+        collect: 'Terima pembayaran',
+        collected: 'Pembayaran telah dicatat',
+        paidTotal: 'Total dibayar',
+        balance: 'Sisa',
+        fullyPaid: 'Lunas',
+        method: 'Metode pembayaran',
+        methodcash: 'Tunai',
+        methodbank: 'Transfer bank',
+        methodcard: 'Kartu',
+        methodqr: 'Kode QR',
+        reference: 'Kode referensi',
+        paymentDate: 'Tanggal pembayaran',
+        addPayment: 'Tambah pembayaran',
       },
       variableFees: {
         title: 'Masukkan biaya variabel',
@@ -7844,6 +8098,13 @@ const resources = {
   },
   ms: {
     translation: {
+      rate: {
+        title: 'Nilaikan aplikasi',
+        message: 'Adakah aplikasi ini berguna? Sila tinggalkan ulasan!',
+        later: 'Nanti',
+        never: 'Jangan tanya lagi',
+        now: 'Nilaikan sekarang',
+      },
       tenantForm: {
         addTenant: 'Tambah penyewa',
         fullName: 'Nama penuh',
@@ -7924,6 +8185,20 @@ const resources = {
         total: 'Jumlah',
         notes: 'Catatan',
         footer: 'Terima kasih!',
+        payments: 'Bayaran',
+        collect: 'Terima bayaran',
+        collected: 'Bayaran telah direkod',
+        paidTotal: 'Jumlah dibayar',
+        balance: 'Baki',
+        fullyPaid: 'Dibayar penuh',
+        method: 'Kaedah pembayaran',
+        methodcash: 'Tunai',
+        methodbank: 'Pindahan bank',
+        methodcard: 'Kad',
+        methodqr: 'Kod QR',
+        reference: 'Kod rujukan',
+        paymentDate: 'Tarikh bayaran',
+        addPayment: 'Tambah bayaran',
       },
       variableFees: {
         title: 'Masukkan yuran berubah',
@@ -8476,6 +8751,13 @@ const resources = {
   },
   fil: {
     translation: {
+      rate: {
+        title: 'I-rate ang app',
+        message: 'Kapaki-pakinabang ba ang app? Mangyaring mag-iwan ng review!',
+        later: 'Mamaya na',
+        never: 'Huwag nang magtanong muli',
+        now: 'I-rate ngayon',
+      },
       tenantsList: {
         editTenant: 'I-edit ang impormasyon ng nangungupahan',
         note: 'Tala',
@@ -8630,6 +8912,20 @@ const resources = {
         total: 'Kabuuan',
         notes: 'Tala',
         footer: 'Salamat!',
+        payments: 'Mga pagbabayad',
+        collect: 'Kolektahin',
+        collected: 'Naitala ang bayad',
+        paidTotal: 'Kabuuang nabayaran',
+        balance: 'Balanse',
+        fullyPaid: 'Bayad nang buo',
+        method: 'Paraan ng pagbabayad',
+        methodcash: 'Cash',
+        methodbank: 'Paglipat sa bangko',
+        methodcard: 'Card',
+        methodqr: 'QR code',
+        reference: 'Code ng sanggunian',
+        paymentDate: 'Petsa ng pagbabayad',
+        addPayment: 'Magdagdag ng bayad',
       },
       variableFees: {
         title: 'Ilagay ang mga nagbabagong fee',
@@ -9126,6 +9422,13 @@ const resources = {
   },
   pt: {
     translation: {
+      rate: {
+        title: 'Avaliar o aplicativo',
+        message: 'Achou o app útil? Considere deixar uma avaliação!',
+        later: 'Mais tarde',
+        never: 'Não perguntar novamente',
+        now: 'Avaliar agora',
+      },
       tenantForm: {
         addTenant: 'Adicionar inquilino',
         fullName: 'Nome completo',
@@ -9206,6 +9509,20 @@ const resources = {
         total: 'Total',
         notes: 'Observações',
         footer: 'Obrigado!',
+        payments: 'Pagamentos',
+        collect: 'Receber',
+        collected: 'Pagamento registrado',
+        paidTotal: 'Total pago',
+        balance: 'Saldo',
+        fullyPaid: 'Pago totalmente',
+        method: 'Método de pagamento',
+        methodcash: 'Dinheiro',
+        methodbank: 'Transferência bancária',
+        methodcard: 'Cartão',
+        methodqr: 'QR code',
+        reference: 'Código de referência',
+        paymentDate: 'Data do pagamento',
+        addPayment: 'Adicionar pagamento',
       },
       variableFees: {
         title: 'Inserir taxas variáveis',
@@ -9752,6 +10069,13 @@ const resources = {
   },
   hi: {
     translation: {
+      rate: {
+        title: 'ऐप को रेट करें',
+        message: 'क्या यह ऐप उपयोगी लगा? कृपया समीक्षा दें!',
+        later: 'बाद में',
+        never: 'फिर से न पूछें',
+        now: 'अभी रेट करें',
+      },
       tenantsList: {
         editTenant: 'किरायेदार की जानकारी संपादित करें',
         note: 'नोट',
@@ -9800,6 +10124,20 @@ const resources = {
         total: 'कुल',
         notes: 'नोट्स',
         footer: 'धन्यवाद!',
+        payments: 'भुगतान',
+        collect: 'भुगतान लें',
+        collected: 'भुगतान दर्ज किया गया',
+        paidTotal: 'कुल भुगतान',
+        balance: 'बाकी राशि',
+        fullyPaid: 'पूरी तरह भुगतान',
+        method: 'भुगतान विधि',
+        methodcash: 'नकद',
+        methodbank: 'बैंक ट्रांसफ़र',
+        methodcard: 'कार्ड',
+        methodqr: 'QR कोड',
+        reference: 'संदर्भ कोड',
+        paymentDate: 'भुगतान तिथि',
+        addPayment: 'भुगतान जोड़ें',
       },
       payment: {
         invoiceInfoTitle: 'चालान संबंधी सूचना',

@@ -80,7 +80,7 @@ export default function PaymentProfileScreen() {
               borderRadius: 8,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(16,185,129,0.15)',
+              backgroundColor: 'rgba(247, 252, 250, 0.15)',
             }}
           >
             <Text style={{ fontSize: 18 }}>🧾</Text>
