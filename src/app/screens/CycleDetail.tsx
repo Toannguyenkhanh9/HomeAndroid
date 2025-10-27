@@ -48,10 +48,12 @@ import Share from 'react-native-share';
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoiceHtmlFile } from '../../services/invoiceHtml';
-import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
 import { markHappyEvent, maybeAskForReview } from '../../services/rateApp';
-//import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
+import HiddenVietQR from '../components/HiddenVietQR';
+import { buildVietQRPayload } from '../../services/vietqr';
+// import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
   route: { params: { cycleId: string; onSettled?: () => void } };
 };
@@ -84,6 +86,9 @@ function formatVNMoneyTyping(input: string) {
 }
 
 export default function CycleDetail({ route, navigation }: Props) {
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [qrTarget, setQrTarget] = useState<{ invId: string } | null>(null);
+
   const [showConfirmSettle, setShowConfirmSettle] = useState(false);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -406,6 +411,24 @@ export default function CycleDetail({ route, navigation }: Props) {
     setInvTotal(inv.total || 0);
     setExtras([]);
 
+    (async () => {
+      try {
+        const pp = await loadPaymentProfile(); // { bankBin, accountNumber, accountName, ... }
+        if (pp?.bankBin && pp?.accountNumber) {
+          const payload = buildVietQRPayload({
+            bin: String(pp.bankBin),
+            accountNumber: String(pp.accountNumber),
+            accountName: pp.accountName,
+            amount: Number(inv.total || 0),
+            addInfo: inv.code || inv.id, // nội dung CK = mã hoá đơn
+            isDynamic: true,
+          });
+          setQrPayload(payload);
+          setQrTarget({ invId: inv.id });
+        }
+      } catch {}
+    })();
+
     try {
       const billing = String(leaseInfo?.billing_cycle);
       const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
@@ -426,8 +449,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       scheduleReminder(
         `lease_${leaseId}_cycle_settle_${nextISO}`,
         t('notify.settleTitle') || 'Tất toán kỳ',
-        t('notify.settleMsg') ||
-          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
         nextISO,
       );
     } catch {}
@@ -562,9 +584,7 @@ export default function CycleDetail({ route, navigation }: Props) {
 
         // Thêm lịch sử thanh toán
         try {
-          const pays = queryPaymentsOfInvoice
-            ? queryPaymentsOfInvoice(invId)
-            : [];
+          const pays = queryPaymentsOfInvoice ? queryPaymentsOfInvoice(invId) : [];
           if (pays.length) {
             lines.push('');
             lines.push(`💳 ${t('invoice.payments') || 'Thanh toán'}`);
@@ -637,9 +657,7 @@ export default function CycleDetail({ route, navigation }: Props) {
           );
         if (branding.accountName)
           lines.push(
-            `• ${t('payment.accountName') || 'Tên TK'}: ${
-              branding.accountName
-            }`,
+            `• ${t('payment.accountName') || 'Tên TK'}: ${branding.accountName}`,
           );
         if (branding.accountNumber)
           lines.push(
@@ -763,12 +781,12 @@ export default function CycleDetail({ route, navigation }: Props) {
             {/* Period & invoice */}
             <Card>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}:{' '}
+                {t('cycleDetail.period')}: {''}
                 {formatDateISO(period.s, dateFormat, language)} -{' '}
                 {formatDateISO(period.e, dateFormat, language)}
               </Text>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.status')}:{' '}
+                {t('cycleDetail.status')}: {''}
                 {status === 'open' ? t('common.open') : t('common.close')}{' '}
               </Text>
               {invId ? (
@@ -803,7 +821,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {openingMeta?.for_period_start &&
                       openingMeta?.for_period_end ? (
                         <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.forPeriod')}:{' '}
+                          {t('cycleDetail.forPeriod')}: {' '}
                           <Text style={{ color: c.text }}>
                             {formatDateISO(
                               openingMeta.for_period_start,
@@ -820,7 +838,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                         </Text>
                       ) : null}
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.amount')}:{' '}
+                        {t('cycleDetail.amount')}: {' '}
                         <Text style={{ color: c.text }}>
                           {format(openingAmount)}
                         </Text>{' '}
@@ -876,7 +894,7 @@ export default function CycleDetail({ route, navigation }: Props) {
 
                         {forStart && forEnd ? (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.forPeriod')}:{' '}
+                            {t('cycleDetail.forPeriod')}: {' '}
                             <Text style={{ color: c.text }}>
                               {formatDateISO(forStart, dateFormat, language)} -{' '}
                               {formatDateISO(forEnd, dateFormat, language)}
@@ -888,12 +906,12 @@ export default function CycleDetail({ route, navigation }: Props) {
                           meterInfo.start != null || meterInfo.end != null
                         ) && (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.prevIndex')}:{' '}
+                            {t('cycleDetail.prevIndex')}: {' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.start ?? 0))}
                             </Text>
                             {'  '}•{'  '}
-                            {t('cycleDetail.currIndex')}:{' '}
+                            {t('cycleDetail.currIndex')}: {' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.end ?? 0))}
                             </Text>
@@ -901,15 +919,15 @@ export default function CycleDetail({ route, navigation }: Props) {
                         )}
 
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.qtyShort')}:{' '}
+                          {t('cycleDetail.qtyShort')}: {' '}
                           <Text style={{ color: c.text }}>
                             {it.quantity ?? 1}
                           </Text>{' '}
-                          • {t('cycleDetail.unitPrice')}:{' '}
+                          • {t('cycleDetail.unitPrice')}: {' '}
                           <Text style={{ color: c.text }}>
                             {format(it.unit_price)}
                           </Text>{' '}
-                          • {t('cycleDetail.amount')}:{' '}
+                          • {t('cycleDetail.amount')}: {' '}
                           <Text style={{ color: c.text }}>
                             {format(it.amount)}
                           </Text>
@@ -945,14 +963,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {r.is_variable === 1 ? (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.unitPrice')}:{' '}
+                            {t('cycleDetail.unitPrice')}: {' '}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
                             </Text>{' '}
                             / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.startIndex')}:{' '}
+                            {t('cycleDetail.startIndex')}: {' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(r.meter_start || 0))}
                             </Text>
@@ -989,7 +1007,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       ) : (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.contractBase')}:{' '}
+                            {t('cycleDetail.contractBase')}: {' '}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
                             </Text>
@@ -1065,13 +1083,13 @@ export default function CycleDetail({ route, navigation }: Props) {
                   gap: 8,
                 }}
               >
-                                            {invId ? (
-                <Button
-                  title={t('invoice.collect')}
-                  variant="ghost"
-                  onPress={() => setShowPay(true)}
-                />
-              ) : null}
+                {invId ? (
+                  <Button
+                    title={t('invoice.collect')}
+                    variant="ghost"
+                    onPress={() => setShowPay(true)}
+                  />
+                ) : null}
                 <Button
                   title={t('cycleDetail.collectMore') || 'Thu bổ sung'}
                   onPress={() => {
@@ -1176,14 +1194,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                   {isVar ? (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.unitPrice')}:{' '}
+                        {t('cycleDetail.unitPrice')}: {' '}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>{' '}
                         / {r.unit || t('cycleDetail.unitShort')}
                       </Text>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.prevIndex')}:{' '}
+                        {t('cycleDetail.prevIndex')}: {' '}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(r.meter_start || 0))}
                         </Text>
@@ -1219,7 +1237,6 @@ export default function CycleDetail({ route, navigation }: Props) {
                                 r.charge_type_id,
                                 String(reading),
                               );
-                            // (tuỳ chọn) lưu đường dẫn ảnh vào state để nhét vào meta khi settle:
                             setRows(prev =>
                               prev.map(x =>
                                 x.charge_type_id === r.charge_type_id
@@ -1232,19 +1249,19 @@ export default function CycleDetail({ route, navigation }: Props) {
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.consumed')}:{' '}
+                        {t('cycleDetail.consumed')}: {' '}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(consumed))}
                         </Text>{' '}
                         {r.unit || t('cycleDetail.unitShort')} —{' '}
-                        {t('cycleDetail.amount')}:{' '}
+                        {t('cycleDetail.amount')}: {' '}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
                   ) : (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.contractBase')}:{' '}
+                        {t('cycleDetail.contractBase')}: {' '}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>
@@ -1271,7 +1288,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.amount')}:{' '}
+                        {t('cycleDetail.amount')}: {' '}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
@@ -1450,7 +1467,7 @@ export default function CycleDetail({ route, navigation }: Props) {
               {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
             </Text>
             <Text style={{ color: c.text, fontWeight: '700' }}>
-              {t('cycleDetail.balanceAfter')}:{' '}
+              {t('cycleDetail.balanceAfter')}: {' '}
               {format(depositPreview - endExtrasTotal)}
             </Text>
             <Text style={{ color: c.subtext }}>
@@ -1722,7 +1739,6 @@ export default function CycleDetail({ route, navigation }: Props) {
                 borderTopRightRadius: 16,
               }}
             >
-
               <Text
                 style={{
                   color: c.text,
@@ -1898,6 +1914,50 @@ export default function CycleDetail({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
+
+      {/* Modal hiển thị VietQR sau khi tất toán */}
+      {qrPayload && (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setQrPayload(null)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: c.bg,
+                borderRadius: 12,
+                padding: 16,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: c.text, fontWeight: '800', marginBottom: 10 }}>
+                {t('invoice.scanToPay') || 'Quét mã để thanh toán'}
+              </Text>
+              {/* HiddenVietQR tự vẽ hình ảnh QR từ payload */}
+              <HiddenVietQR payload={qrPayload} />
+              <Text style={{ color: c.subtext, marginTop: 8 }}>
+                {t('invoice.amount') || 'Số tiền'}: {format(invTotal)}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                <Button
+                  title={t('common.close')}
+                  variant="ghost"
+                  onPress={() => setQrPayload(null)}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type PaymentProfile = {
   brandName?: string;      // Tên thương hiệu/cửa hàng
-  bankName?: string;       // Tên ngân hàng
+  bankName?: string;    
+  bankBin?: string;      // Tên ngân hàng
   accountName?: string;    // Chủ tài khoản
   accountNumber?: string;  // Số tài khoản
   note?: string;           // Ghi chú/chuyển khoản nội dung

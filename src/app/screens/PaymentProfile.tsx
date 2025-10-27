@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Image, Alert, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Image,
+  Alert,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Card from '../components/Card';
@@ -55,7 +63,11 @@ export default function PaymentProfileScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 120, gap: 12 }}
+      contentContainerStyle={{
+        padding: 12,
+        paddingBottom: insets.bottom + 120,
+        gap: 12,
+      }}
       keyboardShouldPersistTaps="handled"
     >
       {/* Banner lưu ý: nổi bật hơn */}
@@ -129,7 +141,9 @@ export default function PaymentProfileScreen() {
           style={underlineInput}
         />
 
-        <Text style={{ color: c.subtext }}>{t('payment.bankName') || 'Bank name'}</Text>
+        <Text style={{ color: c.subtext }}>
+          {t('payment.bankName') || 'Bank name'}
+        </Text>
         <TextInput
           value={p.bankName}
           onChangeText={v => setP({ ...p, bankName: v })}
@@ -138,8 +152,21 @@ export default function PaymentProfileScreen() {
           selectionColor={c.text}
           style={underlineInput}
         />
-
-        <Text style={{ color: c.subtext }}>{t('payment.accountName') || 'Account holder'}</Text>
+        <Text style={{ color: c.subtext }}>
+          {t('payment.bankBin') || 'Bank BIN (VietQR)'}
+        </Text>
+        <TextInput
+          value={p.bankBin}
+          onChangeText={v => setP({ ...p, bankBin: v.replace(/\D/g, '') })}
+          placeholder="VD: 970436 (Vietcombank)"
+          placeholderTextColor={c.subtext}
+          keyboardType="number-pad"
+          selectionColor={c.text}
+          style={underlineInput}
+        />
+        <Text style={{ color: c.subtext }}>
+          {t('payment.accountName') || 'Account holder'}
+        </Text>
         <TextInput
           value={p.accountName}
           onChangeText={v => setP({ ...p, accountName: v })}
@@ -149,7 +176,9 @@ export default function PaymentProfileScreen() {
           style={underlineInput}
         />
 
-        <Text style={{ color: c.subtext }}>{t('payment.accountNumber') || 'Account number'}</Text>
+        <Text style={{ color: c.subtext }}>
+          {t('payment.accountNumber') || 'Account number'}
+        </Text>
         <TextInput
           value={p.accountNumber}
           onChangeText={v => setP({ ...p, accountNumber: v })}
@@ -178,14 +207,20 @@ export default function PaymentProfileScreen() {
           {t('payment.logo') || 'Logo'}
         </Text>
         {p.logoPath ? (
-          <Image source={{ uri: p.logoPath }} style={{ width: 120, height: 120, borderRadius: 8 }} />
+          <Image
+            source={{ uri: p.logoPath }}
+            style={{ width: 120, height: 120, borderRadius: 8 }}
+          />
         ) : (
           <Text style={{ color: c.subtext }}>
             {t('payment.logoHint') || 'Chọn ảnh logo (nên hình vuông)'}
           </Text>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button title={t('common.choose') || 'Chọn'} onPress={() => pick('logoPath')} />
+          <Button
+            title={t('common.choose') || 'Chọn'}
+            onPress={() => pick('logoPath')}
+          />
           {p.logoPath ? (
             <Button
               title={t('common.delete') || 'Xóa'}
@@ -201,14 +236,20 @@ export default function PaymentProfileScreen() {
           {t('payment.qr') || 'Mã QR'}
         </Text>
         {p.qrPath ? (
-          <Image source={{ uri: p.qrPath }} style={{ width: 160, height: 160, borderRadius: 8 }} />
+          <Image
+            source={{ uri: p.qrPath }}
+            style={{ width: 160, height: 160, borderRadius: 8 }}
+          />
         ) : (
           <Text style={{ color: c.subtext }}>
             {t('payment.qrHint') || 'Chọn ảnh QR ngân hàng/ví'}
           </Text>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button title={t('common.choose') || 'Chọn'} onPress={() => pick('qrPath')} />
+          <Button
+            title={t('common.choose') || 'Chọn'}
+            onPress={() => pick('qrPath')}
+          />
           {p.qrPath ? (
             <Button
               title={t('common.delete') || 'Xóa'}

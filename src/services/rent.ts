@@ -13,6 +13,20 @@ type Billing = 'daily' | 'monthly' | 'yearly';
 type CollectWhen = 'start' | 'end';
 export type FixedOrVariable = 'fixed' | 'variable';
 
+// (optional) Invoice type for convenience
+export type Invoice = {
+  id: string;
+  lease_id: string;
+  period_start: string;
+  period_end: string;
+  issue_date?: string;
+  subtotal: number;
+  total: number;
+  status: 'open' | 'partial' | 'paid';
+  qr_png_path?: string | null; // ✅ VietQR image file path
+  code?: string | null;
+};
+
 export type LeaseConfig = {
   roomId: string;
   leaseType: LeaseType;
@@ -607,7 +621,17 @@ export function extendLeaseAndAddCycles(leaseId: string, extraCount: number) {
 }
 
 // ===== Invoices =====
+
+// ✅ Ensure extra column(s) for invoices
+function ensureInvoicesExtraColumns() {
+  try {
+    exec(`ALTER TABLE invoices ADD COLUMN qr_png_path TEXT`);
+  } catch {}
+  // (future-proof) If you later add code/notes, you can extend here similarly.
+}
+
 export function openInvoiceForCycle(cycleId: string) {
+  ensureInvoicesExtraColumns(); // make sure columns exist
   const c = getCycle(cycleId);
   if (!c) throw new Error('Cycle not found');
   if (c.invoice_id)
@@ -623,7 +647,8 @@ export function openInvoiceForCycle(cycleId: string) {
   return query(`SELECT * FROM invoices WHERE id=?`, [id])[0];
 }
 export function getInvoice(id: string) {
-  return query(`SELECT * FROM invoices WHERE id=?`, [id])[0];
+  ensureInvoicesExtraColumns();
+  return query(`SELECT * FROM invoices WHERE id=?`, [id])[0] as Invoice;
 }
 export function getInvoiceItems(invoiceId: string) {
   return query(
@@ -631,6 +656,13 @@ export function getInvoiceItems(invoiceId: string) {
     [invoiceId],
   );
 }
+
+/** ✅ VietQR: cập nhật đường dẫn ảnh QR đã render */
+export function updateInvoiceQrPath(invoiceId: string, path: string) {
+  ensureInvoicesExtraColumns();
+  exec(`UPDATE invoices SET qr_png_path = ? WHERE id = ?`, [path, invoiceId]);
+}
+
 function seedFirstMonthBaseRentIfNeeded(leaseId: string) {
   const l = getLease(leaseId);
   if (!l) return;
@@ -2242,6 +2274,9 @@ export function bootstrapRentModule() {
   } catch {}
   try {
     fixBaseRentDuplicatesAllLeases();
+  } catch {}
+  try {
+    ensureInvoicesExtraColumns(); // ✅ make sure qr_png_path exists
   } catch {}
 }
 

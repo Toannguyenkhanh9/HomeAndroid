@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,9 +21,8 @@ import { useThemeColors } from '../theme';
 import { useCurrency } from '../../utils/currency';
 import {
   formatNumber as groupVN,
-  onlyDigits,
   formatDecimalTypingVNStrict,
-  parseDecimalCommaStrict, // ✅ parser chuẩn VN
+  parseDecimalCommaStrict,
 } from '../../utils/number';
 import {
   getLease,
@@ -40,6 +40,13 @@ import { formatDateISO } from '../../utils/date';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Share from 'react-native-share';
+import SignaturePadModal from '../components/SignaturePadModal';
+import { createLeasePdfFile } from '../../services/leasePdf';
+import { loadPaymentProfile } from '../../services/paymentProfile';
+import {
+  loadLeaseSignatures,
+  saveLeaseSignatures,
+} from '../../services/leaseSignatures';
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseDetail'>;
 
 type NewItem = {
@@ -50,20 +57,35 @@ type NewItem = {
   meterStart?: string;
 };
 
-// format nhóm nghìn khi gõ số nguyên
+// nhóm nghìn khi gõ số nguyên
 function formatTypingInt(s: string) {
   const digits = (s || '').replace(/\D/g, '');
   if (!digits) return '';
   return Number(digits).toLocaleString('vi-VN');
 }
-
 // parse số nguyên an toàn
 function parseAmount(s: string) {
   const digits = (s || '').replace(/[^\d]/g, '');
   return digits ? Number(digits) : 0;
 }
+// chuẩn hoá chuỗi chữ ký thành URI ảnh
+function toImgUri(s?: string) {
+  if (!s) return '';
+  const v = String(s).trim();
+  if (!v) return '';
+  if (/^data:image\//i.test(v)) return v;
+  if (/^file:\/\//i.test(v) || /^content:\/\//i.test(v)) return v;
+  return `data:image/png;base64,${v.replace(/^base64,?/i, '')}`;
+}
 
 export default function LeaseDetail({ route, navigation }: Props) {
+  // ----- E-sign + PDF -----
+  const [showSignModal, setShowSignModal] = useState<
+    null | 'tenant' | 'landlord'
+  >(null);
+  const [tenantSig, setTenantSig] = useState<string | undefined>(undefined); // base64 / data-uri
+  const [landlordSig, setLandlordSig] = useState<string | undefined>(undefined); // base64 / data-uri
+
   const insets = useSafeAreaInsets();
   const { dateFormat, language } = useSettings();
   const { leaseId } = route.params as any;
@@ -77,7 +99,14 @@ export default function LeaseDetail({ route, navigation }: Props) {
   const [cycles, setCycles] = useState<any[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [roomCode, setRoomCode] = useState<string>('');
-
+  const toImgUri = (s?: string) =>
+    !s
+      ? ''
+      : /^data:image\//i.test(s) ||
+        /^file:\/\//i.test(s) ||
+        /^content:\/\//i.test(s)
+      ? s
+      : `data:image/png;base64,${String(s).replace(/^base64,?/i, '')}`;
   // fixed: { charge_type_id: "1.000,25" }
   const [fixed, setFixed] = useState<Record<string, string>>({});
   // vars: { charge_type_id: { price: "0,26", meter: "1.000" } }
@@ -99,7 +128,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
   const removeItem = (idx: number) =>
     setNewItems(prev => prev.filter((_, i) => i !== idx));
 
-  // Đánh dấu xóa phí đang có (id theo charge_type_id)
+  // Đánh dấu xóa phí đang có
   const [removed, setRemoved] = useState<Record<string, boolean>>({});
 
   // ----- Modal kết thúc trước hạn -----
@@ -129,7 +158,6 @@ export default function LeaseDetail({ route, navigation }: Props) {
     setBaseRentText(groupVN(String(l?.base_rent || 0)));
     setTenant(l?.tenant_id ? getTenant(l.tenant_id) : null);
     try {
-      // ⬅️ lấy mã phòng nếu có
       const r = l?.room_id ? getRoom(l.room_id) : null;
       setRoomCode(r?.code || '');
     } catch {}
@@ -160,7 +188,12 @@ export default function LeaseDetail({ route, navigation }: Props) {
     try {
       setCycles(listCycles(leaseId) || []);
     } catch {}
+    loadLeaseSignatures(leaseId).then(sig => {
+      setTenantSig(sig.tenant);
+      setLandlordSig(sig.landlord);
+    });
   };
+
   const sharePlainText = async () => {
     try {
       if (!lease) return;
@@ -243,6 +276,39 @@ export default function LeaseDetail({ route, navigation }: Props) {
       });
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    }
+  };
+
+  const onExportPdf = async () => {
+    try {
+      if (!lease) return;
+      const branding = await loadPaymentProfile();
+      const path = await createLeasePdfFile({
+        lease,
+        tenant,
+        room: { code: roomCode },
+        charges,
+        signatures: { tenant: tenantSig, landlord: landlordSig },
+        branding,
+        t,
+        lang: language,
+      });
+
+      if (path) {
+        await Share.open({
+          url: `file://${path}`,
+          type: 'application/pdf',
+          failOnCancel: false,
+        });
+      } else {
+        Alert.alert(
+          t('leasePdf.systemPrintOpened') || 'Đã mở hộp thoại In',
+          t('leasePdf.systemPrintHint') ||
+            'Chọn "Save as PDF" để lưu hợp đồng.',
+        );
+      }
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || 'Export failed');
     }
   };
 
@@ -408,7 +474,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
         <ScrollView
           contentContainerStyle={{
             padding: 12,
-            paddingBottom: insets.bottom + 100,
+            paddingBottom: insets.bottom + 160,
             gap: 12,
           }}
           contentInsetAdjustmentBehavior="automatic"
@@ -508,13 +574,78 @@ export default function LeaseDetail({ route, navigation }: Props) {
             ))}
           </Card>
 
+          {/* --- CHỮ KÝ + XUẤT PDF --- */}
+          <Card style={{ gap: 10 }}>
+            <Text style={{ color: c.text, fontWeight: '800' }}>
+              {t('leasePdf.signatures') || 'Chữ ký'}
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <Button
+                  title={t('leasePdf.signTenantBtn') || 'Ký (Bên thuê)'}
+                  onPress={() => setShowSignModal('tenant')}
+                />
+                {tenantSig ? (
+                  <Image
+                    source={{ uri: toImgUri(tenantSig) }}
+                    style={{
+                      width: '100%',
+                      height: 100,
+                      marginTop: 8,
+                      borderRadius: 8,
+                      backgroundColor: c.card,
+                    }}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={{ color: c.subtext, marginTop: 8 }}>
+                    {t('leasePdf.noSignature') || 'Chưa ký'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <Button
+                  title={t('leasePdf.signLandlordBtn') || 'Ký (Bên cho thuê)'}
+                  onPress={() => setShowSignModal('landlord')}
+                />
+                {landlordSig ? (
+                  <Image
+                    source={{ uri: toImgUri(landlordSig) }}
+                    style={{
+                      width: '100%',
+                      height: 100,
+                      marginTop: 8,
+                      borderRadius: 8,
+                      backgroundColor: c.card,
+                    }}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={{ color: c.subtext, marginTop: 8 }}>
+                    {t('leasePdf.noSignature') || 'Chưa ký'}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <View style={{ marginTop: 6 }}>
+              <Button
+                title={t('leasePdf.exportPdf') || 'Xuất hợp đồng (PDF)'}
+                onPress={onExportPdf}
+              />
+            </View>
+          </Card>
+
+          {/* Bottom action bar – 3 nút */}
           <View
             style={{
               justifyContent: 'flex-end',
               position: 'absolute',
               left: 12,
               right: 12,
-              bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+              bottom: insets.bottom + 12,
               flexDirection: 'row',
               gap: 12,
             }}
@@ -672,7 +803,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
                       placeholder="0,00"
                     />
 
-                    {/* Meter start: giữ định dạng số nguyên (nhóm nghìn) */}
+                    {/* Meter start */}
                     <Text style={{ color: c.subtext }}>
                       {t('leaseDetail.meterStart')}
                     </Text>
@@ -780,7 +911,7 @@ export default function LeaseDetail({ route, navigation }: Props) {
               position: 'absolute',
               left: 12,
               right: 12,
-              bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+              bottom: insets.bottom + 12,
               flexDirection: 'row',
               gap: 12,
             }}
@@ -799,6 +930,29 @@ export default function LeaseDetail({ route, navigation }: Props) {
           </View>
         </ScrollView>
       )}
+
+      {/* MODALS: Signature */}
+      <SignaturePadModal
+        visible={showSignModal === 'tenant'}
+        title={t('leasePdf.signTenant') || 'Ký – Bên thuê'}
+        onOK={async b64 => {
+          setTenantSig(b64);
+          await saveLeaseSignatures(leaseId, { tenant: b64 }); // ⬅️ LƯU
+          setShowSignModal(null);
+        }}
+        onCancel={() => setShowSignModal(null)}
+      />
+
+      <SignaturePadModal
+        visible={showSignModal === 'landlord'}
+        title={t('leasePdf.signLandlord') || 'Ký – Bên cho thuê'}
+        onOK={async b64 => {
+          setLandlordSig(b64);
+          await saveLeaseSignatures(leaseId, { landlord: b64 }); // ⬅️ LƯU
+          setShowSignModal(null);
+        }}
+        onCancel={() => setShowSignModal(null)}
+      />
 
       {/* MODAL: Kết thúc hợp đồng trước hạn */}
       <Modal

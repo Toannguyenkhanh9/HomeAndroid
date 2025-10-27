@@ -7,6 +7,20 @@ import { setTranslator } from '../utils/i18nProxy';
 const resources = {
   vi: {
     translation: {
+      leasePdf: {
+        title: 'HỢP ĐỒNG THUÊ',
+        signatures: 'Chữ ký',
+        tenant: 'Bên thuê',
+        landlord: 'Bên cho thuê',
+        noSignature: 'Chưa ký',
+        signAndExport: 'Ký & xuất hợp đồng',
+        signTenant: 'Ký – Bên thuê',
+        signLandlord: 'Ký – Bên cho thuê',
+        signTenantBtn: 'Ký (Bên thuê)',
+        signLandlordBtn: 'Ký (Bên cho thuê)',
+        exportPdf: 'Xuất hợp đồng (PDF)',
+        type: 'Loại',
+      },
       rate: {
         title: 'Đánh giá ứng dụng',
         message: 'Bạn thấy app hữu ích chứ? Vui lòng đánh giá để ủng hộ nhé!',
@@ -857,6 +871,20 @@ const resources = {
   },
   en: {
     translation: {
+      leasePdf: {
+        title: 'LEASE AGREEMENT',
+        signatures: 'Signatures',
+        tenant: 'Tenant',
+        landlord: 'Landlord',
+        noSignature: 'Not signed',
+        signAndExport: 'Sign & export agreement',
+        signTenant: 'Sign – Tenant',
+        signLandlord: 'Sign – Landlord',
+        signTenantBtn: 'Sign (Tenant)',
+        signLandlordBtn: 'Sign (Landlord)',
+        exportPdf: 'Export agreement (PDF)',
+        type: 'Type',
+      },
       rate: {
         title: 'Rate the app',
         message: 'Finding the app useful? Please consider leaving a review!',
@@ -1710,6 +1738,20 @@ const resources = {
 
   es: {
     translation: {
+      leasePdf: {
+        title: 'CONTRATO DE ARRENDAMIENTO',
+        signatures: 'Firmas',
+        tenant: 'Arrendatario',
+        landlord: 'Arrendador',
+        noSignature: 'No firmado',
+        signAndExport: 'Firmar y exportar el contrato',
+        signTenant: 'Firmar – Arrendatario',
+        signLandlord: 'Firmar – Arrendador',
+        signTenantBtn: 'Firmar (Arrendatario)',
+        signLandlordBtn: 'Firmar (Arrendador)',
+        exportPdf: 'Exportar contrato (PDF)',
+        type: 'Tipo',
+      },
       rate: {
         title: 'Valorar la aplicación',
         message: '¿Te resulta útil la aplicación? ¡Considera dejar una reseña!',
@@ -2508,6 +2550,20 @@ const resources = {
   },
   fr: {
     translation: {
+      leasePdf: {
+        title: 'CONTRAT DE LOCATION',
+        signatures: 'Signatures',
+        tenant: 'Locataire',
+        landlord: 'Bailleur',
+        noSignature: 'Non signé',
+        signAndExport: 'Signer et exporter le contrat',
+        signTenant: 'Signer – Locataire',
+        signLandlord: 'Signer – Bailleur',
+        signTenantBtn: 'Signer (Locataire)',
+        signLandlordBtn: 'Signer (Bailleur)',
+        exportPdf: 'Exporter le contrat (PDF)',
+        type: 'Type',
+      },
       rate: {
         title: 'Noter l’app',
         message: 'L’application vous est utile ? Merci de laisser un avis !',
@@ -3118,6 +3174,20 @@ const resources = {
 
   de: {
     translation: {
+      leasePdf: {
+        title: 'MIETVERTRAG',
+        signatures: 'Unterschriften',
+        tenant: 'Mieter',
+        landlord: 'Vermieter',
+        noSignature: 'Nicht unterschrieben',
+        signAndExport: 'Vertrag unterschreiben & exportieren',
+        signTenant: 'Unterschreiben – Mieter',
+        signLandlord: 'Unterschreiben – Vermieter',
+        signTenantBtn: 'Unterschreiben (Mieter)',
+        signLandlordBtn: 'Unterschreiben (Vermieter)',
+        exportPdf: 'Vertrag exportieren (PDF)',
+        type: 'Typ',
+      },
       rate: {
         title: 'App bewerten',
         message:
@@ -3731,6 +3801,20 @@ const resources = {
 
   zh: {
     translation: {
+      leasePdf: {
+        title: '租赁合同',
+        signatures: '签名',
+        tenant: '承租方',
+        landlord: '出租方',
+        noSignature: '未签名',
+        signAndExport: '签署并导出合同',
+        signTenant: '签署 – 承租方',
+        signLandlord: '签署 – 出租方',
+        signTenantBtn: '签署（承租方）',
+        signLandlordBtn: '签署（出租方）',
+        exportPdf: '导出合同（PDF）',
+        type: '类型',
+      },
       rate: {
         title: '为应用评分',
         message: '觉得这个应用有用吗？请考虑给我们留下评价！',
@@ -4322,6 +4406,20 @@ const resources = {
 
   ja: {
     translation: {
+      leasePdf: {
+        title: '賃貸借契約書',
+        signatures: '署名',
+        tenant: '賃借人',
+        landlord: '賃貸人',
+        noSignature: '未署名',
+        signAndExport: '契約に署名してエクスポート',
+        signTenant: '署名 – 賃借人',
+        signLandlord: '署名 – 賃貸人',
+        signTenantBtn: '署名（賃借人）',
+        signLandlordBtn: '署名（賃貸人）',
+        exportPdf: '契約をエクスポート（PDF）',
+        type: '種類',
+      },
       rate: {
         title: 'アプリを評価する',
         message:
@@ -4925,6 +5023,20 @@ const resources = {
 
   ko: {
     translation: {
+      leasePdf: {
+        title: '임대 계약서',
+        signatures: '서명',
+        tenant: '임차인',
+        landlord: '임대인',
+        noSignature: '미서명',
+        signAndExport: '서명 및 계약서 내보내기',
+        signTenant: '서명 – 임차인',
+        signLandlord: '서명 – 임대인',
+        signTenantBtn: '서명(임차인)',
+        signLandlordBtn: '서명(임대인)',
+        exportPdf: '계약서 내보내기 (PDF)',
+        type: '유형',
+      },
       rate: {
         title: '앱 평가하기',
         message: '앱이 도움이 되셨나요? 리뷰를 남겨 주세요!',
@@ -5518,6 +5630,20 @@ const resources = {
 
   ru: {
     translation: {
+      leasePdf: {
+        title: 'ДОГОВОР АРЕНДЫ',
+        signatures: 'Подписи',
+        tenant: 'Арендатор',
+        landlord: 'Арендодатель',
+        noSignature: 'Не подписано',
+        signAndExport: 'Подписать и экспортировать договор',
+        signTenant: 'Подписать – Арендатор',
+        signLandlord: 'Подписать – Арендодатель',
+        signTenantBtn: 'Подписать (Арендатор)',
+        signLandlordBtn: 'Подписать (Арендодатель)',
+        exportPdf: 'Экспортировать договор (PDF)',
+        type: 'Тип',
+      },
       operatingCosts: {
         rate: {
           title: 'Оценить приложение',
@@ -6125,6 +6251,20 @@ const resources = {
 
   ar: {
     translation: {
+      leasePdf: {
+        title: 'عقد الإيجار',
+        signatures: 'التوقيعات',
+        tenant: 'المستأجر',
+        landlord: 'المؤجر',
+        noSignature: 'غير موقّع',
+        signAndExport: 'التوقيع وتصدير العقد',
+        signTenant: 'توقيع – المستأجر',
+        signLandlord: 'توقيع – المؤجر',
+        signTenantBtn: 'توقيع (المستأجر)',
+        signLandlordBtn: 'توقيع (المؤجر)',
+        exportPdf: 'تصدير العقد (PDF)',
+        type: 'النوع',
+      },
       rate: {
         title: 'قيّم التطبيق',
         message: 'هل وجدت التطبيق مفيدًا؟ يُرجى ترك مراجعة!',
@@ -6758,6 +6898,20 @@ const resources = {
   },
   th: {
     translation: {
+      leasePdf: {
+        title: 'สัญญาเช่า',
+        signatures: 'ลายเซ็น',
+        tenant: 'ผู้เช่า',
+        landlord: 'ผู้ให้เช่า',
+        noSignature: 'ยังไม่ลงนาม',
+        signAndExport: 'ลงนามและส่งออกสัญญา',
+        signTenant: 'ลงนาม – ผู้เช่า',
+        signLandlord: 'ลงนาม – ผู้ให้เช่า',
+        signTenantBtn: 'ลงนาม (ผู้เช่า)',
+        signLandlordBtn: 'ลงนาม (ผู้ให้เช่า)',
+        exportPdf: 'ส่งออกสัญญา (PDF)',
+        type: 'ประเภท',
+      },
       rate: {
         title: 'ให้คะแนนแอป',
         message: 'แอปนี้มีประโยชน์หรือไม่? โปรดพิจารณาเขียนรีวิวให้เรา!',
@@ -7426,6 +7580,20 @@ const resources = {
   },
   id: {
     translation: {
+      leasePdf: {
+        title: 'PERJANJIAN SEWA',
+        signatures: 'Tanda tangan',
+        tenant: 'Penyewa',
+        landlord: 'Pemberi sewa',
+        noSignature: 'Belum ditandatangani',
+        signAndExport: 'Tandatangani & ekspor kontrak',
+        signTenant: 'Tanda tangan – Penyewa',
+        signLandlord: 'Tanda tangan – Pemberi sewa',
+        signTenantBtn: 'Tanda tangan (Penyewa)',
+        signLandlordBtn: 'Tanda tangan (Pemberi sewa)',
+        exportPdf: 'Ekspor kontrak (PDF)',
+        type: 'Jenis',
+      },
       rate: {
         title: 'Beri rating aplikasi',
         message: 'Aplikasi ini bermanfaat? Mohon tinggalkan ulasan!',
@@ -8098,6 +8266,20 @@ const resources = {
   },
   ms: {
     translation: {
+      leasePdf: {
+        title: 'PERJANJIAN SEWA',
+        signatures: 'Tandatangan',
+        tenant: 'Penyewa',
+        landlord: 'Pemberi sewa',
+        noSignature: 'Belum ditandatangani',
+        signAndExport: 'Tandatangan & eksport kontrak',
+        signTenant: 'Tandatangan – Penyewa',
+        signLandlord: 'Tandatangan – Pemberi sewa',
+        signTenantBtn: 'Tandatangan (Penyewa)',
+        signLandlordBtn: 'Tandatangan (Pemberi sewa)',
+        exportPdf: 'Eksport kontrak (PDF)',
+        type: 'Jenis',
+      },
       rate: {
         title: 'Nilaikan aplikasi',
         message: 'Adakah aplikasi ini berguna? Sila tinggalkan ulasan!',
@@ -8751,6 +8933,20 @@ const resources = {
   },
   fil: {
     translation: {
+      leasePdf: {
+        title: 'KASUNDUAN SA PAG-UPA',
+        signatures: 'Mga lagda',
+        tenant: 'Nangungupahan',
+        landlord: 'Nagpapaupa',
+        noSignature: 'Hindi napirmahan',
+        signAndExport: 'Pirmahan at i-export ang kontrata',
+        signTenant: 'Pirma – Nangungupahan',
+        signLandlord: 'Pirma – Nagpapaupa',
+        signTenantBtn: 'Pirma (Nangungupahan)',
+        signLandlordBtn: 'Pirma (Nagpapaupa)',
+        exportPdf: 'I-export ang kontrata (PDF)',
+        type: 'Uri',
+      },
       rate: {
         title: 'I-rate ang app',
         message: 'Kapaki-pakinabang ba ang app? Mangyaring mag-iwan ng review!',
@@ -9422,6 +9618,20 @@ const resources = {
   },
   pt: {
     translation: {
+      leasePdf: {
+        title: 'CONTRATO DE ARRENDAMENTO',
+        signatures: 'Assinaturas',
+        tenant: 'Inquilino',
+        landlord: 'Locador',
+        noSignature: 'Não assinado',
+        signAndExport: 'Assinar e exportar o contrato',
+        signTenant: 'Assinar – Inquilino',
+        signLandlord: 'Assinar – Locador',
+        signTenantBtn: 'Assinar (Inquilino)',
+        signLandlordBtn: 'Assinar (Locador)',
+        exportPdf: 'Exportar contrato (PDF)',
+        type: 'Tipo',
+      },
       rate: {
         title: 'Avaliar o aplicativo',
         message: 'Achou o app útil? Considere deixar uma avaliação!',
@@ -10069,6 +10279,20 @@ const resources = {
   },
   hi: {
     translation: {
+      leasePdf: {
+        title: 'लीज अनुबंध',
+        signatures: 'हस्ताक्षर',
+        tenant: 'किरायेदार',
+        landlord: 'मकान मालिक',
+        noSignature: 'हस्ताक्षरित नहीं',
+        signAndExport: 'हस्ताक्षर करें और अनुबंध निर्यात करें',
+        signTenant: 'हस्ताक्षर – किरायेदार',
+        signLandlord: 'हस्ताक्षर – मकान मालिक',
+        signTenantBtn: 'हस्ताक्षर (किरायेदार)',
+        signLandlordBtn: 'हस्ताक्षर (मकान मालिक)',
+        exportPdf: 'अनुबंध निर्यात करें (PDF)',
+        type: 'प्रकार',
+      },
       rate: {
         title: 'ऐप को रेट करें',
         message: 'क्या यह ऐप उपयोगी लगा? कृपया समीक्षा दें!',
