@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  Dimensions,
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,11 +16,16 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import ApartmentCreateModal from '../components/ApartmentCreateModal';
 import { useFocusEffect } from '@react-navigation/native';
-import { deleteApartment, hasUnpaidCycles } from '../../services/rent';
+import {
+  deleteApartment,
+  hasUnpaidCycles,
+  countUnpaidBalances,
+} from '../../services/rent';
 import { useTranslation } from 'react-i18next';
 import AppHeader from '../components/AppHeader';
 import AppFooter from '../components/AppFooter';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 type Row = { id: string; name: string; address?: string | null };
 
 type Stats = {
@@ -121,7 +125,6 @@ function StatBox({
         </View>
 
         <View style={{ flex: 1 }} />
-        {/* chỉ hiện chevron nếu có onPress */}
         {onPress ? (
           <Text style={{ fontSize: 18, color: c.subtext, opacity: 0.6 }}>
             ›
@@ -138,7 +141,6 @@ function StatBox({
     { flex: 1, gap: 8, paddingVertical: 14 },
   ];
 
-  // Có onPress => TouchableOpacity, không thì View thường
   return onPress ? (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -201,7 +203,7 @@ function BigIcon({
   label,
   icon,
   onPress,
-  size = 56,          // <— mặc định nhỏ hơn: 64px
+  size = 56,
 }: {
   label: string;
   icon: string;
@@ -215,7 +217,7 @@ function BigIcon({
       style={{
         width: '33.33%',
         paddingHorizontal: 8,
-        paddingVertical: 8, // giảm padding
+        paddingVertical: 8,
         alignItems: 'center',
       }}
     >
@@ -238,17 +240,15 @@ function BigIcon({
           elevation: 1,
         }}
       >
-        <Text style={{ fontSize: Math.round(size * 0.4) /* ~26 khi size=64 */ }}>
-          {icon}
-        </Text>
+        <Text style={{ fontSize: Math.round(size * 0.4) }}>{icon}</Text>
       </TouchableOpacity>
       <Text
         style={{
-          marginTop: 6,              // nhỏ hơn
+          marginTop: 6,
           textAlign: 'center',
           color: c.text,
           fontWeight: '600',
-          fontSize: 13,             // nhỏ hơn
+          fontSize: 13,
         }}
         numberOfLines={2}
       >
@@ -368,18 +368,22 @@ export default function ApartmentsList({
 
     let endingSoon = 0,
       overdue = 0,
-      unpaid = 0,
       holdingDeposit = 0;
+
     for (const L of leases) {
       if (L.deposit_amount && Number(L.deposit_amount) > 0) holdingDeposit++;
       if (L.end_date) {
         if (L.end_date >= today && L.end_date <= day30) endingSoon++;
         if (L.end_date < today) overdue++;
       }
-      try {
-        if (hasUnpaidCycles(L.id)) unpaid++;
-      } catch {}
     }
+
+    // ✅ số khoản còn nợ lấy trực tiếp từ invoices (đã có list màn UnpaidList)
+    let unpaid = 0;
+    try {
+      unpaid = countUnpaidBalances(apartmentId);
+    } catch {}
+
     return {
       total,
       available,
@@ -552,7 +556,7 @@ export default function ApartmentsList({
                   icon="📊"
                   onPress={() => navigation.navigate('ReportsMonthly')}
                 />
-              <BigIcon
+                <BigIcon
                   label={t('payment.title')}
                   icon="🏦"
                   onPress={() => navigation.navigate('PaymentProfile')}
@@ -562,10 +566,11 @@ export default function ApartmentsList({
                   icon="❓"
                   onPress={() => navigation.navigate('HelpScreen')}
                 />
-                {/* <BigIcon
-                  label={t('pricing.menuTitle')}
+                {/* Có thể thêm icon mở nhanh danh sách còn nợ nếu muốn:
+                <BigIcon
+                  label={t('overview.unpaid') || 'Còn nợ'}
                   icon="💳"
-                  onPress={() => navigation.navigate('PricingPlans')}
+                  onPress={() => navigation.navigate('UnpaidList')}
                 /> */}
               </View>
             </View>
@@ -673,12 +678,18 @@ export default function ApartmentsList({
                     label={t('stat_overdue')}
                     value={s.overdue}
                   />
-                  {/* <StatBox
+                  {/* ✅ Unpaid: bấm để mở danh sách còn nợ */}
+                  <StatBox
                     icon="💳"
                     iconBg="#EAF7EE"
                     label={t('stat_unpaid')}
                     value={s.unpaid}
-                  /> */}
+                    onPress={() =>
+                      navigation.navigate('UnpaidList', {
+                        apartmentId: item.id,
+                      })
+                    }
+                  />
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <StatBox

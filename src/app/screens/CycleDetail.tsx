@@ -32,6 +32,7 @@ import {
   addSupplementChargesToCycle,
   recordPayment,
   queryPaymentsOfInvoice,
+  updateInvoiceQrPath,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -48,6 +49,7 @@ import Share from 'react-native-share';
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoiceHtmlFile } from '../../services/invoiceHtml';
+import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
 import { markHappyEvent, maybeAskForReview } from '../../services/rateApp';
 import HiddenVietQR from '../components/HiddenVietQR';
@@ -411,6 +413,7 @@ export default function CycleDetail({ route, navigation }: Props) {
     setInvTotal(inv.total || 0);
     setExtras([]);
 
+    // Tạo payload QR động + render ẩn để lưu PNG vào invoice
     (async () => {
       try {
         const pp = await loadPaymentProfile(); // { bankBin, accountNumber, accountName, ... }
@@ -420,7 +423,7 @@ export default function CycleDetail({ route, navigation }: Props) {
             accountNumber: String(pp.accountNumber),
             accountName: pp.accountName,
             amount: Number(inv.total || 0),
-            addInfo: inv.code || inv.id, // nội dung CK = mã hoá đơn
+            addInfo: inv.code || inv.id, // nội dung CK = mã hóa đơn
             isDynamic: true,
           });
           setQrPayload(payload);
@@ -428,15 +431,6 @@ export default function CycleDetail({ route, navigation }: Props) {
         }
       } catch {}
     })();
-
-    try {
-      const billing = String(leaseInfo?.billing_cycle);
-      const isOpenMonthly = billing === 'monthly' && !leaseInfo?.end_date;
-      const isOpenDaily =
-        billing === 'daily' && !(Number(leaseInfo?.duration_days || 0) > 0);
-      if (isOpenMonthly || isOpenDaily) extendLeaseAndAddCycles(leaseId, 1);
-    } catch {}
-
     reload();
     onSettled?.();
 
@@ -666,9 +660,7 @@ export default function CycleDetail({ route, navigation }: Props) {
             }`,
           );
         if (branding.note)
-          lines.push(
-            `• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`,
-          );
+          lines.push(`• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`);
       }
 
       lines.push('');
@@ -679,7 +671,20 @@ export default function CycleDetail({ route, navigation }: Props) {
         subject: `${t('invoice.title')} ${titleRoom}`,
         failOnCancel: false,
       };
-      if (branding?.qrPath) payload.url = branding.qrPath;
+
+      // Ưu tiên QR theo hóa đơn (qr_png_path), fallback QR chung (branding.qrPath)
+      try {
+        if (invId) {
+          const invRow = getInvoice(invId);
+          if (invRow?.qr_png_path) {
+            payload.url = invRow.qr_png_path;
+          } else if (branding?.qrPath) {
+            payload.url = branding.qrPath;
+          }
+        } else if (branding?.qrPath) {
+          payload.url = branding.qrPath;
+        }
+      } catch {}
 
       await Share.open(payload);
     } catch (e: any) {
@@ -703,10 +708,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       setShowAddModal(false);
       setSuppItems([]);
       reload();
-      Alert.alert(
-        t('common.success'),
-        t('common.success') || 'Đã thêm khoản thu bổ sung',
-      );
+      Alert.alert(t('common.success'), t('common.success') || 'Đã thêm khoản thu bổ sung');
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
@@ -781,13 +783,10 @@ export default function CycleDetail({ route, navigation }: Props) {
             {/* Period & invoice */}
             <Card>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}: {''}
-                {formatDateISO(period.s, dateFormat, language)} -{' '}
-                {formatDateISO(period.e, dateFormat, language)}
+                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)} - {formatDateISO(period.e, dateFormat, language)}
               </Text>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.status')}: {''}
-                {status === 'open' ? t('common.open') : t('common.close')}{' '}
+                {t('cycleDetail.status')}: {status === 'open' ? t('common.open') : t('common.close')}{' '}
               </Text>
               {invId ? (
                 <Text style={{ color: c.text }}>
@@ -821,14 +820,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {openingMeta?.for_period_start &&
                       openingMeta?.for_period_end ? (
                         <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.forPeriod')}: {' '}
+                          {t('cycleDetail.forPeriod')}:{" "}
                           <Text style={{ color: c.text }}>
                             {formatDateISO(
                               openingMeta.for_period_start,
                               dateFormat,
                               language,
-                            )}{' '}
-                            -{' '}
+                            )}{" "}
+                            -{" "}
                             {formatDateISO(
                               openingMeta.for_period_end,
                               dateFormat,
@@ -838,10 +837,10 @@ export default function CycleDetail({ route, navigation }: Props) {
                         </Text>
                       ) : null}
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.amount')}: {' '}
+                        {t('cycleDetail.amount')}:{" "}
                         <Text style={{ color: c.text }}>
                           {format(openingAmount)}
-                        </Text>{' '}
+                        </Text>{" "}
                       </Text>
                     </View>
                   )}
@@ -894,9 +893,9 @@ export default function CycleDetail({ route, navigation }: Props) {
 
                         {forStart && forEnd ? (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.forPeriod')}: {' '}
+                            {t('cycleDetail.forPeriod')}:{" "}
                             <Text style={{ color: c.text }}>
-                              {formatDateISO(forStart, dateFormat, language)} -{' '}
+                              {formatDateISO(forStart, dateFormat, language)} -{" "}
                               {formatDateISO(forEnd, dateFormat, language)}
                             </Text>
                           </Text>
@@ -906,12 +905,12 @@ export default function CycleDetail({ route, navigation }: Props) {
                           meterInfo.start != null || meterInfo.end != null
                         ) && (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.prevIndex')}: {' '}
+                            {t('cycleDetail.prevIndex')}:{" "}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.start ?? 0))}
                             </Text>
-                            {'  '}•{'  '}
-                            {t('cycleDetail.currIndex')}: {' '}
+                            {"  "}•{"  "}
+                            {t('cycleDetail.currIndex')}:{" "}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.end ?? 0))}
                             </Text>
@@ -919,15 +918,15 @@ export default function CycleDetail({ route, navigation }: Props) {
                         )}
 
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.qtyShort')}: {' '}
+                          {t('cycleDetail.qtyShort')}:{" "}
                           <Text style={{ color: c.text }}>
                             {it.quantity ?? 1}
-                          </Text>{' '}
-                          • {t('cycleDetail.unitPrice')}: {' '}
+                          </Text>{" "}
+                          • {t('cycleDetail.unitPrice')}:{" "}
                           <Text style={{ color: c.text }}>
                             {format(it.unit_price)}
-                          </Text>{' '}
-                          • {t('cycleDetail.amount')}: {' '}
+                          </Text>{" "}
+                          • {t('cycleDetail.amount')}:{" "}
                           <Text style={{ color: c.text }}>
                             {format(it.amount)}
                           </Text>
@@ -963,14 +962,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {r.is_variable === 1 ? (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.unitPrice')}: {' '}
+                            {t('cycleDetail.unitPrice')}:{" "}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
-                            </Text>{' '}
+                            </Text>{" "}
                             / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.startIndex')}: {' '}
+                            {t('cycleDetail.startIndex')}:{" "}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(r.meter_start || 0))}
                             </Text>
@@ -1007,7 +1006,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       ) : (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.contractBase')}: {' '}
+                            {t('cycleDetail.contractBase')}:{" "}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
                             </Text>
@@ -1062,8 +1061,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                   return (
                     <>
                       <Text style={{ color: c.text, marginTop: 4 }}>
-                        {t('invoice.paidTotal') || 'Đã thanh toán'}:{' '}
-                        {format(paid)}
+                        {t('invoice.paidTotal') || 'Đã thanh toán'}: {format(paid)}
                       </Text>
                       <Text style={{ color: c.text }}>
                         {t('invoice.balance') || 'Còn lại'}: {format(bal)}
@@ -1194,14 +1192,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                   {isVar ? (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.unitPrice')}: {' '}
+                        {t('cycleDetail.unitPrice')}:{" "}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
-                        </Text>{' '}
+                        </Text>{" "}
                         / {r.unit || t('cycleDetail.unitShort')}
                       </Text>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.prevIndex')}: {' '}
+                        {t('cycleDetail.prevIndex')}:{" "}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(r.meter_start || 0))}
                         </Text>
@@ -1249,19 +1247,19 @@ export default function CycleDetail({ route, navigation }: Props) {
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.consumed')}: {' '}
+                        {t('cycleDetail.consumed')}:{" "}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(consumed))}
-                        </Text>{' '}
-                        {r.unit || t('cycleDetail.unitShort')} —{' '}
-                        {t('cycleDetail.amount')}: {' '}
+                        </Text>{" "}
+                        {r.unit || t('cycleDetail.unitShort')} —{" "}
+                        {t('cycleDetail.amount')}:{" "}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
                   ) : (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.contractBase')}: {' '}
+                        {t('cycleDetail.contractBase')}:{" "}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>
@@ -1288,7 +1286,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.amount')}: {' '}
+                        {t('cycleDetail.amount')}:{" "}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
@@ -1467,8 +1465,7 @@ export default function CycleDetail({ route, navigation }: Props) {
               {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
             </Text>
             <Text style={{ color: c.text, fontWeight: '700' }}>
-              {t('cycleDetail.balanceAfter')}: {' '}
-              {format(depositPreview - endExtrasTotal)}
+              {t('cycleDetail.balanceAfter')}: {format(depositPreview - endExtrasTotal)}
             </Text>
             <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
@@ -1618,10 +1615,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                     setShowExtendModal(false);
                     setExtendCount('');
                     reload();
-                    Alert.alert(
-                      t('common.success'),
-                      t('cycleDetail.extendedOk'),
-                    );
+                    Alert.alert(t('common.success'), t('cycleDetail.extendedOk'));
                     try {
                       const isMonthly =
                         String(leaseInfo?.billing_cycle) === 'monthly';
@@ -1915,49 +1909,24 @@ export default function CycleDetail({ route, navigation }: Props) {
         </View>
       </Modal>
 
-      {/* Modal hiển thị VietQR sau khi tất toán */}
-      {qrPayload && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setQrPayload(null)}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.45)',
-              justifyContent: 'center',
-              padding: 16,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: c.bg,
-                borderRadius: 12,
-                padding: 16,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: c.text, fontWeight: '800', marginBottom: 10 }}>
-                {t('invoice.scanToPay') || 'Quét mã để thanh toán'}
-              </Text>
-              {/* HiddenVietQR tự vẽ hình ảnh QR từ payload */}
-              <HiddenVietQR payload={qrPayload} />
-              <Text style={{ color: c.subtext, marginTop: 8 }}>
-                {t('invoice.amount') || 'Số tiền'}: {format(invTotal)}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-                <Button
-                  title={t('common.close')}
-                  variant="ghost"
-                  onPress={() => setQrPayload(null)}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* === TẠO & LƯU QR ẨN (sau khi tất toán) === */}
+      {qrPayload && qrTarget ? (
+        <HiddenVietQR
+          payload={qrPayload}
+          size={512}
+          padding={16}
+          onRendered={(filePath) => {
+            try {
+              if (filePath && qrTarget?.invId) {
+                updateInvoiceQrPath(qrTarget.invId, filePath);
+              }
+            } finally {
+              setQrPayload(null);
+              setQrTarget(null);
+            }
+          }}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

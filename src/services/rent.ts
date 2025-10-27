@@ -958,11 +958,18 @@ export function settleCycleWithInputs(
       });
   }
 
-  recalcInvoice(inv.id);
-  exec(`UPDATE lease_cycles SET status='settled' WHERE id=?`, [cycleId]);
-  if (!isLastCycle(cycleId)) {
-    ensureNextCycleAfter(inv.lease_id, c.period_end);
-  }
+recalcInvoice(inv.id);
+exec(`UPDATE lease_cycles SET status='settled' WHERE id=?`, [cycleId]);
+
+// Open-ended: luôn tạo kỳ kế tiếp.
+// Fixed-term: chỉ tạo khi chưa phải kỳ cuối.
+const openEnded =
+  !lease.end_date &&
+  !(lease.billing_cycle === 'daily' && Number(lease.duration_days || 0) > 0);
+
+if (openEnded || !isLastCycle(cycleId)) {
+  ensureNextCycleAfter(inv.lease_id, c.period_end);
+}
 
   const items = getInvoiceItems(inv.id) as any[];
   const meterMap: Record<string, number> = {};
@@ -1435,20 +1442,19 @@ export function isLastCycle(cycleId: string) {
   const lease = getLease(c.lease_id);
   if (!lease) return false;
 
+  // Fixed-term: có end_date -> kỳ cuối nếu period_end >= end_date
   if (lease.end_date) {
-    return c.period_end >= lease.end_date;
+    return new Date(c.period_end).getTime() >= new Date(lease.end_date).getTime();
   }
-  const more =
-    query<{ cnt: number }>(
-      `
-    SELECT COUNT(*) cnt
-    FROM lease_cycles
-    WHERE lease_id = ? AND period_start > ?
-  `,
-      [lease.id, c.period_end],
-    )[0]?.cnt ?? 0;
 
-  return more === 0;
+  // Daily có duration cố định -> kỳ cuối khi đã chạm ngày cuối
+  if (lease.billing_cycle === 'daily' && Number(lease.duration_days || 0) > 0) {
+    const lastDay = addDays(new Date(lease.start_date), Math.max(1, Number(lease.duration_days || 0)) - 1);
+    return new Date(c.period_end).getTime() >= lastDay.getTime();
+  }
+
+  // No term (không thời hạn): không bao giờ là kỳ cuối
+  return false;
 }
 
 /** Prefill tạo HĐ mới khi “duy trì hợp đồng” */
@@ -2745,3 +2751,54 @@ export function applyLateFeesForOverdueInvoices(todayISO?: string) {
 export function queryPaymentsOfInvoice(invoiceId: string) {
   return query<any>(`SELECT payment_date, amount, method FROM payments WHERE invoice_id=? ORDER BY payment_date ASC`, [invoiceId]);
 }
+// ===== Unpaid invoices / balances =====
+export function listUnpaidBalances(apartmentId?: string) {
+  // Trả về các kỳ đã có invoice và chưa thanh toán đủ
+  const rows = query<any>(
+    `
+    SELECT
+      c.id            AS cycle_id,
+      i.id            AS invoice_id,
+      i.period_start, i.period_end,
+      i.total         AS total,
+      COALESCE(p.paid, 0) AS paid,
+      (i.total - COALESCE(p.paid, 0)) AS balance,
+      r.code          AS room_code,
+      l.id            AS lease_id,
+      t.full_name     AS tenant_name,
+      i.issue_date
+    FROM invoices i
+    JOIN lease_cycles c ON c.invoice_id = i.id
+    JOIN leases l       ON l.id = i.lease_id
+    JOIN rooms r        ON r.id = l.room_id
+    LEFT JOIN tenants t ON t.id = l.tenant_id
+    LEFT JOIN (
+      SELECT invoice_id, SUM(amount) AS paid
+      FROM payments
+      GROUP BY invoice_id
+    ) p ON p.invoice_id = i.id
+    WHERE i.status != 'paid'
+      AND (i.total - COALESCE(p.paid, 0)) > 0
+      ${apartmentId ? 'AND r.apartment_id = ?' : ''}
+    ORDER BY balance DESC, i.issue_date DESC
+    `,
+    apartmentId ? [apartmentId] : [],
+  );
+
+  return rows.map((x: any) => ({
+    cycle_id: x.cycle_id,
+    invoice_id: x.invoice_id,
+    period_start: x.period_start,
+    period_end: x.period_end,
+    room_code: x.room_code,
+    tenant_name: x.tenant_name || '',
+    total: Number(x.total) || 0,
+    paid: Number(x.paid) || 0,
+    balance: Math.max(Number(x.balance) || 0, 0),
+  }));
+}
+
+export function countUnpaidBalances(apartmentId?: string) {
+  return listUnpaidBalances(apartmentId).length;
+}
+

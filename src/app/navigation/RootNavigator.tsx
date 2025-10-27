@@ -42,10 +42,11 @@ import HelpScreen from '../screens/HelpScreen';
 import HoldingDepositList from '../screens/HoldingDepositList';
 import ReportsMonthly from '../screens/ReportsMonthly';
 import ReportMonthDetail from '../screens/ReportMonthDetail';
-import PricingPlans from  '../screens/PricingPlans';
-import PaymentProfile from  '../screens/PaymentProfile';
+import PricingPlans from '../screens/PricingPlans';
+import PaymentProfile from '../screens/PaymentProfile';
 import { useTranslation } from 'react-i18next';
 import { bootstrapRentModule } from '../../services/rent';
+import UnpaidList from '../screens/UnpaidList';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -76,6 +77,7 @@ export type RootStackParamList = {
   ReportMonthDetail: { year: number; month: number };
   PricingPlans: undefined;
   PaymentProfile: undefined;
+  UnpaidList: { apartmentId?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -96,12 +98,12 @@ const DarkNavTheme = {
     background: 'transparent',
   },
 };
-async function requestNotifPermissionAndroid13(t:any) {
+async function requestNotifPermissionAndroid13(t: any) {
   if (Platform.OS === 'android' && Platform.Version >= 33) {
     const res = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       {
-        title:  t('notify.title'),
+        title: t('notify.title'),
         message: t('notify.message'),
         buttonPositive: t('notify.buttonPositive'),
         buttonNegative: t('notify.buttonNegative'),
@@ -156,8 +158,8 @@ function AppInner() {
         screenOptions={{
           contentStyle: { backgroundColor: 'transparent' },
           headerStyle: { backgroundColor: 'transparent' },
-          headerTintColor: '#000',                 // ← icon/back & text header màu đen
-          headerTitleStyle: { color: '#000' },  
+          headerTintColor: '#000', // ← icon/back & text header màu đen
+          headerTitleStyle: { color: '#000' },
         }}
       >
         <Stack.Screen
@@ -176,7 +178,6 @@ function AppInner() {
           name="ApartmentsList"
           component={ApartmentsList}
           options={{ title: t('brand.nameslogan') }}
-          
         />
         <Stack.Screen
           name="ApartmentForm"
@@ -298,7 +299,7 @@ function AppInner() {
           component={ReportMonthDetail}
           options={{ title: t('nav.reportmonthdetail') }}
         />
-       <Stack.Screen
+        <Stack.Screen
           name="PricingPlans"
           component={PricingPlans}
           options={{ title: t('nav.reportmonthdetail') }}
@@ -307,6 +308,11 @@ function AppInner() {
           name="PaymentProfile"
           component={PaymentProfile}
           options={{ title: t('payment.title') }}
+        />
+        <Stack.Screen
+          name="UnpaidList"
+          component={UnpaidList}
+          options={{ title: 'Unpaid / Còn nợ' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
