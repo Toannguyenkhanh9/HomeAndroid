@@ -7,6 +7,25 @@ import { setTranslator } from '../utils/i18nProxy';
 const resources = {
   vi: {
     translation: {
+      catalog : {
+        title : 'Bảng giá',
+        scopeApartment: "Cho căn hộ này",
+        scopeGlobal : 'Toàn hệ thống',
+        currentScope : 'Phạm vi',
+        apartmentHint : 'Mở từ màn Phòng để thao tác theo căn hộ.',
+        empty : 'Chưa có mục nào.',
+        editTitle : 'Sửa',
+        addTitle : 'Thêm',
+        name : 'Tên phí',
+        add : 'Thêm',
+        pricePerUnit : 'Đơn giá/đơn vị',
+        pricePerPeriod :'Đơn giá/kỳ',
+        requireName : 'Vui lòng nhập tên phí.',
+        requirePrice : 'Giá không hợp lệ.',
+        scopeNote: 'Lưu ý: Khi phạm vi là “Theo căn hộ, mục này chỉ áp dụng cho tòa hiện tại. Khi là “Toàn hệ thống”, mục dùng làm mặc định cho mọi căn hộ.',
+        applyCatalog : 'Áp dụng bảng giá',
+        catalogApplied : 'Đã áp dụng Bảng giá.'
+      },
       lateFee: {
         title: 'Phí trễ hạn',
         enabled: 'Đã bật',
@@ -889,6 +908,9 @@ const resources = {
   },
   en: {
     translation: {
+      catalog : {
+        title : 'Bảng giá',
+      },
       lateFee: {
         title: 'Late fee',
         enabled: 'Enabled',

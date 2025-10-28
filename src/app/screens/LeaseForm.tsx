@@ -28,9 +28,11 @@ import {
   parseDecimalCommaStrict,
   formatDecimalTypingVNStrict,
 } from '../../utils/number';
-// ⬇️ Thêm import notifications
 import { scheduleReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// ⬇️ DB để đọc catalog theo tòa
+import { query } from '../../db';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LeaseForm'>;
 
@@ -55,6 +57,15 @@ function parseAmount(s: string) {
   return digits ? Number(digits) : 0;
 }
 
+// format thập phân theo vi-VN để đổ vào input (phù hợp parseDecimalCommaStrict)
+function formatDecimalVN(n: number) {
+  try {
+    return Number(n || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+  } catch {
+    return String(n ?? 0);
+  }
+}
+
 export default function LeaseForm({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { dateFormat, language } = useSettings();
@@ -76,9 +87,9 @@ export default function LeaseForm({ route, navigation }: Props) {
   const [startISO, setStartISO] = useState(new Date().toISOString().slice(0, 10));
 
   // Picker state
-  const [showDatePicker, setShowDatePicker] = useState(false); // Android
-  const [iosShow, setIosShow] = useState(false);               // iOS Modal
-  const [iosTemp, setIosTemp] = useState<Date | null>(null);   // iOS temp date
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [iosShow, setIosShow] = useState(false);
+  const [iosTemp, setIosTemp] = useState<Date | null>(null);
 
   const [months, setMonths] = useState('12');
   const [days, setDays] = useState('');
@@ -98,6 +109,66 @@ export default function LeaseForm({ route, navigation }: Props) {
     setCharges(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const delCharge = (i: number) => setCharges(p => p.filter((_, idx) => idx !== i));
 
+  // Áp bảng giá theo tòa
+  const [applyingCatalog, setApplyingCatalog] = useState(false);
+  const applyCatalogForApartment = async () => {
+    if (!roomId) {
+      Alert.alert(t('common.error'), t('leaseForm.errorMissingRoomId'));
+      return;
+    }
+    try {
+      setApplyingCatalog(true);
+
+      // 1) Lấy apartment_id từ room
+      const room = query<{ apartment_id: string }>(
+        `SELECT apartment_id FROM rooms WHERE id=? LIMIT 1`,
+        [roomId]
+      )[0];
+      const aptId = room?.apartment_id;
+
+      // 2) Lấy catalog theo tòa; nếu trống → fallback global
+      let items = aptId
+        ? query<any>(
+            `SELECT name, unit, is_variable, unit_price, COALESCE(config_json,'{}') AS config_json
+             FROM catalog_charges WHERE apartment_id=? ORDER BY name`, [aptId]
+          )
+        : [];
+
+      if (!items || items.length === 0) {
+        items = query<any>(
+          `SELECT name, unit, is_variable, unit_price, COALESCE(config_json,'{}') AS config_json
+           FROM catalog_charges
+           WHERE apartment_id IS NULL OR apartment_id=''
+           ORDER BY name`
+        );
+      }
+
+      if (!items || items.length === 0) {
+        Alert.alert(t('common.notice') || 'Thông báo', t('leaseForm.noCatalogForApartment') || 'Chưa có “Bảng giá” cho tòa này.');
+        return;
+      }
+
+      // 3) Map sang ChargeDraft và đổ vào form (replace danh sách hiện tại)
+      const mapped: ChargeDraft[] = items.map((it: any) => {
+        const isVar = Number(it.is_variable) === 1;
+        return {
+          name: String(it.name || ''),
+          isVariable: isVar,
+          unit: it.unit || (isVar ? (t('rent.unit') || 'đơn vị') : (t('rent.month') || 'tháng')),
+          price: formatDecimalVN(Number(it.unit_price) || 0),
+          meterStart: isVar ? '0' : undefined,
+        };
+      });
+
+      setCharges(mapped);
+      Alert.alert(t('common.success'), t('catalog.catalogApplied') || 'Đã áp dụng Bảng giá.');
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    } finally {
+      setApplyingCatalog(false);
+    }
+  };
+
   // ⬇️ Modal xác nhận
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmData, setConfirmData] = useState<any>(null);
@@ -116,7 +187,6 @@ export default function LeaseForm({ route, navigation }: Props) {
     if (!roomId) return t('leaseForm.errorMissingRoomId');
     if (!startISO) return t('leaseForm.errorMissingStart');
 
-    // ✅ Bắt buộc tên người thuê
     if (!fullName.trim()) return t('leaseForm.errorTenantName') || 'Vui lòng nhập tên người thuê';
 
     if (term === 'fixed') {
@@ -129,14 +199,12 @@ export default function LeaseForm({ route, navigation }: Props) {
       }
     }
 
-    // ✅ Nếu bật trọn gói: bắt buộc nhập số tiền trọn gói
     if (allInclusive) {
       const pack = parseAmount(allInclusiveAmount);
       if (pack <= 0) return t('leaseForm.errorAllInclusive') || 'Vui lòng nhập số tiền trọn gói';
       return null;
     }
 
-    // ✅ Nếu KHÔNG trọn gói: bắt buộc giá thuê cơ bản
     const base = parseAmount(baseRentText);
     if (base <= 0) return t('leaseForm.errorBaseRent') || 'Vui lòng nhập giá thuê cơ bản';
     return null;
@@ -214,12 +282,11 @@ export default function LeaseForm({ route, navigation }: Props) {
               name: ch.name.trim(),
               type: ch.isVariable ? 'variable' : 'fixed',
               unit: ch.unit || (ch.isVariable ? t('rent.unit') : t('rent.month')),
-              unitPrice: parseDecimalCommaStrict(ch.price || ''), // 12.345,67 → 12345.67
+              unitPrice: parseDecimalCommaStrict(ch.price || ''),
               meterStart: ch.isVariable ? parseIntSafe(ch.meterStart || '') : undefined,
             }))
         : undefined;
 
-    // End date / duration
     const endDateISO =
       term === 'fixed' && mode === 'monthly'
         ? (() => {
@@ -244,7 +311,6 @@ export default function LeaseForm({ route, navigation }: Props) {
       deposit,
       durationDays,
       endDateISO,
-      // ✅ luôn có tenant vì fullName đã bắt buộc
       tenant: {
         full_name: fullName.trim(),
         id_number: idNumber.trim(),
@@ -257,18 +323,16 @@ export default function LeaseForm({ route, navigation }: Props) {
     try {
       const leaseId = startLeaseAdvanced(payload as any);
 
-      // ====== Lên lịch thông báo ======
-      // 1) Thông báo ngày kết thúc hợp đồng (nếu có)
+      // Reminders
       if (endDateISO) {
         scheduleReminder(
           `lease_end_${leaseId}`,
           t('notify.leaseEndTitle') || 'Kết thúc hợp đồng',
           t('notify.leaseEndMsg') || 'Hợp đồng kết thúc hôm nay. Vui lòng kiểm tra & tất toán.',
-          endDateISO // 09:00 theo scheduleReminder
+          endDateISO
         );
       }
 
-      // 2) Thông báo ngày tất toán kỳ đầu tiên (9h sáng)
       const firstSettleISO = (() => {
         if (mode === 'monthly') {
           const s = new Date(startISO);
@@ -290,7 +354,6 @@ export default function LeaseForm({ route, navigation }: Props) {
         t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
         firstSettleISO
       );
-      // =================================
 
       const depositAmt = deposit;
       const firstRent = collect === 'start' ? baseRent : 0;
@@ -312,7 +375,6 @@ export default function LeaseForm({ route, navigation }: Props) {
     }
   }
 
-  // ==== Handlers mở picker theo nền tảng ====
   const openStartPicker = () => {
     if (Platform.OS === 'ios') {
       setIosTemp(new Date(startISO));
@@ -348,7 +410,6 @@ export default function LeaseForm({ route, navigation }: Props) {
         <Card style={{ gap: 10 }}>
           <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseForm.contractType')}</Text>
 
-          {/* Chu kỳ */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {(['monthly', 'daily'] as const).map(k => (
               <TouchableOpacity
@@ -368,7 +429,6 @@ export default function LeaseForm({ route, navigation }: Props) {
             ))}
           </View>
 
-          {/* Kỳ hạn */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {(['fixed', 'open'] as const).map(k => (
               <TouchableOpacity
@@ -397,7 +457,7 @@ export default function LeaseForm({ route, navigation }: Props) {
             <Text style={{ color: c.text }}>{formatDateISO(startISO, dateFormat, language)}</Text>
           </TouchableOpacity>
 
-          {/* iOS: Modal + Done/Cancel */}
+          {/* iOS modal */}
           {Platform.OS === 'ios' && (
             <Modal
               visible={iosShow}
@@ -442,7 +502,7 @@ export default function LeaseForm({ route, navigation }: Props) {
             </Modal>
           )}
 
-          {/* Android: chọn rồi đóng */}
+          {/* Android picker */}
           {Platform.OS !== 'ios' && showDatePicker && (
             <DateTimePicker
               value={new Date(startISO)}
@@ -455,7 +515,6 @@ export default function LeaseForm({ route, navigation }: Props) {
             />
           )}
 
-          {/* Thời lượng (chỉ khi fixed) */}
           {term === 'fixed' &&
             (mode === 'monthly' ? (
               <>
@@ -545,7 +604,15 @@ export default function LeaseForm({ route, navigation }: Props) {
           <Card style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ color: c.text, fontWeight: '800' }}>{t('leaseForm.chooseCharges')}</Text>
-              <Button title={t('common.add')} onPress={addCharge} />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Button title={t('common.add')} onPress={addCharge} />
+                <Button
+                  title={t('catalog.applyCatalog') || 'Áp dụng bảng giá'}
+                  variant="ghost"
+                  onPress={applyCatalogForApartment}
+                  disabled={applyingCatalog}
+                />
+              </View>
             </View>
 
             {charges.map((ch, idx) => (
@@ -604,13 +671,12 @@ export default function LeaseForm({ route, navigation }: Props) {
             position: 'absolute',
             left: 12,
             right: 12,
-            bottom: insets.bottom + 12, // đẩy lên khỏi gesture bar
+            bottom: insets.bottom + 12,
             flexDirection: 'row',
             gap: 12,
           }}
         >
           <Button title={t('common.cancel')} variant="ghost" onPress={() => navigation.goBack()} />
-          {/* đổi submit → openConfirm */}
           <Button title={t('leaseForm.createLease')} onPress={openConfirm} />
         </View>
       </ScrollView>
@@ -701,7 +767,7 @@ export default function LeaseForm({ route, navigation }: Props) {
                 title={t('common.confirm') || 'Xác nhận'}
                 onPress={() => {
                   setConfirmVisible(false);
-                  submit(); // tạo hợp đồng thật sự
+                  submit();
                 }}
               />
             </View>

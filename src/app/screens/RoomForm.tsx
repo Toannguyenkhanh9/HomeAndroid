@@ -133,6 +133,11 @@ export default function RoomForm({
                       title={t('roomForm.operatingCosts')}
                       onPress={() => navigation.navigate('OperatingCosts', {apartmentId})}
                     />
+                      <Button
+    title={t('catalog.title') || 'Bảng giá'}
+    variant="ghost"
+    onPress={() => navigation.navigate('ChargeCatalog', { apartmentId })}
+  />
                     <Button
                       title={t('roomForm.report')}
                       variant="ghost"

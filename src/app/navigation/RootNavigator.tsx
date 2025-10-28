@@ -48,6 +48,7 @@ import { useTranslation } from 'react-i18next';
 import { bootstrapRentModule } from '../../services/rent';
 import UnpaidList from '../screens/UnpaidList';
 import LateFeeSettings from '../screens/LateFeeSettings';
+import ChargeCatalog from '../screens/ChargeCatalog';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -80,6 +81,7 @@ export type RootStackParamList = {
   PaymentProfile: undefined;
   UnpaidList: { apartmentId?: string } | undefined;
   LateFeeSettings: { leaseId?: string };
+  ChargeCatalog: { apartmentId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -317,6 +319,7 @@ function AppInner() {
           options={{ title: t('stat_unpaid') }}
         />
        <Stack.Screen name="LateFeeSettings" component={LateFeeSettings} options={{ title: t('lateFee.title') }} />
+       <Stack.Screen name="ChargeCatalog" component={ChargeCatalog} options={{ title: 'Charge Catalog' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

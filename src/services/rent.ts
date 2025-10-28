@@ -2885,4 +2885,84 @@ export function calcDaysLate(period_end: string, cfg: LateFeeConfig, asOf = new 
   return Math.max(diff, 0);
 }
 
+function _id(prefix='id'){ return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
+
+// Lấy danh sách mẫu theo apartment
+export function listCatalogCharges(apartmentId: string) {
+  return query<any>(
+    `SELECT * FROM catalog_charges WHERE apartment_id=? ORDER BY name COLLATE NOCASE`,
+    [apartmentId]
+  );
+}
+
+// Tạo / cập nhật 1 mẫu
+export function upsertCatalogCharge(input: {
+  id?: string; apartment_id: string; charge_type_id?: string|null;
+  name: string; unit?: string|null; is_variable?: number; unit_price?: number;
+  config_json?: any;
+}) {
+  const id = input.id || _id('cc');
+  const cfg = input.config_json ? JSON.stringify(input.config_json) : '{}';
+  exec(
+    `REPLACE INTO catalog_charges(id, apartment_id, charge_type_id, name, unit, is_variable, unit_price, config_json)
+     VALUES(?,?,?,?,?,?,?,?)`,
+    [
+      id, input.apartment_id, input.charge_type_id || null, input.name,
+      input.unit || null, Number(input.is_variable||0), Number(input.unit_price||0), cfg
+    ]
+  );
+
+  // Đồng bộ xuống các recurring_charges đang link cùng source_catalog_id
+  exec(
+    `UPDATE recurring_charges SET
+        name=?,
+        unit=?,
+        is_variable=?,
+        unit_price=?,
+        config_json=?
+     WHERE source_catalog_id=?`,
+    [ input.name, input.unit || null, Number(input.is_variable||0),
+      Number(input.unit_price||0), cfg, id ]
+  );
+  return id;
+}
+
+export function deleteCatalogCharge(id: string) {
+  exec(`DELETE FROM catalog_charges WHERE id=?`, [id]);
+  // Không xóa recurring đang dùng, chỉ bỏ liên kết để không còn auto-sync
+  exec(`UPDATE recurring_charges SET source_catalog_id=NULL WHERE source_catalog_id=?`, [id]);
+}
+
+// Áp toàn bộ catalog của apartment vào 1 lease mới
+// - Không đè các khoản đã có cùng source_catalog_id
+export function applyCatalogToLease(leaseId: string, apartmentId: string) {
+  const cc = listCatalogCharges(apartmentId);
+  const existing = query<any>(
+    `SELECT source_catalog_id FROM recurring_charges WHERE lease_id=?`,
+    [leaseId]
+  ).map(x=>String(x.source_catalog_id||''));
+
+  for (const c of cc) {
+    if (existing.includes(String(c.id))) continue;
+    exec(
+      `INSERT INTO recurring_charges
+        (id, lease_id, charge_type_id, name, unit, is_variable, unit_price, config_json, source_catalog_id)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [
+        _id('rc'), leaseId, c.charge_type_id || null, c.name, c.unit || null,
+        Number(c.is_variable||0), Number(c.unit_price||0), c.config_json || '{}', c.id
+      ]
+    );
+  }
+}
+
+// Áp catalog cho TẤT CẢ lease active trong 1 apartment (tùy chọn)
+export function applyCatalogToAllLeases(apartmentId: string) {
+  const leases = query<any>(
+    `SELECT l.id FROM leases l JOIN rooms r ON r.id=l.room_id
+     WHERE r.apartment_id=? AND l.status='active'`, [apartmentId]
+  );
+  for (const L of leases) applyCatalogToLease(L.id, apartmentId);
+}
+
 
