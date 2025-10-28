@@ -1,6 +1,6 @@
 // src/db/index.ts
 import { open, QuickSQLiteConnection } from 'react-native-quick-sqlite';
-
+import { runMigrations } from './migrations';
 let db: QuickSQLiteConnection | null = null;
 
 export function getDb() {
@@ -42,6 +42,7 @@ export function initDb() {
 
   // 3) Migrate tên bảng recurring_charges (nếu trước đây dùng lease_recurring_charges)
   ensureRecurringChargesTable();
+  runMigrations(exec, query);
 }
 
 /** Đảm bảo + migrate bảng recurring_charges (từ tên cũ nếu có) */

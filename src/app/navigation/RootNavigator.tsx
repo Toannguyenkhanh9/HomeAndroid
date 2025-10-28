@@ -47,6 +47,7 @@ import PaymentProfile from '../screens/PaymentProfile';
 import { useTranslation } from 'react-i18next';
 import { bootstrapRentModule } from '../../services/rent';
 import UnpaidList from '../screens/UnpaidList';
+import LateFeeSettings from '../screens/LateFeeSettings';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -78,6 +79,7 @@ export type RootStackParamList = {
   PricingPlans: undefined;
   PaymentProfile: undefined;
   UnpaidList: { apartmentId?: string } | undefined;
+  LateFeeSettings: { leaseId?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -312,8 +314,9 @@ function AppInner() {
         <Stack.Screen
           name="UnpaidList"
           component={UnpaidList}
-          options={{ title: 'Unpaid / Còn nợ' }}
+          options={{ title: t('stat_unpaid') }}
         />
+       <Stack.Screen name="LateFeeSettings" component={LateFeeSettings} options={{ title: t('lateFee.title') }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

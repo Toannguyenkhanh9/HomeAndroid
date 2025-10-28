@@ -2801,4 +2801,88 @@ export function listUnpaidBalances(apartmentId?: string) {
 export function countUnpaidBalances(apartmentId?: string) {
   return listUnpaidBalances(apartmentId).length;
 }
+// === Late Fee & Overdue Helpers ===
+
+type LateFeeConfig = {
+  applyAfterDays: number;       // số ngày ân hạn
+  type: 'flat' | 'percent';     // kiểu phạt
+  amount: number;               // flat: tiền; percent: %
+  repeatDaily: boolean;         // true = nhân theo số ngày quá hạn
+};
+export function getGlobalLateFeeConfig(): LateFeeConfig {
+  const row = query<any>(`SELECT value_json FROM app_settings WHERE key='late_fee_global' LIMIT 1`)[0];
+  try {
+    const v = row?.value_json ? JSON.parse(row.value_json) : null;
+    if (v) return v;
+  } catch {}
+  // mặc định: không phạt
+  return { applyAfterDays: 0, type: 'flat', amount: 0, repeatDaily: false };
+}
+
+export function saveGlobalLateFeeConfig(cfg: LateFeeConfig) {
+  const val = JSON.stringify(cfg || {});
+  exec(`INSERT INTO app_settings (key,value_json) VALUES ('late_fee_global',?)
+        ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, [val]);
+}
+
+export function getLeaseLateFeeConfig(leaseId: string): LateFeeConfig | null {
+  const row = query<any>(`SELECT late_fee_json FROM leases WHERE id=? LIMIT 1`, [leaseId])[0];
+  try {
+    const v = row?.late_fee_json ? JSON.parse(row.late_fee_json) : null;
+    return v || null;
+  } catch {}
+  return null;
+}
+
+export function saveLeaseLateFeeConfig(leaseId: string, cfg: LateFeeConfig | null) {
+  // null => xoá override, dùng global
+  const val = cfg ? JSON.stringify(cfg) : null;
+  exec(`UPDATE leases SET late_fee_json=? WHERE id=?`, [val, leaseId]);
+}
+
+export function getEffectiveLateFeeConfig(leaseId?: string | null): LateFeeConfig {
+  if (leaseId) {
+    const lv = getLeaseLateFeeConfig(leaseId);
+    if (lv) return lv;
+  }
+  return getGlobalLateFeeConfig();
+}
+
+export function computeLateFeePreview(balance: number, daysLate: number, cfg: LateFeeConfig): number {
+  if (balance <= 0 || daysLate <= 0 || cfg.amount <= 0) return 0;
+  const multiplier = cfg.repeatDaily ? daysLate : 1;
+  if (cfg.type === 'flat') return Math.max(0, Math.round(cfg.amount * multiplier));
+  // percent
+  return Math.max(0, Math.round(balance * (cfg.amount / 100) * multiplier));
+}
+
+// Đếm invoice quá hạn (period_end < hôm nay) còn nợ
+export function countOverdueUnpaid(apartmentId?: string): number {
+  const today = ymd(new Date());
+  // dùng listUnpaidBalances nếu bạn đã có — ở đây gọi raw để an toàn
+  const rows = query<any>(`
+    SELECT i.id as invoice_id, c.id as cycle_id, c.period_end, i.total,
+           (SELECT COALESCE(SUM(p.amount),0) FROM payments p WHERE p.invoice_id=i.id) AS paid
+    FROM invoices i
+    JOIN lease_cycles c ON c.id = i.cycle_id
+    JOIN leases l ON l.id = c.lease_id
+    JOIN rooms r ON r.id = l.room_id
+    ${apartmentId ? `WHERE r.apartment_id=?` : ''}
+  `, apartmentId ? [apartmentId] : []);
+  let count = 0;
+  for (const it of rows) {
+    const bal = Math.max(Number(it.total || 0) - Number(it.paid || 0), 0);
+    if (bal > 0 && String(it.period_end) < today) count++;
+  }
+  return count;
+}
+
+// Tính số ngày trễ dựa vào config applyAfterDays
+export function calcDaysLate(period_end: string, cfg: LateFeeConfig, asOf = new Date()): number {
+  const due = new Date(period_end);
+  due.setDate(due.getDate() + (Number(cfg.applyAfterDays) || 0));
+  const diff = Math.floor((+asOf - +due) / (24 * 3600 * 1000));
+  return Math.max(diff, 0);
+}
+
 

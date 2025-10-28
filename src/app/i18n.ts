@@ -7,6 +7,18 @@ import { setTranslator } from '../utils/i18nProxy';
 const resources = {
   vi: {
     translation: {
+      lateFee: {
+        title: 'Phí trễ hạn',
+        enabled: 'Đã bật',
+        enable: 'Bật',
+        graceDays: 'Số ngày ân hạn (sau X ngày)',
+        mode: 'Cách tính',
+        flat: 'Số tiền cố định',
+        percent: 'Phần trăm (%)',
+        repeatDaily: 'Tính lặp hằng ngày sau khi quá hạn',
+        cap: 'Giới hạn tối đa (tuỳ chọn)',
+        capPlaceholder: 'để trống = không giới hạn',
+      },
       leasePdf: {
         title: 'HỢP ĐỒNG THUÊ',
         signatures: 'Chữ ký',
@@ -44,6 +56,12 @@ const resources = {
         qrHint: 'Chọn ảnh QR ngân hàng/ví',
       },
       invoice: {
+        reminderTail:
+          'Vui lòng hoàn tất thanh toán sớm nhất có thể. Xin cảm ơn!',
+        reminder: 'Nhắc nhở thanh toán',
+        daysLate: 'Số ngày trễ',
+        lateFeePreview: 'Xem trước phí trễ hạn',
+        reminderBtn: 'Gửi nhắc nhở',
         title: 'Hóa đơn',
         code: 'Mã hóa đơn',
         date: 'Ngày',
@@ -871,6 +889,18 @@ const resources = {
   },
   en: {
     translation: {
+      lateFee: {
+        title: 'Late fee',
+        enabled: 'Enabled',
+        enable: 'Enable',
+        graceDays: 'Grace days (after X days)',
+        mode: 'Mode',
+        flat: 'Flat amount',
+        percent: 'Percent (%)',
+        repeatDaily: 'Repeat daily after overdue',
+        cap: 'Max cap (optional)',
+        capPlaceholder: 'leave blank = no cap',
+      },
       leasePdf: {
         title: 'LEASE AGREEMENT',
         signatures: 'Signatures',
@@ -908,6 +938,12 @@ const resources = {
         qrHint: 'Choose a bank/wallet QR code',
       },
       invoice: {
+        reminderTail:
+          'Please complete the payment at your earliest convenience. Thank you!',
+        reminder: 'Payment reminder',
+        daysLate: 'Days late',
+        lateFeePreview: 'lateFeePreview',
+        reminderBtn: 'Send reminder',
         title: 'Invoice',
         code: 'Invoice code',
         date: 'Date',
@@ -1738,6 +1774,18 @@ const resources = {
 
   es: {
     translation: {
+      lateFee: {
+        title: 'Recargo por mora',
+        enabled: 'Activado',
+        enable: 'Activar',
+        graceDays: 'Días de gracia (después de X días)',
+        mode: 'Modo de cálculo',
+        flat: 'Importe fijo',
+        percent: 'Porcentaje (%)',
+        repeatDaily: 'Repetir diariamente tras el vencimiento',
+        cap: 'Tope máximo (opcional)',
+        capPlaceholder: 'dejar en blanco = sin tope',
+      },
       leasePdf: {
         title: 'CONTRATO DE ARRENDAMIENTO',
         signatures: 'Firmas',
@@ -1802,6 +1850,11 @@ const resources = {
         qrHint: 'Elige un código QR del banco/monedero',
       },
       invoice: {
+        reminderTail: 'Por favor complete el pago lo antes posible. ¡Gracias!',
+        reminder: 'Recordatorio de pago',
+        daysLate: 'Días de retraso',
+        lateFeePreview: 'Vista previa del recargo por mora',
+        reminderBtn: 'Enviar recordatorio',
         title: 'Factura',
         code: 'Código de factura',
         date: 'Fecha',
@@ -2550,6 +2603,18 @@ const resources = {
   },
   fr: {
     translation: {
+      lateFee: {
+        title: 'Frais de retard',
+        enabled: 'Activé',
+        enable: 'Activer',
+        graceDays: 'Jours de grâce (après X jours)',
+        mode: 'Mode de calcul',
+        flat: 'Montant fixe',
+        percent: 'Pourcentage (%)',
+        repeatDaily: 'Répéter chaque jour après l’échéance',
+        cap: 'Plafond maximal (optionnel)',
+        capPlaceholder: 'laisser vide = pas de plafond',
+      },
       leasePdf: {
         title: 'CONTRAT DE LOCATION',
         signatures: 'Signatures',
@@ -2615,6 +2680,12 @@ const resources = {
         qrHint: 'Choisissez un code QR de la banque/du portefeuille',
       },
       invoice: {
+        reminderTail:
+          'Veuillez effectuer le paiement dans les plus brefs délais. Merci !',
+        reminder: 'Rappel de paiement',
+        daysLate: 'Jours de retard',
+        lateFeePreview: 'Aperçu des frais de retard',
+        reminderBtn: 'Envoyer le rappel',
         title: 'Facture',
         code: 'Code de facture',
         date: 'Date',
@@ -3174,6 +3245,18 @@ const resources = {
 
   de: {
     translation: {
+      lateFee: {
+        title: 'Verzugsgebühr',
+        enabled: 'Aktiviert',
+        enable: 'Aktivieren',
+        graceDays: 'Kulanztage (nach X Tagen)',
+        mode: 'Berechnungsmodus',
+        flat: 'Festbetrag',
+        percent: 'Prozentsatz (%)',
+        repeatDaily: 'Täglich nach Fälligkeit wiederholen',
+        cap: 'Maximale Obergrenze (optional)',
+        capPlaceholder: 'leer lassen = keine Obergrenze',
+      },
       leasePdf: {
         title: 'MIETVERTRAG',
         signatures: 'Unterschriften',
@@ -3240,6 +3323,12 @@ const resources = {
         qrHint: 'QR-Code von Bank/Wallet auswählen',
       },
       invoice: {
+        reminderTail:
+          'Bitte schließen Sie die Zahlung schnellstmöglich ab. Vielen Dank!',
+        reminder: 'Zahlungserinnerung',
+        daysLate: 'Tage im Verzug',
+        lateFeePreview: 'Vorschau auf Verzugsgebühr',
+        reminderBtn: 'Erinnerung senden',
         title: 'Rechnung',
         code: 'Rechnungsnummer',
         date: 'Datum',
@@ -3801,6 +3890,18 @@ const resources = {
 
   zh: {
     translation: {
+      lateFee: {
+        title: '逾期费用',
+        enabled: '已启用',
+        enable: '启用',
+        graceDays: '宽限天数（超过 X 天后）',
+        mode: '计费方式',
+        flat: '固定金额',
+        percent: '百分比（%）',
+        repeatDaily: '逾期后按日重复',
+        cap: '最高上限（可选）',
+        capPlaceholder: '留空 = 无上限',
+      },
       leasePdf: {
         title: '租赁合同',
         signatures: '签名',
@@ -3864,6 +3965,11 @@ const resources = {
         qrHint: '选择银行/钱包的二维码',
       },
       invoice: {
+        reminderTail: '请尽快完成付款。谢谢！',
+        reminder: '付款提醒',
+        daysLate: '逾期天数',
+        lateFeePreview: '逾期费用预览',
+        reminderBtn: '发送提醒',
         title: '发票',
         code: '发票编号',
         date: '日期',
@@ -4406,6 +4512,18 @@ const resources = {
 
   ja: {
     translation: {
+      lateFee: {
+        title: '延滞料金',
+        enabled: '有効',
+        enable: '有効にする',
+        graceDays: '猶予日数（X日後）',
+        mode: '計算方式',
+        flat: '固定額',
+        percent: '割合（%）',
+        repeatDaily: '延滞後は毎日適用',
+        cap: '上限額（任意）',
+        capPlaceholder: '空欄＝上限なし',
+      },
       leasePdf: {
         title: '賃貸借契約書',
         signatures: '署名',
@@ -4470,6 +4588,11 @@ const resources = {
         qrHint: '銀行／ウォレットのQRコードを選択',
       },
       invoice: {
+        reminderTail: 'できるだけ早くお支払いください。ありがとうございます。',
+        reminder: 'お支払いのリマインダー',
+        daysLate: '延滞日数',
+        lateFeePreview: '延滞料金のプレビュー',
+        reminderBtn: 'リマインダーを送信',
         title: '請求書',
         code: '請求書番号',
         date: '日付',
@@ -5023,6 +5146,18 @@ const resources = {
 
   ko: {
     translation: {
+      lateFee: {
+        title: '연체료',
+        enabled: '활성화됨',
+        enable: '활성화',
+        graceDays: '유예일수 (X일 이후)',
+        mode: '계산 방식',
+        flat: '고정 금액',
+        percent: '퍼센트(%)',
+        repeatDaily: '연체 후 매일 반복',
+        cap: '최대 한도 (선택 사항)',
+        capPlaceholder: '비워 두면 = 한도 없음',
+      },
       leasePdf: {
         title: '임대 계약서',
         signatures: '서명',
@@ -5086,6 +5221,11 @@ const resources = {
         qrHint: '은행/지갑 QR 코드를 선택하세요',
       },
       invoice: {
+        reminderTail: '가능한 한 빨리 결제를 완료해 주세요. 감사합니다!',
+        reminder: '결제 알림',
+        daysLate: '연체 일수',
+        lateFeePreview: '연체료 미리보기',
+        reminderBtn: '알림 보내기',
         title: '청구서',
         code: '청구서 번호',
         date: '날짜',
@@ -5630,6 +5770,18 @@ const resources = {
 
   ru: {
     translation: {
+      lateFee: {
+        title: 'Штраф за просрочку',
+        enabled: 'Включено',
+        enable: 'Включить',
+        graceDays: 'Льготный период (после X дней)',
+        mode: 'Режим расчёта',
+        flat: 'Фиксированная сумма',
+        percent: 'Процент (%)',
+        repeatDaily: 'Повторять ежедневно после просрочки',
+        cap: 'Максимальный предел (необязательно)',
+        capPlaceholder: 'оставьте пустым = без предела',
+      },
       leasePdf: {
         title: 'ДОГОВОР АРЕНДЫ',
         signatures: 'Подписи',
@@ -5694,6 +5846,12 @@ const resources = {
         qrHint: 'Выберите QR-код банка/кошелька',
       },
       invoice: {
+        reminderTail:
+          'Пожалуйста, произведите оплату при первой возможности. Спасибо!',
+        reminder: 'Напоминание об оплате',
+        daysLate: 'Дней просрочки',
+        lateFeePreview: 'Предпросмотр штрафа за просрочку',
+        reminderBtn: 'Отправить напоминание',
         title: 'Счёт',
         code: 'Код счёта',
         date: 'Дата',
@@ -6251,6 +6409,18 @@ const resources = {
 
   ar: {
     translation: {
+      lateFee: {
+        title: 'رسوم التأخير',
+        enabled: 'مفعّل',
+        enable: 'تفعيل',
+        graceDays: 'أيام السماح (بعد X أيام)',
+        mode: 'طريقة الاحتساب',
+        flat: 'مبلغ ثابت',
+        percent: 'نسبة مئوية (%)',
+        repeatDaily: 'يتكرر يوميًا بعد التأخير',
+        cap: 'الحد الأقصى (اختياري)',
+        capPlaceholder: 'اتركه فارغًا = بدون حد أقصى',
+      },
       leasePdf: {
         title: 'عقد الإيجار',
         signatures: 'التوقيعات',
@@ -6355,6 +6525,11 @@ const resources = {
         qrHint: 'اختر رمز QR الخاص بالبنك/المحفظة',
       },
       invoice: {
+        reminderTail: 'يرجى إتمام الدفع في أقرب وقت ممكن. شكرًا لك!',
+        reminder: 'تذكير بالدفع',
+        daysLate: 'أيام التأخير',
+        lateFeePreview: 'معاينة رسوم التأخير',
+        reminderBtn: 'إرسال تذكير',
         title: 'فاتورة',
         code: 'رمز الفاتورة',
         date: 'التاريخ',
@@ -6898,6 +7073,18 @@ const resources = {
   },
   th: {
     translation: {
+      lateFee: {
+        title: 'ค่าปรับล่าช้า',
+        enabled: 'เปิดใช้งานแล้ว',
+        enable: 'เปิดใช้งาน',
+        graceDays: 'ระยะผ่อนผัน (หลัง X วัน)',
+        mode: 'โหมดการคำนวณ',
+        flat: 'จำนวนคงที่',
+        percent: 'เปอร์เซ็นต์ (%)',
+        repeatDaily: 'คิดซ้ำทุกวันหลังเกินกำหนด',
+        cap: 'วงเงินสูงสุด (ไม่บังคับ)',
+        capPlaceholder: 'เว้นว่าง = ไม่จำกัด',
+      },
       leasePdf: {
         title: 'สัญญาเช่า',
         signatures: 'ลายเซ็น',
@@ -6934,6 +7121,11 @@ const resources = {
         qrHint: 'เลือกคิวอาร์โค้ดของธนาคาร/วอลเล็ต',
       },
       invoice: {
+        reminderTail: 'กรุณาชำระเงินโดยเร็วที่สุด ขอบคุณครับ/ค่ะ!',
+        reminder: 'แจ้งเตือนการชำระเงิน',
+        daysLate: 'จำนวนวันล่าช้า',
+        lateFeePreview: 'ดูตัวอย่างค่าปรับล่าช้า',
+        reminderBtn: 'ส่งการแจ้งเตือน',
         title: 'ใบแจ้งหนี้',
         code: 'รหัสใบแจ้งหนี้',
         date: 'วันที่',
@@ -7580,6 +7772,18 @@ const resources = {
   },
   id: {
     translation: {
+      lateFee: {
+        title: 'Denda keterlambatan',
+        enabled: 'Diaktifkan',
+        enable: 'Aktifkan',
+        graceDays: 'Hari masa tenggang (setelah X hari)',
+        mode: 'Mode perhitungan',
+        flat: 'Nominal tetap',
+        percent: 'Persentase (%)',
+        repeatDaily: 'Ulangi harian setelah jatuh tempo',
+        cap: 'Batas maksimum (opsional)',
+        capPlaceholder: 'biarkan kosong = tanpa batas',
+      },
       leasePdf: {
         title: 'PERJANJIAN SEWA',
         signatures: 'Tanda tangan',
@@ -7628,6 +7832,11 @@ const resources = {
         qrHint: 'Pilih kode QR bank/dompet',
       },
       invoice: {
+        reminderTail: 'Mohon selesaikan pembayaran secepatnya. Terima kasih!',
+        reminder: 'Pengingat pembayaran',
+        daysLate: 'Hari keterlambatan',
+        lateFeePreview: 'Pratinjau denda keterlambatan',
+        reminderBtn: 'Kirim pengingat',
         title: 'Faktur',
         code: 'Kode faktur',
         date: 'Tanggal',
@@ -8266,6 +8475,18 @@ const resources = {
   },
   ms: {
     translation: {
+      lateFee: {
+        title: 'Caj lewat',
+        enabled: 'Diaktifkan',
+        enable: 'Aktifkan',
+        graceDays: 'Hari tangguh (selepas X hari)',
+        mode: 'Mod pengiraan',
+        flat: 'Amaun tetap',
+        percent: 'Peratus (%)',
+        repeatDaily: 'Ulang setiap hari selepas tertunggak',
+        cap: 'Had maksimum (pilihan)',
+        capPlaceholder: 'biarkan kosong = tiada had',
+      },
       leasePdf: {
         title: 'PERJANJIAN SEWA',
         signatures: 'Tandatangan',
@@ -8353,6 +8574,12 @@ const resources = {
         qrHint: 'Pilih kod QR bank/dompet',
       },
       invoice: {
+        reminderTail:
+          'Sila selesaikan pembayaran secepat mungkin. Terima kasih!',
+        reminder: 'Peringatan pembayaran',
+        daysLate: 'Hari lewat',
+        lateFeePreview: 'Pratonton caj lewat',
+        reminderBtn: 'Hantar peringatan',
         title: 'Invois',
         code: 'Kod invois',
         date: 'Tarikh',
@@ -8933,6 +9160,18 @@ const resources = {
   },
   fil: {
     translation: {
+      lateFee: {
+        title: 'Multa sa pagkaantala',
+        enabled: 'Pinagana',
+        enable: 'Paganahin',
+        graceDays: 'Mga araw ng palugit (pagkalipas ng X araw)',
+        mode: 'Paraan ng pagkukuwenta',
+        flat: 'Nakapirming halaga',
+        percent: 'Porsiyento (%)',
+        repeatDaily: 'Ulitin araw-araw paglampas sa takdang araw',
+        cap: 'Pinakamataas na limitasyon (opsyonal)',
+        capPlaceholder: 'iwanang blangko = walang limitasyon',
+      },
       leasePdf: {
         title: 'KASUNDUAN SA PAG-UPA',
         signatures: 'Mga lagda',
@@ -9094,6 +9333,12 @@ const resources = {
         qrHint: 'Pumili ng QR code ng bangko/wallet',
       },
       invoice: {
+        reminderTail:
+          'Paki-kumpleto ang bayad sa lalong madaling panahon. Salamat!',
+        reminder: 'Paalala sa pagbabayad',
+        daysLate: 'Bilang ng araw na huli',
+        lateFeePreview: 'Paunang tanaw ng multang pagkaantala',
+        reminderBtn: 'Ipadala ang paalala',
         title: 'Resibo',
         code: 'Kodigo ng resibo',
         date: 'Petsa',
@@ -9618,6 +9863,18 @@ const resources = {
   },
   pt: {
     translation: {
+      lateFee: {
+        title: 'Multa por atraso',
+        enabled: 'Ativado',
+        enable: 'Ativar',
+        graceDays: 'Dias de carência (após X dias)',
+        mode: 'Modo de cálculo',
+        flat: 'Valor fixo',
+        percent: 'Percentual (%)',
+        repeatDaily: 'Repetir diariamente após o vencimento',
+        cap: 'Teto máximo (opcional)',
+        capPlaceholder: 'deixar em branco = sem teto',
+      },
       leasePdf: {
         title: 'CONTRATO DE ARRENDAMENTO',
         signatures: 'Assinaturas',
@@ -9705,6 +9962,12 @@ const resources = {
         qrHint: 'Escolha o código QR do banco/carteira',
       },
       invoice: {
+        reminderTail:
+          'Por favor, conclua o pagamento assim que possível. Obrigado!',
+        reminder: 'Lembrete de pagamento',
+        daysLate: 'Dias de atraso',
+        lateFeePreview: 'Prévia da multa por atraso',
+        reminderBtn: 'Enviar lembrete',
         title: 'Fatura',
         code: 'Código da fatura',
         date: 'Data',
@@ -10279,6 +10542,18 @@ const resources = {
   },
   hi: {
     translation: {
+      lateFee: {
+        title: 'विलंब शुल्क',
+        enabled: 'सक्रिय',
+        enable: 'सक्रिय करें',
+        graceDays: 'अनुग्रह दिन (X दिनों के बाद)',
+        mode: 'गणना मोड',
+        flat: 'निश्चित राशि',
+        percent: 'प्रतिशत (%)',
+        repeatDaily: 'देरी के बाद प्रतिदिन लागू',
+        cap: 'अधिकतम सीमा (वैकल्पिक)',
+        capPlaceholder: 'खाली छोड़ें = कोई सीमा नहीं',
+      },
       leasePdf: {
         title: 'लीज अनुबंध',
         signatures: 'हस्ताक्षर',
@@ -10334,6 +10609,11 @@ const resources = {
         room: 'कमरा',
       },
       invoice: {
+        reminderTail: 'कृपया यथाशीघ्र भुगतान पूरा करें। धन्यवाद!',
+        reminder: 'भुगतान अनुस्मारक',
+        daysLate: 'देरी के दिन',
+        lateFeePreview: 'विलंब शुल्क पूर्वावलोकन',
+        reminderBtn: 'अनुस्मारक भेजें',
         title: 'चालान',
         code: 'चालान कोड',
         date: 'तारीख',

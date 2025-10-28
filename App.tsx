@@ -9,6 +9,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 // Settings + i18n
 import {SettingsProvider, useSettings} from './src/app/state/SettingsContext';
 import i18n from './src/app/i18n';
+import { initDb } from './src/db';
 import {I18nextProvider} from 'react-i18next';
 import {ThemeProvider} from './src/app/theme';
 import PushNotification from 'react-native-push-notification';
@@ -17,10 +18,15 @@ import { onAppOpened } from './src/services/rateApp';
 // import {NavigationContainer} from '@react-navigation/native';
 
 import RootNavigator from './src/app/navigation/RootNavigator';
+import { ensureLateFeeSchema } from './src/db/migrations/ensureLateFee';
 
 function LanguageSync({children}: {children: React.ReactNode}) {
   const {language} = useSettings();
   React.useEffect(() => {
+  try { ensureLateFeeSchema(); } catch (e) { /* no-op/log */ }
+}, []);
+  React.useEffect(() => {
+    initDb(); 
     onAppOpened();
     if (language) i18n.changeLanguage(language);
   }, [language]);

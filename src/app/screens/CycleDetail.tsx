@@ -33,6 +33,7 @@ import {
   recordPayment,
   queryPaymentsOfInvoice,
   updateInvoiceQrPath,
+  getEffectiveLateFeeConfig, calcDaysLate, computeLateFeePreview 
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -57,7 +58,9 @@ import { buildVietQRPayload } from '../../services/vietqr';
 // import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
-  route: { params: { cycleId: string; onSettled?: () => void } };
+  route: {
+    params: { cycleId: string; onSettled?: () => void; openCollect?: boolean };
+  };
 };
 
 type ChargeRow = {
@@ -95,7 +98,7 @@ export default function CycleDetail({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { dateFormat, language } = useSettings();
-  const { cycleId, onSettled } = route.params as any;
+  const { cycleId, onSettled, openCollect } = route.params as any;
   const c = useThemeColors();
   const { format } = useCurrency();
 
@@ -175,6 +178,35 @@ export default function CycleDetail({ route, navigation }: Props) {
       setPayments(p || []);
     } catch {}
   };
+  const openCollectPopup = () => {
+    if (!invId) return;
+    const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const bal = Math.max((invTotal || 0) - paid, 0);
+    setPayAmt(formatDecimalTypingVNStrict(String(bal))); // <-- format khi set
+    setPayMethod('cash');
+    setShowPay(true);
+  };
+
+  // Helper: tính tổng đã thu & còn lại
+  const getPaidAndBalance = React.useCallback(() => {
+    const total = Number(invTotal || 0);
+    let paid = 0;
+    try {
+      const p = invId ? queryPaymentsOfInvoice?.(invId) ?? [] : [];
+      paid = p.reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0);
+    } catch {}
+    const balance = Math.max(total - paid, 0);
+    return { total, paid, balance };
+  }, [invId, invTotal]);
+
+  // Mở popup thu và tự điền số tiền cần thu
+  const openPay = React.useCallback(() => {
+    const { total, balance } = getPaidAndBalance();
+    const defaultAmt = balance > 0 ? balance : total;
+    setPayAmt(formatVNMoneyTyping(String(defaultAmt)));
+    setPayMethod('cash');
+    setShowPay(true);
+  }, [getPaidAndBalance]);
   // =====================================
 
   const isFixedTerm = useMemo(() => {
@@ -269,6 +301,14 @@ export default function CycleDetail({ route, navigation }: Props) {
     if (invId) loadPayments();
   }, [invId, status]);
 
+  // Nếu mở từ danh sách Unpaid với openCollect=true => tự mở popup thu (sau khi có inv)
+  useEffect(() => {
+    if (openCollect && invId) {
+      openPay();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openCollect, invId]);
+
   const previewTotal = useMemo(() => {
     let sum = 0;
     for (const r of rows) {
@@ -283,6 +323,17 @@ export default function CycleDetail({ route, navigation }: Props) {
     for (const ex of extras) sum += parseAmountInt(ex.amount);
     return sum;
   }, [rows, extras]);
+  useEffect(() => {
+    const p: any = route?.params || {};
+    if (p?.openCollect && invId) {
+      openCollectPopup();
+      // Xóa cờ để không mở lại lần sau
+      try {
+        navigation.setParams({ ...p, openCollect: undefined });
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params, invId, invTotal, payments]);
 
   const { elecTotal, waterTotal, previewElecTotal, previewWaterTotal } =
     useMemo(() => {
@@ -443,7 +494,8 @@ export default function CycleDetail({ route, navigation }: Props) {
       scheduleReminder(
         `lease_${leaseId}_cycle_settle_${nextISO}`,
         t('notify.settleTitle') || 'Tất toán kỳ',
-        t('notify.settleMsg') || 'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
+        t('notify.settleMsg') ||
+          'Hôm nay đến ngày tất toán kỳ. Vui lòng xử lý.',
         nextISO,
       );
     } catch {}
@@ -578,7 +630,9 @@ export default function CycleDetail({ route, navigation }: Props) {
 
         // Thêm lịch sử thanh toán
         try {
-          const pays = queryPaymentsOfInvoice ? queryPaymentsOfInvoice(invId) : [];
+          const pays = queryPaymentsOfInvoice
+            ? queryPaymentsOfInvoice(invId)
+            : [];
           if (pays.length) {
             lines.push('');
             lines.push(`💳 ${t('invoice.payments') || 'Thanh toán'}`);
@@ -651,7 +705,9 @@ export default function CycleDetail({ route, navigation }: Props) {
           );
         if (branding.accountName)
           lines.push(
-            `• ${t('payment.accountName') || 'Tên TK'}: ${branding.accountName}`,
+            `• ${t('payment.accountName') || 'Tên TK'}: ${
+              branding.accountName
+            }`,
           );
         if (branding.accountNumber)
           lines.push(
@@ -660,7 +716,9 @@ export default function CycleDetail({ route, navigation }: Props) {
             }`,
           );
         if (branding.note)
-          lines.push(`• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`);
+          lines.push(
+            `• ${t('payment.note') || 'Nội dung CK'}: ${branding.note}`,
+          );
       }
 
       lines.push('');
@@ -691,6 +749,45 @@ export default function CycleDetail({ route, navigation }: Props) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
   };
+const sendReminder = async () => {
+  if (!invId) return;
+  try {
+    const paid = (payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const balance = Math.max((invTotal || 0) - paid, 0);
+
+    const cfg = getEffectiveLateFeeConfig(leaseId);
+    const daysLate = calcDaysLate(period.e, cfg, new Date());
+    const lateFeePreview = computeLateFeePreview(balance, daysLate, cfg);
+
+    const msg =
+      [
+        `⏰ ${t('invoice.reminder') || 'Payment reminder'}`,
+        `${t('common.room')}: ${roomCode || '—'}`,
+        `${t('cycleDetail.period')}: ${formatDateISO(period.s, dateFormat, language)} – ${formatDateISO(period.e, dateFormat, language)}`,
+        `• ${t('invoice.total') || 'Total'}: ${format(invTotal)}`,
+        `• ${t('invoice.paidTotal') || 'Paid'}: ${format(paid)}`,
+        `• ${t('invoice.balance') || 'Balance'}: ${format(balance)}`,
+        daysLate > 0
+          ? `• ${t('invoice.daysLate') || 'Days late'}: ${daysLate} ${
+              lateFeePreview > 0
+                ? `(${t('invoice.lateFeePreview') || 'Late fee preview'}: ${format(lateFeePreview)})`
+                : ''
+            }`
+          : '',
+        '',
+        t('invoice.reminderTail') ||
+          'Please complete the payment at your earliest convenience. Thank you!'
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+    await Share.open({ message: msg, failOnCancel: false });
+    // Nếu muốn nút riêng gửi SMS thẳng:
+    // Linking.openURL(`sms:&body=${encodeURIComponent(msg)}`).catch(()=>{});
+  } catch (e: any) {
+    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+  }
+};
 
   const saveSupplemental = () => {
     const valids = suppItems
@@ -708,7 +805,10 @@ export default function CycleDetail({ route, navigation }: Props) {
       setShowAddModal(false);
       setSuppItems([]);
       reload();
-      Alert.alert(t('common.success'), t('common.success') || 'Đã thêm khoản thu bổ sung');
+      Alert.alert(
+        t('common.success'),
+        t('common.success') || 'Đã thêm khoản thu bổ sung',
+      );
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
@@ -783,10 +883,13 @@ export default function CycleDetail({ route, navigation }: Props) {
             {/* Period & invoice */}
             <Card>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.period')}: {formatDateISO(period.s, dateFormat, language)} - {formatDateISO(period.e, dateFormat, language)}
+                {t('cycleDetail.period')}:{' '}
+                {formatDateISO(period.s, dateFormat, language)} -{' '}
+                {formatDateISO(period.e, dateFormat, language)}
               </Text>
               <Text style={{ color: c.text }}>
-                {t('cycleDetail.status')}: {status === 'open' ? t('common.open') : t('common.close')}{' '}
+                {t('cycleDetail.status')}:{' '}
+                {status === 'open' ? t('common.open') : t('common.close')}{' '}
               </Text>
               {invId ? (
                 <Text style={{ color: c.text }}>
@@ -820,14 +923,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {openingMeta?.for_period_start &&
                       openingMeta?.for_period_end ? (
                         <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                          {t('cycleDetail.forPeriod')}:{" "}
+                          {t('cycleDetail.forPeriod')}:{' '}
                           <Text style={{ color: c.text }}>
                             {formatDateISO(
                               openingMeta.for_period_start,
                               dateFormat,
                               language,
-                            )}{" "}
-                            -{" "}
+                            )}{' '}
+                            -{' '}
                             {formatDateISO(
                               openingMeta.for_period_end,
                               dateFormat,
@@ -837,10 +940,10 @@ export default function CycleDetail({ route, navigation }: Props) {
                         </Text>
                       ) : null}
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.amount')}:{" "}
+                        {t('cycleDetail.amount')}:{' '}
                         <Text style={{ color: c.text }}>
                           {format(openingAmount)}
-                        </Text>{" "}
+                        </Text>{' '}
                       </Text>
                     </View>
                   )}
@@ -893,9 +996,9 @@ export default function CycleDetail({ route, navigation }: Props) {
 
                         {forStart && forEnd ? (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.forPeriod')}:{" "}
+                            {t('cycleDetail.forPeriod')}:{' '}
                             <Text style={{ color: c.text }}>
-                              {formatDateISO(forStart, dateFormat, language)} -{" "}
+                              {formatDateISO(forStart, dateFormat, language)} -{' '}
                               {formatDateISO(forEnd, dateFormat, language)}
                             </Text>
                           </Text>
@@ -905,12 +1008,12 @@ export default function CycleDetail({ route, navigation }: Props) {
                           meterInfo.start != null || meterInfo.end != null
                         ) && (
                           <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.prevIndex')}:{" "}
+                            {t('cycleDetail.prevIndex')}:{' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.start ?? 0))}
                             </Text>
-                            {"  "}•{"  "}
-                            {t('cycleDetail.currIndex')}:{" "}
+                            {'  '}•{'  '}
+                            {t('cycleDetail.currIndex')}:{' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(meterInfo.end ?? 0))}
                             </Text>
@@ -918,15 +1021,15 @@ export default function CycleDetail({ route, navigation }: Props) {
                         )}
 
                         <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.qtyShort')}:{" "}
+                          {t('cycleDetail.qtyShort')}:{' '}
                           <Text style={{ color: c.text }}>
                             {it.quantity ?? 1}
-                          </Text>{" "}
-                          • {t('cycleDetail.unitPrice')}:{" "}
+                          </Text>{' '}
+                          • {t('cycleDetail.unitPrice')}:{' '}
                           <Text style={{ color: c.text }}>
                             {format(it.unit_price)}
-                          </Text>{" "}
-                          • {t('cycleDetail.amount')}:{" "}
+                          </Text>{' '}
+                          • {t('cycleDetail.amount')}:{' '}
                           <Text style={{ color: c.text }}>
                             {format(it.amount)}
                           </Text>
@@ -962,14 +1065,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                       {r.is_variable === 1 ? (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.unitPrice')}:{" "}
+                            {t('cycleDetail.unitPrice')}:{' '}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
-                            </Text>{" "}
+                            </Text>{' '}
                             / {r.unit || t('cycleDetail.unitShort')}
                           </Text>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.startIndex')}:{" "}
+                            {t('cycleDetail.startIndex')}:{' '}
                             <Text style={{ color: c.text }}>
                               {groupVN(String(r.meter_start || 0))}
                             </Text>
@@ -1006,7 +1109,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       ) : (
                         <>
                           <Text style={{ color: c.subtext }}>
-                            {t('cycleDetail.contractBase')}:{" "}
+                            {t('cycleDetail.contractBase')}:{' '}
                             <Text style={{ color: c.text }}>
                               {format(r.unit_price)}
                             </Text>
@@ -1061,7 +1164,8 @@ export default function CycleDetail({ route, navigation }: Props) {
                   return (
                     <>
                       <Text style={{ color: c.text, marginTop: 4 }}>
-                        {t('invoice.paidTotal') || 'Đã thanh toán'}: {format(paid)}
+                        {t('invoice.paidTotal') || 'Đã thanh toán'}:{' '}
+                        {format(paid)}
                       </Text>
                       <Text style={{ color: c.text }}>
                         {t('invoice.balance') || 'Còn lại'}: {format(bal)}
@@ -1085,7 +1189,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                   <Button
                     title={t('invoice.collect')}
                     variant="ghost"
-                    onPress={() => setShowPay(true)}
+                    onPress={openCollectPopup}
                   />
                 ) : null}
                 <Button
@@ -1112,6 +1216,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                 gap: 12,
               }}
             >
+              <Button title={t('invoice.reminderBtn') || 'Send reminder'} variant="ghost" onPress={sendReminder} />
               <Button
                 title={t('cycleDetail.shareText')}
                 variant="ghost"
@@ -1192,14 +1297,14 @@ export default function CycleDetail({ route, navigation }: Props) {
                   {isVar ? (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.unitPrice')}:{" "}
+                        {t('cycleDetail.unitPrice')}:{' '}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
-                        </Text>{" "}
+                        </Text>{' '}
                         / {r.unit || t('cycleDetail.unitShort')}
                       </Text>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.prevIndex')}:{" "}
+                        {t('cycleDetail.prevIndex')}:{' '}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(r.meter_start || 0))}
                         </Text>
@@ -1223,43 +1328,23 @@ export default function CycleDetail({ route, navigation }: Props) {
                             onChangeVarValue(r.charge_type_id, t2)
                           }
                         />
-                        {/* <Button
-                          title={t('cycleDetail.scanMeter') || 'Chụp đồng hồ'}
-                          variant="ghost"
-                          onPress={async () => {
-                            const { uri } = await pickMeterImage();
-                            if (!uri) return;
-                            const { reading } = await ocrDigitsFromImage(uri);
-                            if (reading != null)
-                              onChangeVarValue(
-                                r.charge_type_id,
-                                String(reading),
-                              );
-                            setRows(prev =>
-                              prev.map(x =>
-                                x.charge_type_id === r.charge_type_id
-                                  ? { ...x, _photoUri: uri }
-                                  : x,
-                              ),
-                            );
-                          }}
-                        /> */}
+                        {/* Scan meter button (optional) */}
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.consumed')}:{" "}
+                        {t('cycleDetail.consumed')}:{' '}
                         <Text style={{ color: c.text }}>
                           {groupVN(String(consumed))}
-                        </Text>{" "}
-                        {r.unit || t('cycleDetail.unitShort')} —{" "}
-                        {t('cycleDetail.amount')}:{" "}
+                        </Text>{' '}
+                        {r.unit || t('cycleDetail.unitShort')} —{' '}
+                        {t('cycleDetail.amount')}:{' '}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
                   ) : (
                     <>
                       <Text style={{ color: c.subtext }}>
-                        {t('cycleDetail.contractBase')}:{" "}
+                        {t('cycleDetail.contractBase')}:{' '}
                         <Text style={{ color: c.text }}>
                           {format(r.unit_price)}
                         </Text>
@@ -1286,7 +1371,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                       </View>
 
                       <Text style={{ color: c.subtext, marginTop: 6 }}>
-                        {t('cycleDetail.amount')}:{" "}
+                        {t('cycleDetail.amount')}:{' '}
                         <Text style={{ color: c.text }}>{format(partial)}</Text>
                       </Text>
                     </>
@@ -1465,7 +1550,8 @@ export default function CycleDetail({ route, navigation }: Props) {
               {t('cycleDetail.extraTotal')}: {format(endExtrasTotal)}
             </Text>
             <Text style={{ color: c.text, fontWeight: '700' }}>
-              {t('cycleDetail.balanceAfter')}: {format(depositPreview - endExtrasTotal)}
+              {t('cycleDetail.balanceAfter')}:{' '}
+              {format(depositPreview - endExtrasTotal)}
             </Text>
             <Text style={{ color: c.subtext }}>
               {depositPreview - endExtrasTotal > 0
@@ -1615,7 +1701,10 @@ export default function CycleDetail({ route, navigation }: Props) {
                     setShowExtendModal(false);
                     setExtendCount('');
                     reload();
-                    Alert.alert(t('common.success'), t('cycleDetail.extendedOk'));
+                    Alert.alert(
+                      t('common.success'),
+                      t('cycleDetail.extendedOk'),
+                    );
                     try {
                       const isMonthly =
                         String(leaseInfo?.billing_cycle) === 'monthly';
@@ -1852,7 +1941,7 @@ export default function CycleDetail({ route, navigation }: Props) {
             <FormInput
               keyboardType="decimal-pad"
               value={payAmt}
-              onChangeText={setPayAmt}
+               onChangeText={(txt) => setPayAmt(formatDecimalTypingVNStrict(txt))}
               placeholder={t('cycleDetail.amountPlaceholder') || '0,00'}
               placeholderTextColor={c.subtext}
             />
@@ -1915,7 +2004,7 @@ export default function CycleDetail({ route, navigation }: Props) {
           payload={qrPayload}
           size={512}
           padding={16}
-          onRendered={(filePath) => {
+          onRendered={filePath => {
             try {
               if (filePath && qrTarget?.invId) {
                 updateInvoiceQrPath(qrTarget.invId, filePath);

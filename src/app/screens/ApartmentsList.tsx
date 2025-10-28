@@ -20,6 +20,7 @@ import {
   deleteApartment,
   hasUnpaidCycles,
   countUnpaidBalances,
+  countOverdueUnpaid,
 } from '../../services/rent';
 import { useTranslation } from 'react-i18next';
 import AppHeader from '../components/AppHeader';
@@ -160,11 +161,13 @@ const TabBtn = ({
   icon,
   active,
   onPress,
+  badgeCount = 0,
 }: {
   title: string;
   icon: string;
   active: boolean;
   onPress: () => void;
+  badgeCount?: number;
 }) => {
   const c = useThemeColors();
   return (
@@ -180,6 +183,7 @@ const TabBtn = ({
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 8,
+        position: 'relative', // để badge đặt tuyệt đối
       }}
     >
       <Text style={{ fontSize: 16, color: active ? '#fff' : c.text }}>
@@ -194,6 +198,27 @@ const TabBtn = ({
       >
         {title}
       </Text>
+
+      {badgeCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 8,
+            minWidth: 16,
+            height: 16,
+            paddingHorizontal: 4,
+            borderRadius: 8,
+            backgroundColor: '#FF3B30',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -333,9 +358,15 @@ export default function ApartmentsList({
   useFocusEffect(
     React.useCallback(() => {
       reload();
-    }, [reload]),
+      reloadBadges();
+    }, [reload, reloadBadges]),
   );
-
+  const [overdueCount, setOverdueCount] = React.useState(0);
+  const reloadBadges = React.useCallback(() => {
+    try {
+      setOverdueCount(countOverdueUnpaid()); // toàn bộ
+    } catch {}
+  }, []);
   const getStatsForApartment = (apartmentId: string): Stats => {
     const total =
       query<{ c: number }>(
@@ -425,6 +456,7 @@ export default function ApartmentsList({
             icon="⚙️"
             active={activeTab === 'manage'}
             onPress={() => setActiveTab('manage')}
+            badgeCount={overdueCount}
           />
           <TabBtn
             title={t('overviewTab')}
@@ -560,6 +592,14 @@ export default function ApartmentsList({
                   label={t('payment.title')}
                   icon="🏦"
                   onPress={() => navigation.navigate('PaymentProfile')}
+                />
+                <BigIcon
+                  label={
+                    t('lateFee.title') ||
+                    'Late Fee'
+                  }
+                  icon="⏰"
+                  onPress={() => navigation.navigate('LateFeeSettings')}
                 />
                 <BigIcon
                   label={t('helpmain')}
