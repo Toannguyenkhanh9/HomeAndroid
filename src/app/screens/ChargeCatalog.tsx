@@ -1,6 +1,9 @@
 // src/app/screens/ChargeCatalog.tsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View, Text, FlatList, TouchableOpacity, Alert, Modal,
+  KeyboardAvoidingView, Platform, ScrollView
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useThemeColors, cardStyle } from '../theme';
@@ -25,10 +28,7 @@ type CatalogRow = {
   config_json?: string | null;
 };
 
-type Scope = 'apartment' | 'global';
-
 function uuid() {
-  // nhẹ, không cần lib
   return (
     Date.now().toString(36) +
     '-' +
@@ -38,7 +38,7 @@ function uuid() {
   );
 }
 
-// Đảm bảo bảng tồn tại (an toàn khi người dùng mở trực tiếp màn này)
+// Đảm bảo bảng tồn tại
 function ensureCatalogTable() {
   exec(`
     CREATE TABLE IF NOT EXISTS catalog_charges (
@@ -59,24 +59,19 @@ export default function ChargeCatalog({ route }: Props) {
   const { format } = useCurrency();
   const insets = useSafeAreaInsets();
 
+  // Luôn làm việc theo TÒA (không còn phạm vi toàn hệ thống)
   const apartmentId = (route.params as any)?.apartmentId as string | undefined;
-  const [scope, setScope] = useState<Scope>(apartmentId ? 'apartment' : 'global');
 
   const [rows, setRows] = useState<CatalogRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal form state
+  // Modal form
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CatalogRow | null>(null);
   const [nameText, setNameText] = useState('');
   const [unitText, setUnitText] = useState('');
   const [priceText, setPriceText] = useState('');
   const [isVar, setIsVar] = useState(false);
-
-  const scopeLabel = useMemo(
-    () => (scope === 'apartment' ? (t('catalog.scopeApartment') || 'Theo tòa') : (t('catalog.scopeGlobal') || 'Toàn hệ thống')),
-    [scope, t]
-  );
 
   const resetForm = () => {
     setEditing(null);
@@ -87,6 +82,10 @@ export default function ChargeCatalog({ route }: Props) {
   };
 
   const openCreate = () => {
+    if (!apartmentId) {
+      Alert.alert(t('catalog.notice') || 'Thông báo', t('catalog.apartmentOnlyHint') || 'Vui lòng mở từ màn Phòng để thiết lập bảng giá cho tòa.');
+      return;
+    }
     resetForm();
     setShowForm(true);
   };
@@ -95,10 +94,7 @@ export default function ChargeCatalog({ route }: Props) {
     setEditing(row);
     setNameText(row.name || '');
     setUnitText(row.unit || '');
-    setPriceText(
-      // hiển thị theo vi-VN để người dùng sửa trực tiếp
-      (Number(row.unit_price) || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })
-    );
+    setPriceText((Number(row.unit_price) || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 }));
     setIsVar(Number(row.is_variable) === 1);
     setShowForm(true);
   };
@@ -106,30 +102,20 @@ export default function ChargeCatalog({ route }: Props) {
   const load = useCallback(() => {
     ensureCatalogTable();
     try {
-      let r: CatalogRow[] = [];
-      if (scope === 'apartment') {
-        if (!apartmentId) {
-          setRows([]);
-          return;
-        }
-        r = query<CatalogRow>(
-          `SELECT id, apartment_id, name, unit, is_variable, unit_price, config_json
-           FROM catalog_charges
-           WHERE apartment_id = ?
-           ORDER BY name COLLATE NOCASE`,
-          [apartmentId]
-        );
-      } else {
-        r = query<CatalogRow>(
-          `SELECT id, apartment_id, name, unit, is_variable, unit_price, config_json
-           FROM catalog_charges
-           WHERE apartment_id IS NULL OR apartment_id = ''
-           ORDER BY name COLLATE NOCASE`
-        );
+      if (!apartmentId) {
+        setRows([]);
+        return;
       }
+      const r = query<CatalogRow>(
+        `SELECT id, apartment_id, name, unit, is_variable, unit_price, config_json
+         FROM catalog_charges
+         WHERE apartment_id = ?
+         ORDER BY name COLLATE NOCASE`,
+        [apartmentId]
+      );
       setRows(r || []);
     } catch (_e) {}
-  }, [scope, apartmentId]);
+  }, [apartmentId]);
 
   useEffect(load, [load]);
 
@@ -141,12 +127,14 @@ export default function ChargeCatalog({ route }: Props) {
       Alert.alert(t('common.missingInfo'), t('catalog.requireName') || 'Vui lòng nhập tên phí.');
       return;
     }
+    if (!apartmentId) {
+      Alert.alert(t('common.notice') || 'Thông báo', t('catalog.apartmentOnlyHint') || 'Vui lòng mở từ màn Phòng để thiết lập bảng giá cho tòa.');
+      return;
+    }
     if (price < 0) {
       Alert.alert(t('common.missingInfo'), t('catalog.requirePrice') || 'Giá không hợp lệ.');
       return;
     }
-
-    const scopeApartmentId = scope === 'apartment' ? (apartmentId || null) : null;
 
     try {
       if (editing) {
@@ -154,13 +142,13 @@ export default function ChargeCatalog({ route }: Props) {
           `UPDATE catalog_charges
            SET name = ?, unit = ?, is_variable = ?, unit_price = ?, apartment_id = ?
            WHERE id = ?`,
-          [trimmed, unit || null, isVar ? 1 : 0, price, scopeApartmentId, editing.id]
+          [trimmed, unit || null, isVar ? 1 : 0, price, apartmentId, editing.id]
         );
       } else {
         exec(
           `INSERT INTO catalog_charges (id, apartment_id, name, unit, is_variable, unit_price)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [uuid(), scopeApartmentId, trimmed, unit || null, isVar ? 1 : 0, price]
+          [uuid(), apartmentId, trimmed, unit || null, isVar ? 1 : 0, price]
         );
       }
       setShowForm(false);
@@ -191,56 +179,31 @@ export default function ChargeCatalog({ route }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      {/* Header + scope switch */}
+      {/* Header */}
       <View style={{ padding: 12, paddingBottom: 0 }}>
         <Card style={{ padding: 12, gap: 10 }}>
           <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>
-            {t('catalog.title') || 'Bảng giá'}
+            {t('catalog.title') || 'Bảng giá (theo tòa)'}
           </Text>
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              disabled={!apartmentId}
-              onPress={() => setScope('apartment')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 10,
-                backgroundColor: scope === 'apartment' ? '#10b981' : c.card,
-                opacity: apartmentId ? 1 : 0.6,
-              }}
-            >
-              <Text style={{ color: scope === 'apartment' ? 'white' : c.text }}>
-                {t('catalog.scopeApartment') || 'Theo tòa'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setScope('global')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 10,
-                backgroundColor: scope === 'global' ? '#10b981' : c.card,
-              }}
-            >
-              <Text style={{ color: scope === 'global' ? 'white' : c.text }}>
-                {t('catalog.scopeGlobal') || 'Toàn hệ thống'}
-              </Text>
-            </TouchableOpacity>
-
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Button title={t('catalog.add') || 'Thêm'} onPress={openCreate} disabled={!apartmentId} />
             <View style={{ flex: 1 }} />
-            <Button title={t('catalog.add') || 'Thêm'} onPress={openCreate} />
           </View>
 
+          {/* Ghi chú công dụng */}
           <Text style={{ color: c.subtext }}>
-            {(t('catalog.currentScope') || 'Phạm vi') + ': '} {scopeLabel}
+            {t('catalog.note') ||
+              'Ghi chú: “Bảng giá” là danh mục phí mặc định của từng tòa. ' +
+              'Bạn cấu hình tại đây; khi tạo hợp đồng mới, nút “Áp dụng bảng giá tòa” sẽ lấy các mục này xuống ' +
+              'làm danh sách phí ban đầu (vẫn có thể chỉnh trước khi tạo hợp đồng).'}
           </Text>
-          {scope === 'apartment' && !apartmentId ? (
-            <Text style={{ color: c.subtext }}>
-              {t('catalog.apartmentHint') || 'Mở từ màn Phòng để thao tác theo tòa.'}
+
+          {!apartmentId && (
+            <Text style={{ color: c.subtext, marginTop: 6 }}>
+              {t('catalog.apartmentOnlyHint') || 'Màn này cần được mở từ Phòng của một tòa để thao tác.'}
             </Text>
-          ) : null}
+          )}
         </Card>
       </View>
 
@@ -324,7 +287,7 @@ export default function ChargeCatalog({ route }: Props) {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={{ color: c.subtext, marginTop: 8 }}>{t('catalog.unit') || 'Đơn vị'}</Text>
+                <Text style={{ color: c.subtext, marginTop: 8 }}>{t('invoice.unit') || 'Đơn vị'}</Text>
                 <FormInput
                   value={unitText}
                   onChangeText={setUnitText}
@@ -343,8 +306,9 @@ export default function ChargeCatalog({ route }: Props) {
 
                 <View style={{ height: 10 }} />
                 <Text style={{ color: c.subtext }}>
-                  {t('catalog.scopeNote') ||
-                    'Lưu ý: Khi phạm vi là “Theo tòa”, mục này chỉ áp dụng cho tòa hiện tại. Khi là “Toàn hệ thống”, mục dùng làm mặc định cho mọi tòa.'}
+                  {t('catalog.note') ||
+                    'Ghi chú: “Bảng giá” là danh mục phí mặc định của từng tòa. ' +
+                    'Khi áp dụng ở màn tạo hợp đồng, các mục trong bảng giá sẽ được đưa xuống làm phí ban đầu.'}
                 </Text>
               </ScrollView>
 

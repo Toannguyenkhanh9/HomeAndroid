@@ -144,7 +144,7 @@ export default function LeaseForm({ route, navigation }: Props) {
       }
 
       if (!items || items.length === 0) {
-        Alert.alert(t('common.notice') || 'Thông báo', t('leaseForm.noCatalogForApartment') || 'Chưa có “Bảng giá” cho tòa này.');
+        Alert.alert(t('catalog.notice') || 'Thông báo', t('catalog.noCatalogForApartment') || 'Chưa có “Bảng giá” cho tòa này.');
         return;
       }
 
@@ -608,7 +608,7 @@ export default function LeaseForm({ route, navigation }: Props) {
                 <Button title={t('common.add')} onPress={addCharge} />
                 <Button
                   title={t('catalog.applyCatalog') || 'Áp dụng bảng giá'}
-                  variant="ghost"
+                  variant=""
                   onPress={applyCatalogForApartment}
                   disabled={applyingCatalog}
                 />

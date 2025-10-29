@@ -33,7 +33,9 @@ import {
   recordPayment,
   queryPaymentsOfInvoice,
   updateInvoiceQrPath,
-  getEffectiveLateFeeConfig, calcDaysLate, computeLateFeePreview 
+  getEffectiveLateFeeConfig,
+  calcDaysLate,
+  computeLateFeePreview,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -521,7 +523,10 @@ export default function CycleDetail({ route, navigation }: Props) {
       setTimeout(() => maybeAskForReview(), 800);
     }
   }
-
+const sendReceipt = React.useCallback(() => {
+  // shareInvoiceHtml đã tạo file HTML hóa đơn (có logo/QR, vv) và mở Share
+  return shareInvoiceHtml();
+}, [invId, language, dateFormat]);
   async function shareInvoiceHtml() {
     if (!invId) {
       Alert.alert(
@@ -749,45 +754,53 @@ export default function CycleDetail({ route, navigation }: Props) {
       Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
     }
   };
-const sendReminder = async () => {
-  if (!invId) return;
-  try {
-    const paid = (payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const balance = Math.max((invTotal || 0) - paid, 0);
+  const sendReminder = async () => {
+    if (!invId) return;
+    try {
+      const paid = (payments || []).reduce(
+        (s, p) => s + (Number(p.amount) || 0),
+        0,
+      );
+      const balance = Math.max((invTotal || 0) - paid, 0);
 
-    const cfg = getEffectiveLateFeeConfig(leaseId);
-    const daysLate = calcDaysLate(period.e, cfg, new Date());
-    const lateFeePreview = computeLateFeePreview(balance, daysLate, cfg);
+      const cfg = getEffectiveLateFeeConfig(leaseId);
+      const daysLate = calcDaysLate(period.e, cfg, new Date());
+      const lateFeePreview = computeLateFeePreview(balance, daysLate, cfg);
 
-    const msg =
-      [
+      const msg = [
         `⏰ ${t('invoice.reminder') || 'Payment reminder'}`,
         `${t('common.room')}: ${roomCode || '—'}`,
-        `${t('cycleDetail.period')}: ${formatDateISO(period.s, dateFormat, language)} – ${formatDateISO(period.e, dateFormat, language)}`,
+        `${t('cycleDetail.period')}: ${formatDateISO(
+          period.s,
+          dateFormat,
+          language,
+        )} – ${formatDateISO(period.e, dateFormat, language)}`,
         `• ${t('invoice.total') || 'Total'}: ${format(invTotal)}`,
         `• ${t('invoice.paidTotal') || 'Paid'}: ${format(paid)}`,
         `• ${t('invoice.balance') || 'Balance'}: ${format(balance)}`,
         daysLate > 0
           ? `• ${t('invoice.daysLate') || 'Days late'}: ${daysLate} ${
               lateFeePreview > 0
-                ? `(${t('invoice.lateFeePreview') || 'Late fee preview'}: ${format(lateFeePreview)})`
+                ? `(${
+                    t('invoice.lateFeePreview') || 'Late fee preview'
+                  }: ${format(lateFeePreview)})`
                 : ''
             }`
           : '',
         '',
         t('invoice.reminderTail') ||
-          'Please complete the payment at your earliest convenience. Thank you!'
+          'Please complete the payment at your earliest convenience. Thank you!',
       ]
         .filter(Boolean)
         .join('\n');
 
-    await Share.open({ message: msg, failOnCancel: false });
-    // Nếu muốn nút riêng gửi SMS thẳng:
-    // Linking.openURL(`sms:&body=${encodeURIComponent(msg)}`).catch(()=>{});
-  } catch (e: any) {
-    Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
-  }
-};
+      await Share.open({ message: msg, failOnCancel: false });
+      // Nếu muốn nút riêng gửi SMS thẳng:
+      // Linking.openURL(`sms:&body=${encodeURIComponent(msg)}`).catch(()=>{});
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    }
+  };
 
   const saveSupplemental = () => {
     const valids = suppItems
@@ -1186,12 +1199,23 @@ const sendReminder = async () => {
                 }}
               >
                 {invId ? (
-                  <Button
-                    title={t('invoice.collect')}
-                    variant="ghost"
-                    onPress={openCollectPopup}
-                  />
+                  // 🔁 Nếu còn dư nợ => hiện Collect, nếu đã đủ => hiện "Gửi biên nhận"
+                  getPaidAndBalance().balance > 0 ? (
+                    <Button
+                      title={t('invoice.collect')}
+                      onPress={openCollectPopup}
+                    />
+                  ) : (
+                    <Button
+                      title={
+                        t('invoice.sendReceipt') || 'Gửi biên nhận (hóa đơn)'
+                      }
+
+                      onPress={shareInvoiceHtml}
+                    />
+                  )
                 ) : null}
+
                 <Button
                   title={t('cycleDetail.collectMore') || 'Thu bổ sung'}
                   onPress={() => {
@@ -1204,30 +1228,44 @@ const sendReminder = async () => {
           </ScrollView>
 
           {/* Bottom action bar */}
-          {status === 'settled' ? (
-            <View
-              style={{
-                justifyContent: 'flex-end',
-                position: 'absolute',
-                left: 12,
-                right: 12,
-                bottom: insets.bottom + 8,
-                flexDirection: 'row',
-                gap: 12,
-              }}
-            >
-              <Button title={t('invoice.reminderBtn') || 'Send reminder'} variant="ghost" onPress={sendReminder} />
-              <Button
-                title={t('cycleDetail.shareText')}
-                variant="ghost"
-                onPress={sharePlainText}
-              />
-              <Button
-                title={t('cycleDetail.share')}
-                onPress={shareInvoiceHtml}
-              />
-            </View>
-          ) : (
+{status === 'settled' ? (
+  <View
+    style={{
+      justifyContent: 'flex-end',
+      position: 'absolute',
+      left: 12,
+      right: 12,
+      bottom: insets.bottom + 8,
+      flexDirection: 'row',
+      gap: 12,
+    }}
+  >
+    {(() => {
+      const { balance } = getPaidAndBalance();   // ✅ tính 1 lần
+      return (
+        <>
+          {/* Chỉ nhắc nhở khi còn nợ */}
+          {balance > 0 && (
+            <Button
+              title={t('invoice.reminderBtn') || 'Send reminder'}
+              onPress={sendReminder}
+            />
+          )}
+
+          {/* Nếu đã đủ tiền => ưu tiên nút gửi biên nhận */}
+          <Button
+            title={ (t('cycleDetail.shareText'))
+            }
+            onPress={sharePlainText}
+          />
+
+          {/* Vẫn giữ nút Share (file HTML) nếu muốn gửi bản hóa đơn đầy đủ */}
+          <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
+        </>
+      );
+    })()}
+  </View>
+)  : (
             <View
               style={{
                 justifyContent: 'flex-end',
@@ -1941,7 +1979,7 @@ const sendReminder = async () => {
             <FormInput
               keyboardType="decimal-pad"
               value={payAmt}
-               onChangeText={(txt) => setPayAmt(formatDecimalTypingVNStrict(txt))}
+              onChangeText={txt => setPayAmt(formatDecimalTypingVNStrict(txt))}
               placeholder={t('cycleDetail.amountPlaceholder') || '0,00'}
               placeholderTextColor={c.subtext}
             />
@@ -1976,15 +2014,48 @@ const sendReminder = async () => {
                       );
                       return;
                     }
+
+                    // Ghi nhận thanh toán
                     recordPayment(invId, amt, payMethod || 'cash');
                     setShowPay(false);
                     setPayAmt('');
                     loadPayments();
                     reload();
-                    Alert.alert(
-                      t('common.success'),
-                      t('invoice.collected') || 'Đã ghi nhận thanh toán',
-                    );
+
+                    // 🔁 Tính lại số dư ngay sau khi thu
+                    let paidSum = 0;
+                    try {
+                      const afterPays = queryPaymentsOfInvoice
+                        ? queryPaymentsOfInvoice(invId)
+                        : [];
+                      paidSum = afterPays.reduce(
+                        (s: number, p: any) => s + (Number(p.amount) || 0),
+                        0,
+                      );
+                    } catch {}
+                    const balance = Math.max((invTotal || 0) - paidSum, 0);
+
+                    if (balance <= 0) {
+                      // ✅ Đã thu đủ: hỏi có muốn gửi biên nhận/hóa đơn luôn không
+                      Alert.alert(
+                        t('invoice.fullyPaid') || 'Đã thanh toán đủ',
+                        t('invoice.sendReceiptAsk') ||
+                          'Bạn có muốn gửi biên nhận/hóa đơn cho khách ngay bây giờ?',
+                        [
+                          { text: t('common.close') || 'Để sau' },
+                          {
+                            text: t('invoice.sendNow') || 'Gửi ngay',
+                            onPress: () => shareInvoiceHtml(),
+                          },
+                        ],
+                      );
+                    } else {
+                      // Chưa đủ: chỉ báo thành công
+                      Alert.alert(
+                        t('common.success'),
+                        t('invoice.collected') || 'Đã ghi nhận thanh toán',
+                      );
+                    }
                   } catch (e: any) {
                     Alert.alert(
                       t('common.error'),

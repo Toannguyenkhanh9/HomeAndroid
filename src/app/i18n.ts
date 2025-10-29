@@ -7,24 +7,32 @@ import { setTranslator } from '../utils/i18nProxy';
 const resources = {
   vi: {
     translation: {
-      catalog : {
-        title : 'Bảng giá',
-        scopeApartment: "Cho căn hộ này",
-        scopeGlobal : 'Toàn hệ thống',
-        currentScope : 'Phạm vi',
-        apartmentHint : 'Mở từ màn Phòng để thao tác theo căn hộ.',
-        empty : 'Chưa có mục nào.',
-        editTitle : 'Sửa',
-        addTitle : 'Thêm',
-        name : 'Tên phí',
-        add : 'Thêm',
-        pricePerUnit : 'Đơn giá/đơn vị',
-        pricePerPeriod :'Đơn giá/kỳ',
-        requireName : 'Vui lòng nhập tên phí.',
-        requirePrice : 'Giá không hợp lệ.',
-        scopeNote: 'Lưu ý: Khi phạm vi là “Theo căn hộ, mục này chỉ áp dụng cho tòa hiện tại. Khi là “Toàn hệ thống”, mục dùng làm mặc định cho mọi căn hộ.',
-        applyCatalog : 'Áp dụng bảng giá',
-        catalogApplied : 'Đã áp dụng Bảng giá.'
+      catalog: {
+        noCatalogForApartment: 'Chưa có “Bảng giá” cho căn hộ này.',
+        title: 'Bảng giá',
+        scopeApartment: 'Cho căn hộ này',
+        scopeGlobal: 'Toàn hệ thống',
+        currentScope: 'Phạm vi',
+        apartmentHint: 'Mở từ màn Phòng để thao tác theo căn hộ.',
+        empty: 'Chưa có mục nào.',
+        editTitle: 'Sửa',
+        addTitle: 'Thêm',
+        name: 'Tên phí',
+        add: 'Thêm',
+        pricePerUnit: 'Đơn giá/đơn vị',
+        pricePerPeriod: 'Đơn giá/kỳ',
+        requireName: 'Vui lòng nhập tên phí.',
+        requirePrice: 'Giá không hợp lệ.',
+        scopeNote:
+          'Lưu ý: Khi phạm vi là “Theo căn hộ, mục này chỉ áp dụng cho tòa hiện tại. Khi là “Toàn hệ thống”, mục dùng làm mặc định cho mọi căn hộ.',
+        applyCatalog: 'Áp dụng bảng giá',
+        catalogApplied: 'Đã áp dụng Bảng giá.',
+        note: 'Ghi chú: “Bảng giá” là danh mục phí mặc định của từng căn hộ.Bạn cấu hình tại đây; khi tạo hợp đồng mới, nút “Áp dụng bảng giá căn hộ” sẽ lấy các mục này xuống làm danh sách phí ban đầu (vẫn có thể chỉnh trước khi tạo hợp đồng).',
+        apartmentOnlyHint:
+          'Vui lòng mở từ màn Phòng để thiết lập bảng giá cho căn hộ.',
+        notice: 'Thông báo',
+        confirmDelete: 'Xóa mục này?',
+        type: 'Loại',
       },
       lateFee: {
         title: 'Phí trễ hạn',
@@ -75,6 +83,10 @@ const resources = {
         qrHint: 'Chọn ảnh QR ngân hàng/ví',
       },
       invoice: {
+        sendReceipt: 'Gửi biên nhận',
+        sendReceiptAsk:
+          'Bạn có muốn gửi biên nhận/hóa đơn cho khách ngay bây giờ?',
+        sendNow: 'Gửi ngay',
         reminderTail:
           'Vui lòng hoàn tất thanh toán sớm nhất có thể. Xin cảm ơn!',
         reminder: 'Nhắc nhở thanh toán',
@@ -908,8 +920,32 @@ const resources = {
   },
   en: {
     translation: {
-      catalog : {
-        title : 'Bảng giá',
+      catalog: {
+        noCatalogForApartment: 'No "Price list" for this apartment yet.',
+        title: 'Price list',
+        scopeApartment: 'For this apartment',
+        scopeGlobal: 'System-wide',
+        currentScope: 'Scope',
+        apartmentHint: 'Open from the Rooms screen to work per apartment.',
+        empty: 'No items yet.',
+        editTitle: 'Edit',
+        addTitle: 'Add',
+        name: 'Fee name',
+        add: 'Add',
+        pricePerUnit: 'Price per unit',
+        pricePerPeriod: 'Price per period',
+        requireName: 'Please enter a fee name.',
+        requirePrice: 'Invalid price.',
+        scopeNote:
+          'Note: When Scope is "By apartment", this item applies only to the current building. When "System-wide", it is used as the default for all apartments.',
+        applyCatalog: 'Apply price list',
+        catalogApplied: 'Price list applied.',
+        note: 'Note: "Price list" is the default fee catalog for each apartment. Configure it here; when creating a new lease, the "Apply apartment price list" button will pull these items as the initial fee list (still editable before creating the lease).',
+        apartmentOnlyHint:
+          'Please open from the Rooms screen to set the price list for the apartment.',
+        notice: 'Notice',
+        confirmDelete: 'Delete this item?',
+        type: 'Type',
       },
       lateFee: {
         title: 'Late fee',
@@ -960,6 +996,10 @@ const resources = {
         qrHint: 'Choose a bank/wallet QR code',
       },
       invoice: {
+        sendReceipt: 'Send receipt',
+        sendReceiptAsk:
+          'Would you like to send the receipt/invoice to the customer now?',
+        sendNow: 'Send now',
         reminderTail:
           'Please complete the payment at your earliest convenience. Thank you!',
         reminder: 'Payment reminder',
@@ -1796,6 +1836,35 @@ const resources = {
 
   es: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'Aún no hay "Lista de precios" para este apartamento.',
+        title: 'Lista de precios',
+        scopeApartment: 'Para este apartamento',
+        scopeGlobal: 'A nivel del sistema',
+        currentScope: 'Ámbito',
+        apartmentHint:
+          'Abra desde la pantalla Habitaciones para trabajar por apartamento.',
+        empty: 'Aún no hay elementos.',
+        editTitle: 'Editar',
+        addTitle: 'Añadir',
+        name: 'Nombre del cargo',
+        add: 'Añadir',
+        pricePerUnit: 'Precio por unidad',
+        pricePerPeriod: 'Precio por período',
+        requireName: 'Ingrese el nombre del cargo.',
+        requirePrice: 'Precio no válido.',
+        scopeNote:
+          'Nota: Cuando el ámbito es "Por apartamento", este ítem solo se aplica al edificio actual. Cuando es "A nivel del sistema", se usa como predeterminado para todos los apartamentos.',
+        applyCatalog: 'Aplicar lista de precios',
+        catalogApplied: 'Lista de precios aplicada.',
+        note: 'Nota: "Lista de precios" es el catálogo de cargos predeterminado de cada apartamento. Configúrelo aquí; al crear un contrato nuevo, el botón "Aplicar lista de precios del apartamento" tomará estos ítems como lista inicial de cargos (ajustable antes de crear el contrato).',
+        apartmentOnlyHint:
+          'Abra desde la pantalla Habitaciones para configurar la lista de precios del apartamento.',
+        notice: 'Aviso',
+        confirmDelete: '¿Eliminar este ítem?',
+        type: 'Tipo',
+      },
       lateFee: {
         title: 'Recargo por mora',
         enabled: 'Activado',
@@ -1872,6 +1941,9 @@ const resources = {
         qrHint: 'Elige un código QR del banco/monedero',
       },
       invoice: {
+        sendReceipt: 'Enviar recibo',
+        sendReceiptAsk: '¿Desea enviar el recibo/factura al cliente ahora?',
+        sendNow: 'Enviar ahora',
         reminderTail: 'Por favor complete el pago lo antes posible. ¡Gracias!',
         reminder: 'Recordatorio de pago',
         daysLate: 'Días de retraso',
@@ -2625,6 +2697,35 @@ const resources = {
   },
   fr: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'Aucune "Liste de prix" n’est définie pour cet appartement.',
+        title: 'Liste de prix',
+        scopeApartment: 'Pour cet appartement',
+        scopeGlobal: 'À l’échelle du système',
+        currentScope: 'Portée',
+        apartmentHint:
+          'Ouvrez depuis l’écran Chambres pour agir par appartement.',
+        empty: 'Aucun élément pour le moment.',
+        editTitle: 'Modifier',
+        addTitle: 'Ajouter',
+        name: 'Nom des frais',
+        add: 'Ajouter',
+        pricePerUnit: 'Prix par unité',
+        pricePerPeriod: 'Prix par période',
+        requireName: 'Veuillez saisir le nom des frais.',
+        requirePrice: 'Prix non valide.',
+        scopeNote:
+          'Remarque : Lorsque la portée est "Par appartement", cet élément ne s’applique qu’au bâtiment actuel. Lorsqu’elle est "À l’échelle du système", l’élément sert de valeur par défaut pour tous les appartements.',
+        applyCatalog: 'Appliquer la liste de prix',
+        catalogApplied: 'Liste de prix appliquée.',
+        note: 'Remarque : "Liste de prix" est le catalogue de frais par défaut de chaque appartement. Configurez-le ici ; lors de la création d’un nouveau contrat, le bouton "Appliquer la liste de prix de l’appartement" récupérera ces éléments comme liste initiale des frais (modifiable avant la création du contrat).',
+        apartmentOnlyHint:
+          'Veuillez ouvrir depuis l’écran Chambres pour définir la liste de prix de l’appartement.',
+        notice: 'Avis',
+        confirmDelete: 'Supprimer cet élément ?',
+        type: 'Type',
+      },
       lateFee: {
         title: 'Frais de retard',
         enabled: 'Activé',
@@ -2702,6 +2803,10 @@ const resources = {
         qrHint: 'Choisissez un code QR de la banque/du portefeuille',
       },
       invoice: {
+        sendReceipt: 'Envoyer le reçu',
+        sendReceiptAsk:
+          'Souhaitez-vous envoyer le reçu/la facture au client maintenant ?',
+        sendNow: 'Envoyer maintenant',
         reminderTail:
           'Veuillez effectuer le paiement dans les plus brefs délais. Merci !',
         reminder: 'Rappel de paiement',
@@ -3267,6 +3372,35 @@ const resources = {
 
   de: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'Für diese Wohnung ist noch keine "Preisliste" vorhanden.',
+        title: 'Preisliste',
+        scopeApartment: 'Für diese Wohnung',
+        scopeGlobal: 'Systemweit',
+        currentScope: 'Geltungsbereich',
+        apartmentHint:
+          'Über den Bildschirm Zimmer öffnen, um wohnungsbezogen zu arbeiten.',
+        empty: 'Noch keine Einträge.',
+        editTitle: 'Bearbeiten',
+        addTitle: 'Hinzufügen',
+        name: 'Gebührenname',
+        add: 'Hinzufügen',
+        pricePerUnit: 'Preis pro Einheit',
+        pricePerPeriod: 'Preis pro Zeitraum',
+        requireName: 'Bitte Gebührennamen eingeben.',
+        requirePrice: 'Ungültiger Preis.',
+        scopeNote:
+          'Hinweis: Bei Geltungsbereich "Pro Wohnung" gilt dieser Eintrag nur für das aktuelle Gebäude. Bei "Systemweit" dient er als Standard für alle Wohnungen.',
+        applyCatalog: 'Preisliste anwenden',
+        catalogApplied: 'Preisliste angewendet.',
+        note: 'Hinweis: "Preisliste" ist der Standard-Gebührenkatalog jeder Wohnung. Hier konfigurieren; beim Erstellen eines neuen Vertrags übernimmt die Schaltfläche "Wohnungs-Preisliste anwenden" diese Einträge als anfängliche Gebührenliste (vor dem Erstellen anpassbar).',
+        apartmentOnlyHint:
+          'Bitte über den Bildschirm Zimmer öffnen, um die Preisliste für die Wohnung festzulegen.',
+        notice: 'Hinweis',
+        confirmDelete: 'Diesen Eintrag löschen?',
+        type: 'Typ',
+      },
       lateFee: {
         title: 'Verzugsgebühr',
         enabled: 'Aktiviert',
@@ -3345,6 +3479,10 @@ const resources = {
         qrHint: 'QR-Code von Bank/Wallet auswählen',
       },
       invoice: {
+        sendReceipt: 'Beleg senden',
+        sendReceiptAsk:
+          'Möchten Sie dem Kunden den Beleg/die Rechnung jetzt senden?',
+        sendNow: 'Jetzt senden',
         reminderTail:
           'Bitte schließen Sie die Zahlung schnellstmöglich ab. Vielen Dank!',
         reminder: 'Zahlungserinnerung',
@@ -3912,6 +4050,32 @@ const resources = {
 
   zh: {
     translation: {
+      catalog: {
+        noCatalogForApartment: '此公寓尚无“价目表”。',
+        title: '价目表',
+        scopeApartment: '适用于此公寓',
+        scopeGlobal: '系统范围',
+        currentScope: '范围',
+        apartmentHint: '请从“房间”页面打开以按公寓进行操作。',
+        empty: '尚无项目。',
+        editTitle: '编辑',
+        addTitle: '添加',
+        name: '费用名称',
+        add: '添加',
+        pricePerUnit: '每单位单价',
+        pricePerPeriod: '每期单价',
+        requireName: '请输入费用名称。',
+        requirePrice: '价格无效。',
+        scopeNote:
+          '注意：当范围为“按公寓”时，此项目仅适用于当前楼栋；当为“系统范围”时，此项目将作为所有公寓的默认项。',
+        applyCatalog: '应用价目表',
+        catalogApplied: '已应用价目表。',
+        note: '说明：“价目表”是每个公寓的默认费用目录。可在此配置；创建新合同时，“应用公寓价目表”按钮会将这些项目作为初始费用列表（创建合同前仍可调整）。',
+        apartmentOnlyHint: '请从“房间”页面打开以为该公寓设置价目表。',
+        notice: '通知',
+        confirmDelete: '删除此项目？',
+        type: '类型',
+      },
       lateFee: {
         title: '逾期费用',
         enabled: '已启用',
@@ -3987,6 +4151,9 @@ const resources = {
         qrHint: '选择银行/钱包的二维码',
       },
       invoice: {
+        sendReceipt: '发送收据',
+        sendReceiptAsk: '您现在要将收据/发票发送给客户吗？',
+        sendNow: '立即发送',
         reminderTail: '请尽快完成付款。谢谢！',
         reminder: '付款提醒',
         daysLate: '逾期天数',
@@ -4534,6 +4701,33 @@ const resources = {
 
   ja: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'このアパートにはまだ「料金表」がありません。',
+        title: '料金表',
+        scopeApartment: 'このアパートのみ',
+        scopeGlobal: 'システム全体',
+        currentScope: '範囲',
+        apartmentHint: '部屋画面から開き、アパート単位で操作してください。',
+        empty: '項目がありません。',
+        editTitle: '編集',
+        addTitle: '追加',
+        name: '費用名',
+        add: '追加',
+        pricePerUnit: '単価/単位',
+        pricePerPeriod: '単価/期間',
+        requireName: '費用名を入力してください。',
+        requirePrice: '無効な価格です。',
+        scopeNote:
+          '注意：「アパート単位」の場合、この項目は現在の建物にのみ適用されます。「システム全体」の場合は、すべてのアパートのデフォルトとして使用されます。',
+        applyCatalog: '料金表を適用',
+        catalogApplied: '料金表を適用しました。',
+        note: '注記：「料金表」は各アパートのデフォルト費用カタログです。ここで設定し、新規契約作成時に「アパートの料金表を適用」ボタンでこれらの項目を初期費用として取り込みます（契約作成前に編集可能）。',
+        apartmentOnlyHint:
+          'アパートの料金表を設定するには、部屋画面から開いてください。',
+        notice: '通知',
+        confirmDelete: 'この項目を削除しますか？',
+        type: '種類',
+      },
       lateFee: {
         title: '延滞料金',
         enabled: '有効',
@@ -4610,6 +4804,9 @@ const resources = {
         qrHint: '銀行／ウォレットのQRコードを選択',
       },
       invoice: {
+        sendReceipt: '領収書を送信',
+        sendReceiptAsk: '今すぐお客様に領収書/請求書を送信しますか？',
+        sendNow: '今すぐ送信',
         reminderTail: 'できるだけ早くお支払いください。ありがとうございます。',
         reminder: 'お支払いのリマインダー',
         daysLate: '延滞日数',
@@ -5168,6 +5365,32 @@ const resources = {
 
   ko: {
     translation: {
+      catalog: {
+        noCatalogForApartment: '이 아파트에는 아직 "요금표"가 없습니다.',
+        title: '요금표',
+        scopeApartment: '이 아파트에만',
+        scopeGlobal: '시스템 전체',
+        currentScope: '범위',
+        apartmentHint: '객실 화면에서 열어 아파트별로 작업하세요.',
+        empty: '항목이 없습니다.',
+        editTitle: '편집',
+        addTitle: '추가',
+        name: '요금 항목명',
+        add: '추가',
+        pricePerUnit: '단위당 가격',
+        pricePerPeriod: '기간당 가격',
+        requireName: '요금 이름을 입력하세요.',
+        requirePrice: '유효하지 않은 가격입니다.',
+        scopeNote:
+          '참고: 범위가 "아파트별"인 경우 이 항목은 현재 동에만 적용됩니다. "시스템 전체"인 경우 모든 아파트의 기본값으로 사용됩니다.',
+        applyCatalog: '요금표 적용',
+        catalogApplied: '요금표가 적용되었습니다.',
+        note: '참고: "요금표"는 각 아파트의 기본 요금 카탈로그입니다. 여기서 설정하면 새 계약 생성 시 "아파트 요금표 적용" 버튼이 이 항목들을 초기 요금 목록으로 가져옵니다(계약 생성 전 수정 가능).',
+        apartmentOnlyHint: '아파트 요금표를 설정하려면 객실 화면에서 여세요.',
+        notice: '알림',
+        confirmDelete: '이 항목을 삭제할까요?',
+        type: '유형',
+      },
       lateFee: {
         title: '연체료',
         enabled: '활성화됨',
@@ -5243,6 +5466,9 @@ const resources = {
         qrHint: '은행/지갑 QR 코드를 선택하세요',
       },
       invoice: {
+        sendReceipt: '영수증 보내기',
+        sendReceiptAsk: '지금 고객에게 영수증/청구서를 보내시겠습니까?',
+        sendNow: '지금 보내기',
         reminderTail: '가능한 한 빨리 결제를 완료해 주세요. 감사합니다!',
         reminder: '결제 알림',
         daysLate: '연체 일수',
@@ -5792,6 +6018,34 @@ const resources = {
 
   ru: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'Для этой квартиры ещё нет «Прайс-листа».',
+        title: 'Прайс-лист',
+        scopeApartment: 'Для этой квартиры',
+        scopeGlobal: 'Для всей системы',
+        currentScope: 'Область действия',
+        apartmentHint:
+          'Откройте с экрана "Комнаты", чтобы работать по квартирам.',
+        empty: 'Пока нет элементов.',
+        editTitle: 'Редактировать',
+        addTitle: 'Добавить',
+        name: 'Название сбора',
+        add: 'Добавить',
+        pricePerUnit: 'Цена за единицу',
+        pricePerPeriod: 'Цена за период',
+        requireName: 'Введите название сбора.',
+        requirePrice: 'Неверная цена.',
+        scopeNote:
+          'Примечание: Если область — "По квартире", пункт применяется только к текущему зданию. При "Для всей системы" пункт используется как значение по умолчанию для всех квартир.',
+        applyCatalog: 'Применить прайс-лист',
+        catalogApplied: 'Прайс-лист применён.',
+        note: 'Примечание: "Прайс-лист" — каталог сборов по умолчанию для каждой квартиры. Настройте здесь; при создании нового договора кнопка "Применить прайс-лист квартиры" подставит эти пункты как начальный список сборов (можно изменить до создания договора).',
+        apartmentOnlyHint:
+          'Откройте с экрана "Комнаты", чтобы настроить прайс-лист для квартиры.',
+        notice: 'Уведомление',
+        confirmDelete: 'Удалить этот пункт?',
+        type: 'Тип',
+      },
       lateFee: {
         title: 'Штраф за просрочку',
         enabled: 'Включено',
@@ -5868,6 +6122,9 @@ const resources = {
         qrHint: 'Выберите QR-код банка/кошелька',
       },
       invoice: {
+        sendReceipt: 'Отправить квитанцию',
+        sendReceiptAsk: 'Отправить клиенту квитанцию/счёт сейчас?',
+        sendNow: 'Отправить сейчас',
         reminderTail:
           'Пожалуйста, произведите оплату при первой возможности. Спасибо!',
         reminder: 'Напоминание об оплате',
@@ -6431,6 +6688,33 @@ const resources = {
 
   ar: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'لا توجد "قائمة أسعار" لهذه الشقة بعد.',
+        title: 'قائمة الأسعار',
+        scopeApartment: 'لهذه الشقة',
+        scopeGlobal: 'على مستوى النظام',
+        currentScope: 'النطاق',
+        apartmentHint: 'افتح من شاشة الغرف للعمل حسب الشقة.',
+        empty: 'لا توجد عناصر بعد.',
+        editTitle: 'تحرير',
+        addTitle: 'إضافة',
+        name: 'اسم الرسوم',
+        add: 'إضافة',
+        pricePerUnit: 'السعر لكل وحدة',
+        pricePerPeriod: 'السعر لكل فترة',
+        requireName: 'يرجى إدخال اسم الرسوم.',
+        requirePrice: 'سعر غير صالح.',
+        scopeNote:
+          'ملاحظة: عندما يكون النطاق "حسب الشقة"، ينطبق هذا البند على المبنى الحالي فقط. وعند "على مستوى النظام"، يُستخدم كبند افتراضي لجميع الشقق.',
+        applyCatalog: 'تطبيق قائمة الأسعار',
+        catalogApplied: 'تم تطبيق قائمة الأسعار.',
+        note: 'ملاحظة: "قائمة الأسعار" هي فهرس الرسوم الافتراضي لكل شقة. قم بإعداده هنا؛ وعند إنشاء عقد جديد، سيجلب زر "تطبيق قائمة أسعار الشقة" هذه العناصر كقائمة رسوم أولية (مع إمكانية التعديل قبل إنشاء العقد).',
+        apartmentOnlyHint:
+          'يرجى الفتح من شاشة الغرف لإعداد قائمة الأسعار للشقة.',
+        notice: 'إشعار',
+        confirmDelete: 'حذف هذا البند؟',
+        type: 'النوع',
+      },
       lateFee: {
         title: 'رسوم التأخير',
         enabled: 'مفعّل',
@@ -6547,6 +6831,9 @@ const resources = {
         qrHint: 'اختر رمز QR الخاص بالبنك/المحفظة',
       },
       invoice: {
+        sendReceipt: 'إرسال الإيصال',
+        sendReceiptAsk: 'هل ترغب في إرسال الإيصال/الفاتورة للعميل الآن؟',
+        sendNow: 'أرسل الآن',
         reminderTail: 'يرجى إتمام الدفع في أقرب وقت ممكن. شكرًا لك!',
         reminder: 'تذكير بالدفع',
         daysLate: 'أيام التأخير',
@@ -7095,6 +7382,33 @@ const resources = {
   },
   th: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'ยังไม่มี "ตารางราคา" สำหรับอพาร์ตเมนต์นี้',
+        title: 'ตารางราคา',
+        scopeApartment: 'สำหรับอพาร์ตเมนต์นี้',
+        scopeGlobal: 'ทั้งระบบ',
+        currentScope: 'ขอบเขต',
+        apartmentHint: 'เปิดจากหน้าห้องเพื่อทำงานตามอพาร์ตเมนต์',
+        empty: 'ยังไม่มีรายการ',
+        editTitle: 'แก้ไข',
+        addTitle: 'เพิ่ม',
+        name: 'ชื่อค่าธรรมเนียม',
+        add: 'เพิ่ม',
+        pricePerUnit: 'ราคาต่อหน่วย',
+        pricePerPeriod: 'ราคาต่อรอบ',
+        requireName: 'กรุณากรอกชื่อค่าธรรมเนียม',
+        requirePrice: 'ราคาไม่ถูกต้อง',
+        scopeNote:
+          'หมายเหตุ: เมื่อขอบเขตเป็น "ตามอพาร์ตเมนต์" รายการนี้จะใช้กับอาคารปัจจุบันเท่านั้น เมื่อเป็น "ทั้งระบบ" รายการนี้จะเป็นค่าเริ่มต้นสำหรับทุกอพาร์ตเมนต์',
+        applyCatalog: 'ใช้ตารางราคา',
+        catalogApplied: 'ใช้ตารางราคาแล้ว',
+        note: 'หมายเหตุ: "ตารางราคา" คือหมวดค่าธรรมเนียมเริ่มต้นของแต่ละอพาร์ตเมนต์ ตั้งค่าที่นี่; เมื่อตั้งสัญญาใหม่ ปุ่ม "ใช้ตารางราคาของอพาร์ตเมนต์" จะดึงรายการเหล่านี้เป็นรายการค่าธรรมเนียมเริ่มต้น (ยังแก้ไขได้ก่อนสร้างสัญญา)',
+        apartmentOnlyHint:
+          'โปรดเปิดจากหน้าห้องเพื่อกำหนดตารางราคาให้กับอพาร์ตเมนต์',
+        notice: 'ประกาศ',
+        confirmDelete: 'ลบรายการนี้หรือไม่?',
+        type: 'ประเภท',
+      },
       lateFee: {
         title: 'ค่าปรับล่าช้า',
         enabled: 'เปิดใช้งานแล้ว',
@@ -7143,6 +7457,9 @@ const resources = {
         qrHint: 'เลือกคิวอาร์โค้ดของธนาคาร/วอลเล็ต',
       },
       invoice: {
+        sendReceipt: 'ส่งใบเสร็จ',
+        sendReceiptAsk: 'ต้องการส่งใบเสร็จ/ใบแจ้งหนี้ให้ลูกค้าตอนนี้หรือไม่?',
+        sendNow: 'ส่งตอนนี้',
         reminderTail: 'กรุณาชำระเงินโดยเร็วที่สุด ขอบคุณครับ/ค่ะ!',
         reminder: 'แจ้งเตือนการชำระเงิน',
         daysLate: 'จำนวนวันล่าช้า',
@@ -7794,6 +8111,33 @@ const resources = {
   },
   id: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'Belum ada "Daftar harga" untuk apartemen ini.',
+        title: 'Daftar harga',
+        scopeApartment: 'Untuk apartemen ini',
+        scopeGlobal: 'Seluruh sistem',
+        currentScope: 'Cakupan',
+        apartmentHint: 'Buka dari layar Kamar untuk bekerja per apartemen.',
+        empty: 'Belum ada item.',
+        editTitle: 'Edit',
+        addTitle: 'Tambah',
+        name: 'Nama biaya',
+        add: 'Tambah',
+        pricePerUnit: 'Harga per unit',
+        pricePerPeriod: 'Harga per periode',
+        requireName: 'Harap masukkan nama biaya.',
+        requirePrice: 'Harga tidak valid.',
+        scopeNote:
+          'Catatan: Jika cakupan "Per apartemen", item ini hanya berlaku untuk gedung saat ini. Jika "Seluruh sistem", item digunakan sebagai default untuk semua apartemen.',
+        applyCatalog: 'Terapkan daftar harga',
+        catalogApplied: 'Daftar harga diterapkan.',
+        note: 'Catatan: "Daftar harga" adalah katalog biaya default untuk setiap apartemen. Konfigurasikan di sini; saat membuat kontrak baru, tombol "Terapkan daftar harga apartemen" akan mengambil item ini sebagai daftar biaya awal (masih dapat disesuaikan sebelum membuat kontrak).',
+        apartmentOnlyHint:
+          'Silakan buka dari layar Kamar untuk menetapkan daftar harga untuk apartemen.',
+        notice: 'Pemberitahuan',
+        confirmDelete: 'Hapus item ini?',
+        type: 'Jenis',
+      },
       lateFee: {
         title: 'Denda keterlambatan',
         enabled: 'Diaktifkan',
@@ -7854,6 +8198,10 @@ const resources = {
         qrHint: 'Pilih kode QR bank/dompet',
       },
       invoice: {
+        sendReceipt: 'Kirim tanda terima',
+        sendReceiptAsk:
+          'Ingin mengirim tanda terima/faktur ke pelanggan sekarang?',
+        sendNow: 'Kirim sekarang',
         reminderTail: 'Mohon selesaikan pembayaran secepatnya. Terima kasih!',
         reminder: 'Pengingat pembayaran',
         daysLate: 'Hari keterlambatan',
@@ -8497,6 +8845,33 @@ const resources = {
   },
   ms: {
     translation: {
+      catalog: {
+        noCatalogForApartment: 'Belum ada "Senarai harga" untuk apartmen ini.',
+        title: 'Senarai harga',
+        scopeApartment: 'Untuk apartmen ini',
+        scopeGlobal: 'Seluruh sistem',
+        currentScope: 'Skop',
+        apartmentHint: 'Buka dari skrin Bilik untuk bekerja mengikut apartmen.',
+        empty: 'Belum ada item.',
+        editTitle: 'Edit',
+        addTitle: 'Tambah',
+        name: 'Nama caj',
+        add: 'Tambah',
+        pricePerUnit: 'Harga seunit',
+        pricePerPeriod: 'Harga setiap tempoh',
+        requireName: 'Sila masukkan nama caj.',
+        requirePrice: 'Harga tidak sah.',
+        scopeNote:
+          'Nota: Apabila skop ialah "Mengikut apartmen", item ini hanya terpakai untuk bangunan semasa. Jika "Seluruh sistem", item digunakan sebagai lalai untuk semua apartmen.',
+        applyCatalog: 'Guna senarai harga',
+        catalogApplied: 'Senarai harga telah digunakan.',
+        note: 'Nota: "Senarai harga" ialah katalog caj lalai bagi setiap apartmen. Konfigurasikan di sini; semasa mencipta kontrak baharu, butang "Guna senarai harga apartmen" akan mengambil item ini sebagai senarai caj awal (boleh dilaras sebelum mencipta kontrak).',
+        apartmentOnlyHint:
+          'Sila buka dari skrin Bilik untuk menetapkan senarai harga bagi apartmen.',
+        notice: 'Notis',
+        confirmDelete: 'Padam item ini?',
+        type: 'Jenis',
+      },
       lateFee: {
         title: 'Caj lewat',
         enabled: 'Diaktifkan',
@@ -8596,6 +8971,10 @@ const resources = {
         qrHint: 'Pilih kod QR bank/dompet',
       },
       invoice: {
+        sendReceipt: 'Hantar resit',
+        sendReceiptAsk:
+          'Adakah anda mahu menghantar resit/invois kepada pelanggan sekarang?',
+        sendNow: 'Hantar sekarang',
         reminderTail:
           'Sila selesaikan pembayaran secepat mungkin. Terima kasih!',
         reminder: 'Peringatan pembayaran',
@@ -9182,6 +9561,35 @@ const resources = {
   },
   fil: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'Wala pang "Talaan ng presyo" para sa apartment na ito.',
+        title: 'Talaan ng presyo',
+        scopeApartment: 'Para sa apartment na ito',
+        scopeGlobal: 'Pang-buong sistema',
+        currentScope: 'Saklaw',
+        apartmentHint:
+          'Buksan mula sa screen na Rooms upang makapagtrabaho kada apartment.',
+        empty: 'Wala pang mga item.',
+        editTitle: 'I-edit',
+        addTitle: 'Idagdag',
+        name: 'Pangalan ng bayarin',
+        add: 'Idagdag',
+        pricePerUnit: 'Presyo bawat yunit',
+        pricePerPeriod: 'Presyo bawat yugto',
+        requireName: 'Pakilagay ang pangalan ng bayarin.',
+        requirePrice: 'Di-wastong presyo.',
+        scopeNote:
+          'Tandaan: Kapag "Bawat apartment" ang saklaw, ang item na ito ay para lamang sa kasalukuyang gusali. Kapag "Pang-buong sistema", gagamitin ito bilang default para sa lahat ng apartment.',
+        applyCatalog: 'Ilapat ang talaan ng presyo',
+        catalogApplied: 'Na-ilapat ang talaan ng presyo.',
+        note: 'Tala: Ang "Talaan ng presyo" ang default na katalogo ng bayarin ng bawat apartment. I-configure ito rito; kapag lumilikha ng bagong kontrata, kukunin ng "Ilapat ang talaan ng presyo ng apartment" ang mga item na ito bilang panimulang listahan ng bayarin (maaari pang i-edit bago lumikha ng kontrata).',
+        apartmentOnlyHint:
+          'Buksan mula sa screen na Rooms upang i-set ang talaan ng presyo para sa apartment.',
+        notice: 'Abiso',
+        confirmDelete: 'Tanggalin ang item na ito?',
+        type: 'Uri',
+      },
       lateFee: {
         title: 'Multa sa pagkaantala',
         enabled: 'Pinagana',
@@ -9355,6 +9763,10 @@ const resources = {
         qrHint: 'Pumili ng QR code ng bangko/wallet',
       },
       invoice: {
+        sendReceipt: 'Ipadala ang resibo',
+        sendReceiptAsk:
+          'Gusto mo bang ipadala ngayon ang resibo/invoice sa customer?',
+        sendNow: 'Ipadala ngayon',
         reminderTail:
           'Paki-kumpleto ang bayad sa lalong madaling panahon. Salamat!',
         reminder: 'Paalala sa pagbabayad',
@@ -9885,6 +10297,35 @@ const resources = {
   },
   pt: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'Ainda não há "Tabela de preços" para este apartamento.',
+        title: 'Tabela de preços',
+        scopeApartment: 'Para este apartamento',
+        scopeGlobal: 'Em todo o sistema',
+        currentScope: 'Escopo',
+        apartmentHint:
+          'Abra a partir da tela Quartos para trabalhar por apartamento.',
+        empty: 'Ainda não há itens.',
+        editTitle: 'Editar',
+        addTitle: 'Adicionar',
+        name: 'Nome da taxa',
+        add: 'Adicionar',
+        pricePerUnit: 'Preço por unidade',
+        pricePerPeriod: 'Preço por período',
+        requireName: 'Informe o nome da taxa.',
+        requirePrice: 'Preço inválido.',
+        scopeNote:
+          'Observação: Quando o escopo é "Por apartamento", este item se aplica apenas ao prédio atual. Quando é "Em todo o sistema", é usado como padrão para todos os apartamentos.',
+        applyCatalog: 'Aplicar tabela de preços',
+        catalogApplied: 'Tabela de preços aplicada.',
+        note: 'Observação: "Tabela de preços" é o catálogo de taxas padrão de cada apartamento. Configure aqui; ao criar um novo contrato, o botão "Aplicar tabela de preços do apartamento" levará estes itens como lista inicial de taxas (ainda editável antes de criar o contrato).',
+        apartmentOnlyHint:
+          'Abra a partir da tela Quartos para definir a tabela de preços do apartamento.',
+        notice: 'Aviso',
+        confirmDelete: 'Excluir este item?',
+        type: 'Tipo',
+      },
       lateFee: {
         title: 'Multa por atraso',
         enabled: 'Ativado',
@@ -9984,6 +10425,9 @@ const resources = {
         qrHint: 'Escolha o código QR do banco/carteira',
       },
       invoice: {
+        sendReceipt: 'Enviar recibo',
+        sendReceiptAsk: 'Deseja enviar o recibo/fatura para o cliente agora?',
+        sendNow: 'Enviar agora',
         reminderTail:
           'Por favor, conclua o pagamento assim que possível. Obrigado!',
         reminder: 'Lembrete de pagamento',
@@ -10564,6 +11008,35 @@ const resources = {
   },
   hi: {
     translation: {
+      catalog: {
+        noCatalogForApartment:
+          'इस अपार्टमेंट के लिए अभी "मूल्य सूची" उपलब्ध नहीं है।',
+        title: 'मूल्य सूची',
+        scopeApartment: 'इस अपार्टमेंट के लिए',
+        scopeGlobal: 'सिस्टम-स्तरीय',
+        currentScope: 'दायरा',
+        apartmentHint:
+          'अपार्टमेंट-वार काम करने के लिए कमरों की स्क्रीन से खोलें।',
+        empty: 'अभी कोई आइटम नहीं।',
+        editTitle: 'संपादित करें',
+        addTitle: 'जोड़ें',
+        name: 'शुल्क का नाम',
+        add: 'जोड़ें',
+        pricePerUnit: 'प्रति इकाई मूल्य',
+        pricePerPeriod: 'प्रति अवधि मूल्य',
+        requireName: 'कृपया शुल्क का नाम दर्ज करें।',
+        requirePrice: 'अमान्य मूल्य।',
+        scopeNote:
+          'टिप्पणी: जब दायरा "अपार्टमेंट-वार" हो, यह आइटम केवल वर्तमान भवन पर लागू होगा। "सिस्टम-स्तरीय" होने पर यह सभी अपार्टमेंट्स के लिए डिफ़ॉल्ट होगा।',
+        applyCatalog: 'मूल्य सूची लागू करें',
+        catalogApplied: 'मूल्य सूची लागू की गई।',
+        note: 'टिप्पणी: "मूल्य सूची" प्रत्येक अपार्टमेंट की डिफ़ॉल्ट शुल्क सूची/कैटलॉग है। इसे यहाँ कॉन्फ़िगर करें; नया अनुबंध बनाते समय "अपार्टमेंट मूल्य सूची लागू करें" बटन इन आइटमों को प्रारंभिक शुल्क सूची के रूप में ले आएगा (अनुबंध बनाने से पहले संपादित किया जा सकता है)।',
+        apartmentOnlyHint:
+          'अपार्टमेंट के लिए मूल्य सूची सेट करने हेतु कमरों की स्क्रीन से खोलें।',
+        notice: 'सूचना',
+        confirmDelete: 'क्या इस आइटम को हटाएँ?',
+        type: 'प्रकार',
+      },
       lateFee: {
         title: 'विलंब शुल्क',
         enabled: 'सक्रिय',
@@ -10631,6 +11104,9 @@ const resources = {
         room: 'कमरा',
       },
       invoice: {
+        sendReceipt: 'रसीद भेजें',
+        sendReceiptAsk: 'क्या आप अभी ग्राहक को रसीद/चालान भेजना चाहेंगे?',
+        sendNow: 'अभी भेजें',
         reminderTail: 'कृपया यथाशीघ्र भुगतान पूरा करें। धन्यवाद!',
         reminder: 'भुगतान अनुस्मारक',
         daysLate: 'देरी के दिन',
