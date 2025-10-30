@@ -1,9 +1,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <!-- Quyền cần thiết -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Nếu muốn tự khởi tạo lại sau reboot (để lịch local notif vẫn chạy) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android 12 trở xuống (fallback) -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- Khai báo phần cứng camera (không bắt buộc cứng) -->
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- Cho phép gọi intent camera & picker (Android 11+ cần queries) -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK" />
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MainApplication"
@@ -27,7 +50,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Boot receiver: cần exported="true" để nhận BOOT_COMPLETED từ hệ thống -->
+        <!-- Boot receiver -->
         <receiver
             android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationBootEventReceiver"
             android:exported="true">
@@ -38,7 +61,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Publisher: sửa đúng tên gói (KHÔNG có ký tự lạ/thiếu chữ 'n') -->
+        <!-- Publisher -->
         <receiver
             android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationPublisher"
             android:exported="false" />
@@ -46,14 +69,17 @@
         <service
             android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationRegistrationService"
             android:exported="false" />
+
+        <!-- CHỈ GIỮ MỘT provider, và để bên trong <application> -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
     </application>
 </manifest>

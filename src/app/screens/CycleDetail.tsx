@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -57,6 +58,7 @@ import { loadPaymentProfile } from '../../services/paymentProfile';
 import { markHappyEvent, maybeAskForReview } from '../../services/rateApp';
 import HiddenVietQR from '../components/HiddenVietQR';
 import { buildVietQRPayload } from '../../services/vietqr';
+import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
 // import { pickMeterImage, ocrDigitsFromImage } from '../../services/ocr';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CycleDetail'> & {
@@ -523,10 +525,10 @@ export default function CycleDetail({ route, navigation }: Props) {
       setTimeout(() => maybeAskForReview(), 800);
     }
   }
-const sendReceipt = React.useCallback(() => {
-  // shareInvoiceHtml đã tạo file HTML hóa đơn (có logo/QR, vv) và mở Share
-  return shareInvoiceHtml();
-}, [invId, language, dateFormat]);
+  const sendReceipt = React.useCallback(() => {
+    // shareInvoiceHtml đã tạo file HTML hóa đơn (có logo/QR, vv) và mở Share
+    return shareInvoiceHtml();
+  }, [invId, language, dateFormat]);
   async function shareInvoiceHtml() {
     if (!invId) {
       Alert.alert(
@@ -569,6 +571,25 @@ const sendReceipt = React.useCallback(() => {
       Alert.alert('Error', e?.message || 'Failed to create document');
     }
   }
+  const scanVar = async (row: ChargeRow) => {
+    try {
+      const uri = await pickMeterImage();
+      if (!uri) return;
+      const val = await ocrDigitsFromImage(uri);
+      if (typeof val === 'number' && !Number.isNaN(val)) {
+        // điền về input (hàm này đã format theo kiểu số nguyên)
+        onChangeVarValue(row.charge_type_id, String(val));
+      } else {
+        Alert.alert(
+          t('common.error'),
+          t('cycleDetail.ocrNoDigits') ||
+            'Không nhận ra số, vui lòng chụp rõ hơn.',
+        );
+      }
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message || t('common.tryAgain'));
+    }
+  };
 
   // Phân tách "Kỳ mở đầu"
   const { openingItems, openingMeta, openingAmount, normalItems } =
@@ -1210,7 +1231,6 @@ const sendReceipt = React.useCallback(() => {
                       title={
                         t('invoice.sendReceipt') || 'Gửi biên nhận (hóa đơn)'
                       }
-
                       onPress={shareInvoiceHtml}
                     />
                   )
@@ -1228,44 +1248,46 @@ const sendReceipt = React.useCallback(() => {
           </ScrollView>
 
           {/* Bottom action bar */}
-{status === 'settled' ? (
-  <View
-    style={{
-      justifyContent: 'flex-end',
-      position: 'absolute',
-      left: 12,
-      right: 12,
-      bottom: insets.bottom + 8,
-      flexDirection: 'row',
-      gap: 12,
-    }}
-  >
-    {(() => {
-      const { balance } = getPaidAndBalance();   // ✅ tính 1 lần
-      return (
-        <>
-          {/* Chỉ nhắc nhở khi còn nợ */}
-          {balance > 0 && (
-            <Button
-              title={t('invoice.reminderBtn') || 'Send reminder'}
-              onPress={sendReminder}
-            />
-          )}
+          {status === 'settled' ? (
+            <View
+              style={{
+                justifyContent: 'flex-end',
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom + 8,
+                flexDirection: 'row',
+                gap: 12,
+              }}
+            >
+              {(() => {
+                const { balance } = getPaidAndBalance(); // ✅ tính 1 lần
+                return (
+                  <>
+                    {/* Chỉ nhắc nhở khi còn nợ */}
+                    {balance > 0 && (
+                      <Button
+                        title={t('invoice.reminderBtn') || 'Send reminder'}
+                        onPress={sendReminder}
+                      />
+                    )}
 
-          {/* Nếu đã đủ tiền => ưu tiên nút gửi biên nhận */}
-          <Button
-            title={ (t('cycleDetail.shareText'))
-            }
-            onPress={sharePlainText}
-          />
+                    {/* Nếu đã đủ tiền => ưu tiên nút gửi biên nhận */}
+                    <Button
+                      title={t('cycleDetail.shareText')}
+                      onPress={sharePlainText}
+                    />
 
-          {/* Vẫn giữ nút Share (file HTML) nếu muốn gửi bản hóa đơn đầy đủ */}
-          <Button title={t('cycleDetail.share')} onPress={shareInvoiceHtml} />
-        </>
-      );
-    })()}
-  </View>
-)  : (
+                    {/* Vẫn giữ nút Share (file HTML) nếu muốn gửi bản hóa đơn đầy đủ */}
+                    <Button
+                      title={t('cycleDetail.share')}
+                      onPress={shareInvoiceHtml}
+                    />
+                  </>
+                );
+              })()}
+            </View>
+          ) : (
             <View
               style={{
                 justifyContent: 'flex-end',
@@ -1366,6 +1388,40 @@ const sendReceipt = React.useCallback(() => {
                             onChangeVarValue(r.charge_type_id, t2)
                           }
                         />
+                        <TouchableOpacity
+                          onPress={async () => {
+                            try {
+                              const uri = await pickMeterImage();
+                              if (!uri) return;
+                              const digits = await ocrDigitsFromImage(uri);
+                              if (digits != null) {
+                                onChangeVarValue(
+                                  r.charge_type_id,
+                                  String(digits),
+                                );
+                              } else {
+                                Alert.alert(
+                                  'OCR',
+                                  'Không đọc được số. Bạn nhập tay giúp nhé.',
+                                );
+                              }
+                            } catch (e: any) {
+                              Alert.alert(
+                                'OCR',
+                                e?.message || 'Không thể chụp/đọc ảnh',
+                              );
+                            }
+                          }}
+                          style={{
+                            marginLeft: 8,
+                            paddingHorizontal: 10,
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            backgroundColor: c.card,
+                          }}
+                        >
+                          <Text style={{ color: c.text }}>📷</Text>
+                        </TouchableOpacity>
                         {/* Scan meter button (optional) */}
                       </View>
 
