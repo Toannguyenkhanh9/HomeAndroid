@@ -13,7 +13,8 @@ import {
   listCycles,
   nextDueDate,
   getTenant,
-  getInvoiceItems,   // ⬅️ thêm để kiểm tra opening từ meta_json
+  getInvoiceItems,
+  getCyclePaymentStatus,
 } from '../../services/rent';
 import {useSettings} from '../state/SettingsContext';
 import {formatDateISO} from '../../utils/date';
@@ -29,7 +30,7 @@ export default function RoomDetail({route, navigation}: Props) {
   const [room, setRoom] = useState<any>();
   const [lease, setLease] = useState<any>();
   const [cycles, setCycles] = useState<any[]>([]);
-  const [tenantName, setTenantName] = useState<string>(''); // ⬅️ tên người thuê
+  const [tenantName, setTenantName] = useState<string>('');
   const {dateFormat, language} = useSettings();
 
   const loadAll = useCallback(() => {
@@ -40,7 +41,6 @@ export default function RoomDetail({route, navigation}: Props) {
     setLease(l);
     if (l) {
       setCycles(listCycles(l.id));
-      // lấy tên người thuê nếu có
       try {
         const tnt = l?.tenant_id ? getTenant(l.tenant_id) : null;
         setTenantName(tnt?.full_name || '');
@@ -53,8 +53,14 @@ export default function RoomDetail({route, navigation}: Props) {
     }
   }, [roomId]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
-  useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [loadAll]),
+  );
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -76,24 +82,50 @@ export default function RoomDetail({route, navigation}: Props) {
   };
 
   const labelForCycle = (cy: any) => {
-    if (isOpeningCycle(cy)) return t('cycleDetail.openingCycle') || 'Kỳ Mở Đầu';
-    return `${formatDateISO(cy.period_start, dateFormat, language)}  →  ${formatDateISO(
-      cy.period_end,
+    if (isOpeningCycle(cy))
+      return t('cycleDetail.openingCycle') || 'Kỳ Mở Đầu';
+    return `${formatDateISO(
+      cy.period_start,
       dateFormat,
       language,
-    )}`;
+    )}  →  ${formatDateISO(cy.period_end, dateFormat, language)}`;
+  };
+
+  // ===== Huy hiệu trạng thái chu kỳ (dựa vào thanh toán) =====
+  const renderCycleStatusBadge = (cy: any) => {
+    const st = getCyclePaymentStatus(cy.id);
+    if (st.kind === 'open') {
+      return (
+        <Text style={{fontStyle: 'italic', color: '#EF4444'}}>
+          {t('settledNo')}
+        </Text>
+      );
+    }
+    if (st.kind === 'paid') {
+      return (
+        <Text style={{fontStyle: 'italic', color: '#10B981'}}>
+          {t('cycleDetail.badgePaid') || 'Đã thu tiền'}
+        </Text>
+      );
+    }
+    // settled nhưng chưa thu đủ
+    return (
+      <Text style={{fontStyle: 'italic', color: '#F59E0B'}}>
+        {t('cycleDetail.badgeSettled') || 'Đã Tất Toán'}
+      </Text>
+    );
   };
 
   // ===== Phân nhóm chu kỳ =====
   const openCycles = useMemo(
     () => cycles.filter(cy => String(cy.status) !== 'settled'),
-    [cycles]
+    [cycles],
   );
 
   const currentCycle = useMemo(() => {
     if (!lease) return undefined;
     return openCycles.find(
-      cy => String(cy.period_start) <= today && today <= String(cy.period_end)
+      cy => String(cy.period_start) <= today && today <= String(cy.period_end),
     );
   }, [openCycles, lease, today]);
 
@@ -104,7 +136,6 @@ export default function RoomDetail({route, navigation}: Props) {
   }, [openCycles, today]);
 
   const overdueOpenSorted = useMemo(() => {
-    // các chu kỳ trước hôm nay nhưng CHƯA tất toán
     return openCycles
       .filter(cy => String(cy.period_end) < today)
       .sort((a, b) => (a.period_start < b.period_start ? -1 : 1));
@@ -135,7 +166,13 @@ export default function RoomDetail({route, navigation}: Props) {
       <View style={{padding: 12, gap: 12}}>
         {/* Thông tin phòng */}
         <Card>
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 6,
+            }}>
             <Text style={{color: c.text, fontWeight: '800', fontSize: 18}}>
               {t('roomInfo')} {room?.code || ''}
             </Text>
@@ -146,20 +183,36 @@ export default function RoomDetail({route, navigation}: Props) {
             />
           </View>
 
-          <Text style={{color: c.subtext}}>{t('floor')}: {room?.floor ?? '—'}</Text>
-          <Text style={{color: c.subtext}}>{t('acreage')}: {room?.area ?? '—'} m2</Text>
-          <Text style={{color: c.subtext}}>{t('status')}: {room?.status === 'occupied' ?  t('occupied') : t('available')}</Text>
+          <Text style={{color: c.subtext}}>
+            {t('floor')}: {room?.floor ?? '—'}
+          </Text>
+          <Text style={{color: c.subtext}}>
+            {t('acreage')}: {room?.area ?? '—'} m2
+          </Text>
+          <Text style={{color: c.subtext}}>
+            {t('status')}:{' '}
+            {room?.status === 'occupied' ? t('occupied') : t('available')}
+          </Text>
         </Card>
 
         {/* Hợp đồng */}
         <Card>
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Text style={{color: c.text, fontWeight: '800'}}>{t('contract')}</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <Text style={{color: c.text, fontWeight: '800'}}>
+              {t('contract')}
+            </Text>
             {lease ? (
               <Button
                 title={t('viewDetail')}
                 variant="ghost"
-                onPress={() => navigation.navigate('LeaseDetail', {leaseId: lease.id})}
+                onPress={() =>
+                  navigation.navigate('LeaseDetail', {leaseId: lease.id})
+                }
               />
             ) : null}
           </View>
@@ -168,26 +221,36 @@ export default function RoomDetail({route, navigation}: Props) {
             <>
               {/* ⬇️ dòng hiển thị tên người thuê */}
               <Text style={{color: c.subtext}}>
-                {(t('cycleDetail.tenant') || t('leaseForm.tenantName') || 'Người thuê') + ':'}{' '}
+                {(t('cycleDetail.tenant') ||
+                  t('leaseForm.tenantName') ||
+                  'Người thuê') + ':'}{' '}
                 {tenantName || '—'}
               </Text>
 
               <Text style={{color: c.subtext}}>
-                {t('startDate')}: {formatDateISO(lease.start_date, dateFormat, language)}
+                {t('startDate')}:{' '}
+                {formatDateISO(lease.start_date, dateFormat, language)}
               </Text>
               <Text style={{color: c.subtext}}>
-                {t('endDate')}: { lease.end_date ? formatDateISO(lease.end_date, dateFormat, language) : '—'}
+                {t('endDate')}:{' '}
+                {lease.end_date
+                  ? formatDateISO(lease.end_date, dateFormat, language)
+                  : '—'}
               </Text>
               <Text style={{color: c.subtext}}>
-                {t('nextDueDate')}: {nextDue ? formatDateISO(nextDue, dateFormat, language) : '—'}
+                {t('nextDueDate')}:{' '}
+                {nextDue ? formatDateISO(nextDue, dateFormat, language) : '—'}
               </Text>
             </>
           ) : (
             <>
-              <Text style={{color: c.subtext}}>
-                {t('noContract')}
-              </Text>
-              <View style={{flexDirection:'row', justifyContent:'flex-end', gap:10}}>
+              <Text style={{color: c.subtext}}>{t('noContract')}</Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 10,
+                }}>
                 <Button
                   title={t('createLease')}
                   onPress={() => navigation.navigate('LeaseForm', {roomId})}
@@ -199,12 +262,18 @@ export default function RoomDetail({route, navigation}: Props) {
 
         {/* Chu kỳ thuê (hiện tại hoặc sắp tới) */}
         <Card>
-          <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>{t('leaseCycle')}</Text>
+          <Text
+            style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+            {t('leaseCycle')}
+          </Text>
           {lease ? (
             mainCycle ? (
               <TouchableOpacity
                 onPress={() =>
-                  navigation.navigate('CycleDetail', {cycleId: mainCycle.id, onSettled: loadAll})
+                  navigation.navigate('CycleDetail', {
+                    cycleId: mainCycle.id,
+                    onSettled: loadAll,
+                  })
                 }
                 style={{
                   padding: 12,
@@ -214,37 +283,33 @@ export default function RoomDetail({route, navigation}: Props) {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
-                <Text style={{color: c.text}}>
-                  {labelForCycle(mainCycle)}
-                </Text>
-                <Text
-                  style={{
-                    fontStyle: 'italic',
-                    color: String(mainCycle.status) === 'settled' ? '#10B981' : '#EF4444',
-                  }}>
-                  {String(mainCycle.status) === 'settled' ? t('settledYes') : t('settledNo')}
-                </Text>
+                <Text style={{color: c.text}}>{labelForCycle(mainCycle)}</Text>
+                {renderCycleStatusBadge(mainCycle)}
               </TouchableOpacity>
             ) : (
               <Text style={{color: c.subtext}}>{t('noCycle')}</Text>
             )
           ) : (
-            <Text style={{color: c.subtext}}>
-              {t('noLeaseNoCycle')}
-            </Text>
+            <Text style={{color: c.subtext}}>{t('noLeaseNoCycle')}</Text>
           )}
         </Card>
 
         {/* Chu kỳ quá hạn (chưa tất toán) */}
         {overdueOpenSorted.length > 0 && (
           <Card>
-            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+            <Text
+              style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
               {t('overdueCycles') || 'Chu kỳ quá hạn (chưa tất toán)'}
             </Text>
             {overdueOpenSorted.map(cy => (
               <TouchableOpacity
                 key={cy.id}
-                onPress={() => navigation.navigate('CycleDetail', {cycleId: cy.id, onSettled: loadAll})}
+                onPress={() =>
+                  navigation.navigate('CycleDetail', {
+                    cycleId: cy.id,
+                    onSettled: loadAll,
+                  })
+                }
                 style={{
                   padding: 12,
                   borderRadius: 12,
@@ -254,9 +319,8 @@ export default function RoomDetail({route, navigation}: Props) {
                   alignItems: 'center',
                   marginBottom: 8,
                 }}>
-                <Text style={{color: c.text}}>
-                  {labelForCycle(cy)}
-                </Text>
+                <Text style={{color: c.text}}>{labelForCycle(cy)}</Text>
+                {/* Quá hạn thì chắc chắn open */}
                 <Text style={{fontStyle: 'italic', color: '#EF4444'}}>
                   {t('settledNo')}
                 </Text>
@@ -268,13 +332,16 @@ export default function RoomDetail({route, navigation}: Props) {
         {/* Danh sách chu kỳ đã tất toán */}
         {settledList.length > 0 && (
           <Card>
-            <Text style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
+            <Text
+              style={{color: c.text, fontWeight: '800', marginBottom: 8}}>
               {t('cycleSettledList')}
             </Text>
             {settledList.map(cy => (
               <TouchableOpacity
                 key={cy.id}
-                onPress={() => navigation.navigate('CycleDetail', {cycleId: cy.id})}
+                onPress={() =>
+                  navigation.navigate('CycleDetail', {cycleId: cy.id})
+                }
                 style={{
                   padding: 12,
                   borderRadius: 12,
@@ -284,10 +351,8 @@ export default function RoomDetail({route, navigation}: Props) {
                   alignItems: 'center',
                   marginBottom: 8,
                 }}>
-                <Text style={{color: c.text}}>
-                  {labelForCycle(cy)}
-                </Text>
-                <Text style={{fontStyle: 'italic', color: '#10B981'}}>{t('settledYes')}</Text>
+                <Text style={{color: c.text}}>{labelForCycle(cy)}</Text>
+                {renderCycleStatusBadge(cy)}
               </TouchableOpacity>
             ))}
           </Card>

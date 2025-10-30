@@ -2964,5 +2964,25 @@ export function applyCatalogToAllLeases(apartmentId: string) {
   );
   for (const L of leases) applyCatalogToLease(L.id, apartmentId);
 }
+export function getInvoicePaidState(invId: string) {
+  const inv = getInvoice(invId);
+  const pays = queryPaymentsOfInvoice ? queryPaymentsOfInvoice(invId) : [];
+  const paid = pays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+  const total = Number(inv?.total || 0);
+  const balance = Math.max(total - paid, 0);
+  const isPaid = balance <= 0.0001; // tránh lỗi số thực
+  return { total, paid, balance, isPaid };
+}
 
+export function getCyclePaymentStatus(cycleId: string):
+  | { kind: 'open' }
+  | { kind: 'settled'; balance: number }
+  | { kind: 'paid' } {
+  const cyc = getCycle(cycleId);
+  if (!cyc) return { kind: 'open' };
+  if (String(cyc.status) !== 'settled') return { kind: 'open' };
+  if (!cyc.invoice_id) return { kind: 'settled', balance: 0 };
+  const { balance, isPaid } = getInvoicePaidState(cyc.invoice_id);
+  return isPaid ? { kind: 'paid' } : { kind: 'settled', balance };
+}
 

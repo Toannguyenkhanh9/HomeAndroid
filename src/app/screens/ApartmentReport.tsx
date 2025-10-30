@@ -188,6 +188,7 @@ export default function ApartmentReport({ route }: Props) {
                       value={tempFrom ?? fromDate}
                       mode="date"
                       display="spinner"
+                      themeVariant='light'
                       maximumDate={toDate}
                       onChange={(_, d) => d && setTempFrom(d)}
                     />
@@ -221,6 +222,7 @@ export default function ApartmentReport({ route }: Props) {
                     </View>
                     <DateTimePicker
                       value={tempTo ?? toDate}
+                      themeVariant='light'
                       mode="date"
                       display="spinner"
                       minimumDate={fromDate}
@@ -238,6 +240,7 @@ export default function ApartmentReport({ route }: Props) {
               value={fromDate}
               mode="date"
               display="default"
+              themeVariant='light'
               maximumDate={toDate}
               onChange={(e, d) => {
                 setShowFrom(false);
@@ -250,6 +253,7 @@ export default function ApartmentReport({ route }: Props) {
               value={toDate}
               mode="date"
               display="default"
+              themeVariant='light'
               minimumDate={fromDate}
               onChange={(e, d) => {
                 setShowTo(false);

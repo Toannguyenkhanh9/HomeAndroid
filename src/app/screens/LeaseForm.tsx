@@ -495,6 +495,7 @@ export default function LeaseForm({ route, navigation }: Props) {
                     value={iosTemp ?? new Date(startISO)}
                     mode="date"
                     display="spinner"
+                    themeVariant='light'
                     onChange={(_, d) => d && setIosTemp(d)}
                   />
                 </View>
@@ -508,6 +509,7 @@ export default function LeaseForm({ route, navigation }: Props) {
               value={new Date(startISO)}
               mode="date"
               display="default"
+              themeVariant='light'
               onChange={(event, date) => {
                 setShowDatePicker(false);
                 if (event.type === 'set' && date) setStartISO(date.toISOString().slice(0, 10));

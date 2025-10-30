@@ -152,7 +152,7 @@ export default function PaymentProfileScreen() {
           selectionColor={c.text}
           style={underlineInput}
         />
-        <Text style={{ color: c.subtext }}>
+        {/* <Text style={{ color: c.subtext }}>
           {t('payment.bankBin') || 'Bank BIN (VietQR)'}
         </Text>
         <TextInput
@@ -163,7 +163,7 @@ export default function PaymentProfileScreen() {
           keyboardType="number-pad"
           selectionColor={c.text}
           style={underlineInput}
-        />
+        /> */}
         <Text style={{ color: c.subtext }}>
           {t('payment.accountName') || 'Account holder'}
         </Text>

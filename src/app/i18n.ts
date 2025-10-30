@@ -267,6 +267,8 @@ const resources = {
         finalBalance: 'Số dư cuối cùng',
       },
       cycleDetail: {
+        badgePaid: 'Đã thu tiền',
+        badgeSettled: 'Đã Tất Toán',
         collectMore: 'Thu bổ sung',
         collectedMoreOk: 'Đã thêm khoản bổ sung',
         errExtraRequired: 'Vui lòng nhập đầy đủ tên và số tiền',
@@ -1180,6 +1182,8 @@ const resources = {
         finalBalance: 'Final balance',
       },
       cycleDetail: {
+        badgePaid: 'Paid',
+        badgeSettled: 'Settled',
         collectMore: 'Collect additional',
         collectedMoreOk: 'Additional item added',
         errExtraRequired: 'Please enter both name and amount',
@@ -2240,6 +2244,8 @@ const resources = {
         finalBalance: 'Balance final',
       },
       cycleDetail: {
+        badgePaid: 'Pagado',
+        badgeSettled: 'Saldado',
         collectMore: 'Cobrar adicional',
         collectedMoreOk: 'Se agregó el cargo adicional',
         errExtraRequired: 'Por favor, ingresa el nombre y el importe',
@@ -3104,6 +3110,8 @@ const resources = {
         finalBalance: 'Solde final',
       },
       cycleDetail: {
+        badgePaid: 'Payé',
+        badgeSettled: 'Soldé',
         collectMore: 'Encaisser un complément',
         collectedMoreOk: 'Élément complémentaire ajouté',
         errExtraRequired: 'Veuillez saisir le nom et le montant',
@@ -3782,6 +3790,8 @@ const resources = {
         finalBalance: 'Endsaldo',
       },
       cycleDetail: {
+        badgePaid: 'Bezahlt',
+        badgeSettled: 'Beglichen',
         collectMore: 'Zusatzbetrag einziehen',
         collectedMoreOk: 'Zusatzposition hinzugefügt',
         errExtraRequired: 'Bitte Name und Betrag eingeben',
@@ -4447,6 +4457,8 @@ const resources = {
         finalBalance: '期末余额',
       },
       cycleDetail: {
+        badgePaid: '已付款',
+        badgeSettled: '已结清',
         collectMore: '追加收取',
         collectedMoreOk: '已添加附加项',
         errExtraRequired: '请填写名称和金额',
@@ -5102,6 +5114,8 @@ const resources = {
         finalBalance: '最終残高',
       },
       cycleDetail: {
+        badgePaid: '支払い済み',
+        badgeSettled: '清算済み',
         collectMore: '追加徴収',
         collectedMoreOk: '追加項目を登録しました',
         errExtraRequired: '名称と金額を両方入力してください',
@@ -5762,6 +5776,8 @@ const resources = {
         finalBalance: '최종 잔액',
       },
       cycleDetail: {
+        badgePaid: '결제 완료',
+        badgeSettled: '정산 완료',
         collectMore: '추가 수금',
         collectedMoreOk: '추가 항목이 등록되었습니다',
         errExtraRequired: '이름과 금액을 모두 입력하세요',
@@ -6421,6 +6437,8 @@ const resources = {
         finalBalance: 'Финальный баланс',
       },
       cycleDetail: {
+        badgePaid: 'Оплачено',
+        badgeSettled: 'Погашено',
         collectMore: 'Взыскать дополнительно',
         collectedMoreOk: 'Добавлена дополнительная позиция',
         errExtraRequired: 'Введите имя и сумму',
@@ -7127,6 +7145,8 @@ const resources = {
         finalBalance: 'الرصيد النهائي',
       },
       cycleDetail: {
+        badgePaid: 'مدفوع',
+        badgeSettled: 'تمت التسوية',
         collectMore: 'تحصيل إضافي',
         collectedMoreOk: 'تمت إضافة بند إضافي',
         errExtraRequired: 'يرجى إدخال الاسم والمبلغ معًا',
@@ -7753,6 +7773,8 @@ const resources = {
         finalBalance: 'ยอดสุทธิ',
       },
       cycleDetail: {
+        badgePaid: 'ชำระแล้ว',
+        badgeSettled: 'ปิดยอดแล้ว',
         collectMore: 'เก็บเงินเพิ่ม',
         collectedMoreOk: 'เพิ่มรายการเพิ่มเติมแล้ว',
         errExtraRequired: 'โปรดกรอกทั้งชื่อและจำนวนเงิน',
@@ -8497,6 +8519,8 @@ const resources = {
         finalBalance: 'Saldo akhir',
       },
       cycleDetail: {
+        badgePaid: 'Dibayar',
+        badgeSettled: 'Lunas',
         collectMore: 'Tagih tambahan',
         collectedMoreOk: 'Item tambahan ditambahkan',
         errExtraRequired: 'Harap isi nama dan jumlah',
@@ -9271,6 +9295,8 @@ const resources = {
         finalBalance: 'Baki akhir',
       },
       cycleDetail: {
+        badgePaid: 'Dibayar',
+        badgeSettled: 'Dilunaskan',
         collectMore: 'Kutip tambahan',
         collectedMoreOk: 'Item tambahan telah ditambah',
         errExtraRequired: 'Sila isi nama dan jumlah',
@@ -10065,6 +10091,8 @@ const resources = {
         finalBalance: 'Huling balanse',
       },
       cycleDetail: {
+        badgePaid: 'Nabayaran',
+        badgeSettled: 'Nabayaran nang buo',
         collectMore: 'Maningil pa',
         collectedMoreOk: 'Naidagdag ang dagdag na item',
         errExtraRequired: 'Pakilagay ang pangalan at halaga pareho',
@@ -10724,6 +10752,8 @@ const resources = {
         finalBalance: 'Saldo final',
       },
       cycleDetail: {
+        badgePaid: 'Pago',
+        badgeSettled: 'Quitado',
         collectMore: 'Cobrar adicional',
         collectedMoreOk: 'Item adicional adicionado',
         errExtraRequired: 'Informe o nome e o valor',
@@ -11369,6 +11399,8 @@ const resources = {
         finalBalance: 'अंतिम शेष',
       },
       cycleDetail: {
+        badgePaid: 'भुगतान हो गया',
+        badgeSettled: 'निपटान हो गया',
         collectMore: 'अतिरिक्त वसूली करें',
         collectedMoreOk: 'अतिरिक्त आइटम जोड़ा गया',
         errExtraRequired: 'कृपया नाम और राशि दोनों दर्ज करें',
