@@ -59,7 +59,7 @@ export default function UnpaidList({ route, navigation }: Props) {
         contentContainerStyle={{ padding: 12, gap: 12 }}
         ListEmptyComponent={
           <Text style={{ color: c.subtext, textAlign: 'center', marginTop: 24 }}>
-            {t('overview.noUnpaid') || 'Không có khoản còn nợ.'}
+            {t('common.noData') || 'Không có khoản còn nợ.'}
           </Text>
         }
         renderItem={({ item }) => (
