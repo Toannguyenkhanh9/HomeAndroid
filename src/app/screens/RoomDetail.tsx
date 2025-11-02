@@ -92,29 +92,63 @@ export default function RoomDetail({route, navigation}: Props) {
   };
 
   // ===== Huy hiệu trạng thái chu kỳ (dựa vào thanh toán) =====
-  const renderCycleStatusBadge = (cy: any) => {
-    const st = getCyclePaymentStatus(cy.id);
-    if (st.kind === 'open') {
-      return (
-        <Text style={{fontStyle: 'italic', color: '#EF4444'}}>
-          {t('settledNo')}
-        </Text>
-      );
-    }
-    if (st.kind === 'paid') {
-      return (
-        <Text style={{fontStyle: 'italic', color: '#10B981'}}>
-          {t('cycleDetail.badgePaid') || 'Đã thu tiền'}
-        </Text>
-      );
-    }
-    // settled nhưng chưa thu đủ
+// ===== Huy hiệu trạng thái chu kỳ (dựa vào thanh toán) =====
+const renderCycleStatusBadge = (cy: any) => {
+  const st: any = getCyclePaymentStatus(cy.id) || {};
+
+  // Hỗ trợ cả 2 dạng API: kind/state + số liệu
+  const balance: number | undefined =
+    typeof st.balance === 'number' ? st.balance : undefined;
+  const paid: number | undefined =
+    typeof st.paid === 'number' ? st.paid : undefined;
+
+  const isOpen =
+    st.kind === 'open' ||
+    st.state === 'NONE' ||
+    String(cy.status) !== 'settled';
+
+  if (isOpen) {
     return (
-      <Text style={{fontStyle: 'italic', color: '#F59E0B'}}>
-        {t('cycleDetail.badgeSettled') || 'Đã Tất Toán'}
+      <Text style={{ fontStyle: 'italic', color: '#EF4444' }}>
+        {t('settledNo')}
       </Text>
     );
-  };
+  }
+
+  const isFull =
+    st.kind === 'paid' ||
+    st.state === 'FULL' ||
+    (balance != null ? balance <= 0 : false);
+
+  if (isFull) {
+    return (
+      <Text style={{ fontStyle: 'italic', color: '#10B981' }}>
+        {t('cycleDetail.badgePaid') || 'Đã thu tiền'}
+      </Text>
+    );
+  }
+
+  // settled nhưng CHƯA đủ tiền
+  const isPartial =
+    st.kind === 'partial' ||
+    st.state === 'PARTIAL' ||
+    (paid != null && paid > 0 && (balance == null || balance > 0));
+
+  if (isPartial) {
+    return (
+      <Text style={{ fontStyle: 'italic', color: '#F59E0B' }}>
+        {t('cycleDetail.partial') || 'Chưa thanh toán đủ'}
+      </Text>
+    );
+  }
+
+  // Fallback (hiếm khi xảy ra)
+  return (
+    <Text style={{ fontStyle: 'italic', color: '#F59E0B' }}>
+      {t('cycleDetail.partial') || 'Chưa thanh toán đủ'}
+    </Text>
+  );
+};
 
   // ===== Phân nhóm chu kỳ =====
   const openCycles = useMemo(

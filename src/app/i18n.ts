@@ -267,6 +267,9 @@ const resources = {
         finalBalance: 'Số dư cuối cùng',
       },
       cycleDetail: {
+        paymentStatus: 'Trạng thái thu',
+        prevDebt: 'Nợ Kỳ Trước',
+        partial: 'Chưa thanh toán đủ',
         badgePaid: 'Đã thu tiền',
         badgeSettled: 'Đã Tất Toán',
         collectMore: 'Thu bổ sung',
@@ -1182,6 +1185,9 @@ const resources = {
         finalBalance: 'Final balance',
       },
       cycleDetail: {
+        paymentStatus: 'Payment status',
+        prevDebt: 'Previous period debt',
+        partial: 'Partially paid',
         badgePaid: 'Paid',
         badgeSettled: 'Settled',
         collectMore: 'Collect additional',
@@ -2244,6 +2250,9 @@ const resources = {
         finalBalance: 'Balance final',
       },
       cycleDetail: {
+        paymentStatus: 'Estado de pago',
+        prevDebt: 'Deuda del período anterior',
+        partial: 'Parcialmente pagado',
         badgePaid: 'Pagado',
         badgeSettled: 'Saldado',
         collectMore: 'Cobrar adicional',
@@ -3110,6 +3119,9 @@ const resources = {
         finalBalance: 'Solde final',
       },
       cycleDetail: {
+        paymentStatus: 'Statut du paiement',
+        prevDebt: 'Dette de la période précédente',
+        partial: 'Partiellement payé',
         badgePaid: 'Payé',
         badgeSettled: 'Soldé',
         collectMore: 'Encaisser un complément',
@@ -3790,6 +3802,9 @@ const resources = {
         finalBalance: 'Endsaldo',
       },
       cycleDetail: {
+        paymentStatus: 'Zahlungsstatus',
+        prevDebt: 'Rückstand aus der vorherigen Periode',
+        partial: 'Teilweise bezahlt',
         badgePaid: 'Bezahlt',
         badgeSettled: 'Beglichen',
         collectMore: 'Zusatzbetrag einziehen',
@@ -4457,6 +4472,9 @@ const resources = {
         finalBalance: '期末余额',
       },
       cycleDetail: {
+        paymentStatus: '付款状态',
+        prevDebt: '上期欠款',
+        partial: '部分已付',
         badgePaid: '已付款',
         badgeSettled: '已结清',
         collectMore: '追加收取',
@@ -5114,6 +5132,9 @@ const resources = {
         finalBalance: '最終残高',
       },
       cycleDetail: {
+        paymentStatus: '支払い状況',
+        prevDebt: '前期の未払金',
+        partial: '一部支払い',
         badgePaid: '支払い済み',
         badgeSettled: '清算済み',
         collectMore: '追加徴収',
@@ -5776,6 +5797,9 @@ const resources = {
         finalBalance: '최종 잔액',
       },
       cycleDetail: {
+        paymentStatus: '결제 상태',
+        prevDebt: '이전 기간 미납금',
+        partial: '부분 결제',
         badgePaid: '결제 완료',
         badgeSettled: '정산 완료',
         collectMore: '추가 수금',
@@ -6437,6 +6461,9 @@ const resources = {
         finalBalance: 'Финальный баланс',
       },
       cycleDetail: {
+        paymentStatus: 'Статус оплаты',
+        prevDebt: 'Задолженность за предыдущий период',
+        partial: 'Оплачено частично',
         badgePaid: 'Оплачено',
         badgeSettled: 'Погашено',
         collectMore: 'Взыскать дополнительно',
@@ -7145,6 +7172,9 @@ const resources = {
         finalBalance: 'الرصيد النهائي',
       },
       cycleDetail: {
+        paymentStatus: 'حالة الدفع',
+        prevDebt: 'دين الفترة السابقة',
+        partial: 'مدفوع جزئياً',
         badgePaid: 'مدفوع',
         badgeSettled: 'تمت التسوية',
         collectMore: 'تحصيل إضافي',
@@ -7773,6 +7803,9 @@ const resources = {
         finalBalance: 'ยอดสุทธิ',
       },
       cycleDetail: {
+        paymentStatus: 'สถานะการชำระเงิน',
+        prevDebt: 'ยอดค้างชำระงวดก่อน',
+        partial: 'ชำระบางส่วน',
         badgePaid: 'ชำระแล้ว',
         badgeSettled: 'ปิดยอดแล้ว',
         collectMore: 'เก็บเงินเพิ่ม',
@@ -8519,6 +8552,9 @@ const resources = {
         finalBalance: 'Saldo akhir',
       },
       cycleDetail: {
+        paymentStatus: 'Status pembayaran',
+        prevDebt: 'Tunggakan periode sebelumnya',
+        partial: 'Dibayar sebagian',
         badgePaid: 'Dibayar',
         badgeSettled: 'Lunas',
         collectMore: 'Tagih tambahan',
@@ -9295,6 +9331,9 @@ const resources = {
         finalBalance: 'Baki akhir',
       },
       cycleDetail: {
+        paymentStatus: 'Status pembayaran',
+        prevDebt: 'Tunggakan tempoh sebelumnya',
+        partial: 'Dibayar sebahagian',
         badgePaid: 'Dibayar',
         badgeSettled: 'Dilunaskan',
         collectMore: 'Kutip tambahan',
@@ -10091,6 +10130,9 @@ const resources = {
         finalBalance: 'Huling balanse',
       },
       cycleDetail: {
+        paymentStatus: 'Katayuan ng bayad',
+        prevDebt: 'Utang ng nakaraang yugto',
+        partial: 'Bahagyang nabayaran',
         badgePaid: 'Nabayaran',
         badgeSettled: 'Nabayaran nang buo',
         collectMore: 'Maningil pa',
@@ -10752,6 +10794,9 @@ const resources = {
         finalBalance: 'Saldo final',
       },
       cycleDetail: {
+        paymentStatus: 'Status do pagamento',
+        prevDebt: 'Dívida do período anterior',
+        partial: 'Parcialmente pago',
         badgePaid: 'Pago',
         badgeSettled: 'Quitado',
         collectMore: 'Cobrar adicional',
@@ -11399,6 +11444,9 @@ const resources = {
         finalBalance: 'अंतिम शेष',
       },
       cycleDetail: {
+        paymentStatus: 'भुगतान स्थिति',
+        prevDebt: 'पिछली अवधि का बकाया',
+        partial: 'आंशिक भुगतान',
         badgePaid: 'भुगतान हो गया',
         badgeSettled: 'निपटान हो गया',
         collectMore: 'अतिरिक्त वसूली करें',

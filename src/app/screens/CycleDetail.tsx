@@ -37,6 +37,8 @@ import {
   getEffectiveLateFeeConfig,
   calcDaysLate,
   computeLateFeePreview,
+  recordPaymentAutoAllocate,
+  getPreviousUnpaidByCycle,
 } from '../../services/rent';
 import { useCurrency } from '../../utils/currency';
 import {
@@ -53,7 +55,6 @@ import Share from 'react-native-share';
 import { scheduleReminder, cancelReminder } from '../../services/notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createInvoiceHtmlFile } from '../../services/invoiceHtml';
-import { createPdfFromImageFile } from '../../services/pdfFromImage';
 import { loadPaymentProfile } from '../../services/paymentProfile';
 import { markHappyEvent, maybeAskForReview } from '../../services/rateApp';
 import HiddenVietQR from '../components/HiddenVietQR';
@@ -93,7 +94,18 @@ function formatVNMoneyTyping(input: string) {
   const groupedInt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return rawDec ? `${groupedInt},${rawDec}` : groupedInt;
 }
-
+function isPrevDebtItem(it: any): boolean {
+  const d = String(it?.description || '')
+    .toLowerCase()
+    .trim();
+  if (d === 'prev.debt' || d === 'cycledetail.prevdebt' || d === 'nợ kỳ trước')
+    return true;
+  try {
+    const m = it?.meta_json ? JSON.parse(it.meta_json) : null;
+    if (m && (m.prevDebt === true || m.kind === 'prev.debt')) return true;
+  } catch {}
+  return false;
+}
 export default function CycleDetail({ route, navigation }: Props) {
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [qrTarget, setQrTarget] = useState<{ invId: string } | null>(null);
@@ -127,6 +139,65 @@ export default function CycleDetail({ route, navigation }: Props) {
   const [tenantPhone, setTenantPhone] = useState<string>('');
 
   const [settledItems, setSettledItems] = useState<any[]>([]);
+  // UI-only: nợ kỳ trước (không tính vào tổng kỳ này)
+  const [prevDebt, setPrevDebt] = useState<number>(0);
+  const prevDebtFromInvoiceItems = React.useMemo(() => {
+  if (!invId) return 0;
+  try {
+    const items: any[] = getInvoiceItems?.(invId) || [];
+
+    // nếu có dòng prev-debt rõ ràng
+    const prevItems = items.filter(isPrevDebtItem);
+    if (prevItems.length) {
+      return prevItems.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+    }
+
+    // suy chênh lệch tổng
+    const normalSum = items
+      .filter(it => !isPrevDebtItem(it))
+      .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+    const diff = Math.max((invTotal || 0) - normalSum, 0);
+    if (diff > 0) return diff;
+
+    // ⬅️ fallback cuối: dùng prevDebt UI (do backend chỉ cộng vào total)
+    return Number(prevDebt) || 0;
+  } catch {
+    return Number(prevDebt) || 0; // ⬅️ fallback khi lỗi
+  }
+}, [invId, invTotal, settledItems, prevDebt]); 
+
+const effectiveInvTotal = useMemo(() => {
+  const isClosed = status !== 'open';
+  const adjust = isClosed
+    ? (prevDebtFromInvoiceItems || prevDebt || 0)
+    : (prevDebt || 0);
+  return Math.max((invTotal || 0) - adjust, 0);
+}, [status, invTotal, prevDebt, prevDebtFromInvoiceItems]);
+
+  // Có dòng "Nợ kỳ trước" trong chính hóa đơn hiện tại không?
+const hasPrevDebtLine = useMemo(() => {
+  const isClosed = status !== 'open';
+  if (isClosed && Array.isArray(settledItems)) {
+    return settledItems.some(isPrevDebtItem);
+  }
+  return prevDebt > 0;
+}, [status, settledItems, prevDebt]);
+
+
+
+  const invoiceGrossTotal = useMemo(() => {
+    if (!invId) return previewTotal; // trước khi tất toán
+    // Nếu backend đã nhét prev.debt vào items => invTotal đã đủ; ngược lại cộng thêm prevDebt UI
+    return (invTotal || 0) + (prevDebtFromInvoiceItems > 0 ? 0 : prevDebt || 0);
+  }, [invId, invTotal, prevDebt, prevDebtFromInvoiceItems, previewTotal]);
+  // Helper i18n an toàn: nếu thiếu key thì dùng fallback
+  const tt = React.useCallback(
+    (key: string, fallback: string) => {
+      const s = t(key);
+      return s && s !== key ? s : fallback;
+    },
+    [t],
+  );
   const [currentReadings, setCurrentReadings] = useState<
     Record<string, number>
   >({});
@@ -182,32 +253,41 @@ export default function CycleDetail({ route, navigation }: Props) {
       setPayments(p || []);
     } catch {}
   };
-  const openCollectPopup = () => {
-    if (!invId) return;
-    const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const bal = Math.max((invTotal || 0) - paid, 0);
-    setPayAmt(formatDecimalTypingVNStrict(String(bal))); // <-- format khi set
-    setPayMethod('cash');
-    setShowPay(true);
-  };
+const openCollectPopup = () => {
+  if (!invId) return;
 
-  // Helper: tính tổng đã thu & còn lại
-  const getPaidAndBalance = React.useCallback(() => {
-    const total = Number(invTotal || 0);
-    let paid = 0;
+  // phần còn của KỲ NÀY (đã loại prevDebt) – dùng helper chuẩn
+  const { balance: balThis } = getPaidAndBalance();
+
+  // nợ các kỳ TRƯỚC
+  const deb = (() => {
     try {
-      const p = invId ? queryPaymentsOfInvoice?.(invId) ?? [] : [];
-      paid = p.reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0);
-    } catch {}
-    const balance = Math.max(total - paid, 0);
-    return { total, paid, balance };
-  }, [invId, invTotal]);
+      const d = getPreviousUnpaidByCycle?.(cycleId);
+      return typeof d === 'number' ? d : Number(d?.amount || 0);
+    } catch { return 0; }
+  })();
+
+  const need = balThis + Math.max(deb, 0);  // ⬅️ sẽ ra 500 + 100 = 600
+  setPayAmt(formatDecimalTypingVNStrict(String(need)));
+  setPayMethod('cash');
+  setShowPay(true);
+};
+const getPaidAndBalance = React.useCallback(() => {
+  const totalCurrent = computeThisCycleTotal();
+  let paid = 0;
+  try {
+    const p = invId ? (queryPaymentsOfInvoice?.(invId) ?? []) : [];
+    paid = p.reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0);
+  } catch {}
+  const balance = Math.max(totalCurrent - paid, 0);
+  return { total: totalCurrent, paid, balance };
+}, [invId, computeThisCycleTotal]);
 
   // Mở popup thu và tự điền số tiền cần thu
   const openPay = React.useCallback(() => {
     const { total, balance } = getPaidAndBalance();
     const defaultAmt = balance > 0 ? balance : total;
-    setPayAmt(formatVNMoneyTyping(String(defaultAmt)));
+    setPayAmt(formatDecimalTypingVNStrict(String(defaultAmt)));
     setPayMethod('cash');
     setShowPay(true);
   }, [getPaidAndBalance]);
@@ -224,6 +304,8 @@ export default function CycleDetail({ route, navigation }: Props) {
   const reload = () => {
     const cyc = getCycle(cycleId);
     if (!cyc) return;
+      const sraw = String(cyc.status || '').toLowerCase();
+  const s: 'open' | 'settled' = sraw === 'open' ? 'open' : 'settled';
     setStatus(String(cyc.status) as any);
     setPeriod({ s: cyc.period_start, e: cyc.period_end });
 
@@ -262,7 +344,7 @@ export default function CycleDetail({ route, navigation }: Props) {
       }
       setCurrentReadings(map);
 
-      if (String(cyc.status) === 'settled') {
+       if (s === 'settled') {
         setRows([]);
       } else {
         const list = listChargesForLease(lease.id) as any[];
@@ -297,6 +379,23 @@ export default function CycleDetail({ route, navigation }: Props) {
       setInvTotal(0);
       setCurrentReadings({});
       setSettledItems([]);
+      // ✅ Tải “Nợ kỳ trước” (để hiển thị preview và cộng vào tổng dự kiến)
+      try {
+        const deb = getPreviousUnpaidByCycle
+          ? getPreviousUnpaidByCycle(cycleId)
+          : { amount: 0 };
+        setPrevDebt(Number(deb?.amount || 0));
+      } catch {
+        setPrevDebt(0);
+      }
+    }
+    // nợ kỳ trước để hiển thị UI (không trộn vào tổng kỳ này)
+    try {
+      const d = getPreviousUnpaidByCycle?.(cycleId);
+      const pd = typeof d === 'number' ? d : Number(d?.amount ?? 0);
+      setPrevDebt(Number.isFinite(pd) ? pd : 0);
+    } catch {
+      setPrevDebt(0);
     }
   };
 
@@ -308,7 +407,7 @@ export default function CycleDetail({ route, navigation }: Props) {
   // Nếu mở từ danh sách Unpaid với openCollect=true => tự mở popup thu (sau khi có inv)
   useEffect(() => {
     if (openCollect && invId) {
-      openPay();
+      openCollectPopup();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openCollect, invId]);
@@ -325,8 +424,8 @@ export default function CycleDetail({ route, navigation }: Props) {
       }
     }
     for (const ex of extras) sum += parseAmountInt(ex.amount);
-    return sum;
-  }, [rows, extras]);
+    return sum + (Number(prevDebt) || 0);
+  }, [rows, extras, prevDebt]);
   useEffect(() => {
     const p: any = route?.params || {};
     if (p?.openCollect && invId) {
@@ -389,7 +488,18 @@ export default function CycleDetail({ route, navigation }: Props) {
       prev.map(r => (r.charge_type_id === id ? { ...r, value: formatted } : r)),
     );
   };
-
+const computeThisCycleTotal = React.useCallback(() => {
+  if (invId) {
+    try {
+      const items: any[] = getInvoiceItems?.(invId) || [];
+      const sumNoPrev = items
+        .filter(it => !isPrevDebtItem(it))
+        .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+      if (sumNoPrev > 0) return sumNoPrev;
+    } catch {}
+  }
+  return Number(effectiveInvTotal || 0);
+}, [invId, effectiveInvTotal, settledItems]);
   function validateBeforeSettle(): string | null {
     for (const r of rows) {
       if (r.is_variable === 1) {
@@ -538,7 +648,11 @@ export default function CycleDetail({ route, navigation }: Props) {
       return;
     }
     const rawInv = getInvoice(invId);
-    const items = (getInvoiceItems(invId) || []) as any[];
+    // Lọc bỏ item kỹ thuật 'prev.debt' khi xuất hoá đơn kỳ này
+    const items = ((getInvoiceItems(invId) || []) as any[]).filter(
+      (it: any) => !isPrevDebtItem(it),
+    );
+    const adjust = prevDebtFromInvoiceItems || prevDebt || 0;
     const branding = await loadPaymentProfile();
     const invForDoc = {
       ...rawInv,
@@ -550,10 +664,10 @@ export default function CycleDetail({ route, navigation }: Props) {
       issue_date: rawInv?.issue_date || new Date().toISOString().slice(0, 10),
       period_start: period.s,
       period_end: period.e,
-      subtotal: rawInv?.subtotal,
+      subtotal: Math.max((rawInv?.subtotal ?? 0) - adjust, 0),
       discount: rawInv?.discount || 0,
       tax: rawInv?.tax || 0,
-      total: rawInv?.total,
+      total: Math.max((rawInv?.total ?? 0) - adjust, 0),
       notes: rawInv?.notes || '',
     };
     try {
@@ -651,8 +765,9 @@ export default function CycleDetail({ route, navigation }: Props) {
               : it.description;
           lines.push(`• ${name}: ${format(it.amount)}`);
         }
+        const { total: totalForText, /* paid: paidSum, */ balance: balForText } = getPaidAndBalance();
         lines.push('— — —');
-        lines.push(`🔢 ${t('cycleDetail.total')}: ${format(invTotal)}`);
+        lines.push(`🔢 ${t('cycleDetail.total')}: ${format(totalForText)}`);
 
         // Thêm lịch sử thanh toán
         try {
@@ -782,7 +897,7 @@ export default function CycleDetail({ route, navigation }: Props) {
         (s, p) => s + (Number(p.amount) || 0),
         0,
       );
-      const balance = Math.max((invTotal || 0) - paid, 0);
+      const balance = Math.max((effectiveInvTotal || 0) - paid, 0);
 
       const cfg = getEffectiveLateFeeConfig(leaseId);
       const daysLate = calcDaysLate(period.e, cfg, new Date());
@@ -925,9 +1040,24 @@ export default function CycleDetail({ route, navigation }: Props) {
                 {t('cycleDetail.status')}:{' '}
                 {status === 'open' ? t('common.open') : t('common.close')}{' '}
               </Text>
+{invId ? (
+  <Text style={{ color: c.text }}>
+    {t('cycleDetail.invoiceTotal')}: {format(effectiveInvTotal || 0)}
+  </Text>
+) : null}
+              {prevDebt > 0 ? (
+                <Text style={{ color: c.subtext }}>
+                  {t('cycleDetail.prevDebt') || 'Nợ kỳ trước'}:{' '}
+                  {format(prevDebt)}
+                </Text>
+              ) : null}
+
               {invId ? (
                 <Text style={{ color: c.text }}>
-                  {t('cycleDetail.invoiceTotal')}: {format(invTotal)}
+                  {(t('cycleDetail.paymentStatus') || 'Trạng thái thu') + ': '}
+                  {getPaidAndBalance().balance > 0
+                    ? t('cycleDetail.partial') || 'Chưa thanh toán đủ'
+                    : t('invoice.fullyPaid') || 'Đã thanh toán đủ'}
                 </Text>
               ) : null}
             </Card>
@@ -940,6 +1070,31 @@ export default function CycleDetail({ route, navigation }: Props) {
 
               {status === 'settled' && settledItems.length > 0 ? (
                 <>
+                  {/* UI-only: Nợ kỳ trước */}
+                  {prevDebt > 0 && (
+                    <View style={{ borderRadius: 10, padding: 10 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text style={{ color: c.text, fontWeight: '700' }}>
+                          {t('cycleDetail.prevDebt') || 'Nợ kỳ trước'}
+                        </Text>
+                        <Text style={{ color: c.subtext }}>
+                          {t('cycleDetail.fixed') || 'Cố định'}
+                        </Text>
+                      </View>
+                      <Text style={{ color: c.subtext }}>
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(prevDebt)}
+                        </Text>
+                      </Text>
+                    </View>
+                  )}
                   {/* Opening cycle */}
                   {openingItems.length > 0 && (
                     <View style={{ borderRadius: 10, padding: 10 }}>
@@ -983,97 +1138,128 @@ export default function CycleDetail({ route, navigation }: Props) {
                   )}
 
                   {/* Normal items */}
-                  {normalItems.map(it => {
-                    let meterInfo: { start?: number; end?: number } = {};
-                    let forStart: string | undefined;
-                    let forEnd: string | undefined;
-                    if (it.meta_json) {
-                      try {
-                        const m = JSON.parse(it.meta_json);
-                        if (typeof m?.meter_start === 'number')
-                          meterInfo.start = m.meter_start;
-                        if (typeof m?.meter_end === 'number')
-                          meterInfo.end = m.meter_end;
-                        if (m?.for_period_start) forStart = m.for_period_start;
-                        if (m?.for_period_end) forEnd = m.for_period_end;
-                      } catch {}
-                    }
-                    return (
-                      <View
-                        key={it.id}
-                        style={{ borderRadius: 10, padding: 10 }}
-                      >
+                  {normalItems
+                    // Ẩn item kỹ thuật nếu backend từng nhét 'prev.debt' vào invoice items
+                    .filter((it: any) => !isPrevDebtItem(it))
+                    .map(it => {
+                      let meterInfo: { start?: number; end?: number } = {};
+                      let forStart: string | undefined;
+                      let forEnd: string | undefined;
+                      if (it.meta_json) {
+                        try {
+                          const m = JSON.parse(it.meta_json);
+                          if (typeof m?.meter_start === 'number')
+                            meterInfo.start = m.meter_start;
+                          if (typeof m?.meter_end === 'number')
+                            meterInfo.end = m.meter_end;
+                          if (m?.for_period_start)
+                            forStart = m.for_period_start;
+                          if (m?.for_period_end) forEnd = m.for_period_end;
+                        } catch {}
+                      }
+                      return (
                         <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            marginBottom: 6,
-                          }}
+                          key={it.id}
+                          style={{ borderRadius: 10, padding: 10 }}
                         >
-                          <Text style={{ color: c.text, fontWeight: '700' }}>
-                            {it.description === 'rent.roomprice'
-                              ? t('leaseForm.baseRent')
-                              : it.description}
-                          </Text>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              marginBottom: 6,
+                            }}
+                          >
+                            <Text style={{ color: c.text, fontWeight: '700' }}>
+                              {it.description === 'rent.roomprice'
+                                ? t('leaseForm.baseRent')
+                                : it.description}
+                            </Text>
+                            <Text style={{ color: c.subtext }}>
+                              {it.unit
+                                ? `(${
+                                    it.unit === 'rent.month' ||
+                                    it.unit === 'tháng'
+                                      ? t('rent.month')
+                                      : it.unit
+                                  })`
+                                : t('cycleDetail.fixed')}
+                            </Text>
+                          </View>
+
+                          {forStart && forEnd ? (
+                            <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                              {t('cycleDetail.forPeriod')}:{' '}
+                              <Text style={{ color: c.text }}>
+                                {formatDateISO(forStart, dateFormat, language)}{' '}
+                                - {formatDateISO(forEnd, dateFormat, language)}
+                              </Text>
+                            </Text>
+                          ) : null}
+
+                          {!!(
+                            meterInfo.start != null || meterInfo.end != null
+                          ) && (
+                            <Text style={{ color: c.subtext, marginBottom: 4 }}>
+                              {t('cycleDetail.prevIndex')}:{' '}
+                              <Text style={{ color: c.text }}>
+                                {groupVN(String(meterInfo.start ?? 0))}
+                              </Text>
+                              {'  '}•{'  '}
+                              {t('cycleDetail.currIndex')}:{' '}
+                              <Text style={{ color: c.text }}>
+                                {groupVN(String(meterInfo.end ?? 0))}
+                              </Text>
+                            </Text>
+                          )}
+
                           <Text style={{ color: c.subtext }}>
-                            {it.unit
-                              ? `(${
-                                  it.unit === 'rent.month'
-                                    ? t('rent.month')
-                                    : it.unit === 'tháng'
-                                    ? t('rent.month')
-                                    : t('rent.unit')
-                                })`
-                              : t('cycleDetail.fixed')}
+                            {t('cycleDetail.qtyShort')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {it.quantity ?? 1}
+                            </Text>{' '}
+                            • {t('cycleDetail.unitPrice')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(it.unit_price)}
+                            </Text>{' '}
+                            • {t('cycleDetail.amount')}:{' '}
+                            <Text style={{ color: c.text }}>
+                              {format(it.amount)}
+                            </Text>
                           </Text>
                         </View>
-
-                        {forStart && forEnd ? (
-                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.forPeriod')}:{' '}
-                            <Text style={{ color: c.text }}>
-                              {formatDateISO(forStart, dateFormat, language)} -{' '}
-                              {formatDateISO(forEnd, dateFormat, language)}
-                            </Text>
-                          </Text>
-                        ) : null}
-
-                        {!!(
-                          meterInfo.start != null || meterInfo.end != null
-                        ) && (
-                          <Text style={{ color: c.subtext, marginBottom: 4 }}>
-                            {t('cycleDetail.prevIndex')}:{' '}
-                            <Text style={{ color: c.text }}>
-                              {groupVN(String(meterInfo.start ?? 0))}
-                            </Text>
-                            {'  '}•{'  '}
-                            {t('cycleDetail.currIndex')}:{' '}
-                            <Text style={{ color: c.text }}>
-                              {groupVN(String(meterInfo.end ?? 0))}
-                            </Text>
-                          </Text>
-                        )}
-
-                        <Text style={{ color: c.subtext }}>
-                          {t('cycleDetail.qtyShort')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {it.quantity ?? 1}
-                          </Text>{' '}
-                          • {t('cycleDetail.unitPrice')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {format(it.unit_price)}
-                          </Text>{' '}
-                          • {t('cycleDetail.amount')}:{' '}
-                          <Text style={{ color: c.text }}>
-                            {format(it.amount)}
-                          </Text>
-                        </Text>
-                      </View>
-                    );
-                  })}
+                      );
+                    })}
                 </>
               ) : (
                 <>
+                  {/* ✅ Hiện “Nợ kỳ trước” khi CHƯA tất toán (preview) */}
+                  {prevDebt > 0 && (
+                    <View style={{ borderRadius: 10, padding: 10 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text style={{ color: c.text, fontWeight: '700' }}>
+                          {t('cycleDetail.prevDebt') ||
+                            t('prev.debt') ||
+                            'Nợ kỳ trước'}
+                        </Text>
+                        <Text style={{ color: c.subtext }}>
+                          {t('cycleDetail.fixed')}
+                        </Text>
+                      </View>
+                      <Text style={{ color: c.subtext }}>
+                        {t('cycleDetail.amount')}:{' '}
+                        <Text style={{ color: c.text }}>
+                          {format(prevDebt)}
+                        </Text>
+                      </Text>
+                    </View>
+                  )}
+                  {/* Khi chưa tất toán: vẫn cho thấy prevDebt như 1 dòng tham khảo */}
                   {rows.map(r => (
                     <View
                       key={r.charge_type_id}
@@ -1190,11 +1376,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                   </Text>
                 ))}
                 {(() => {
-                  const paid = payments.reduce(
-                    (s, p) => s + (Number(p.amount) || 0),
-                    0,
-                  );
-                  const bal = Math.max((invTotal || 0) - paid, 0);
+                  const { paid, balance } = getPaidAndBalance();
                   return (
                     <>
                       <Text style={{ color: c.text, marginTop: 4 }}>
@@ -1202,7 +1384,7 @@ export default function CycleDetail({ route, navigation }: Props) {
                         {format(paid)}
                       </Text>
                       <Text style={{ color: c.text }}>
-                        {t('invoice.balance') || 'Còn lại'}: {format(bal)}
+                        {t('invoice.balance') || 'Còn lại'}: {format(balance)}
                       </Text>
                     </>
                   );
@@ -1528,7 +1710,8 @@ export default function CycleDetail({ route, navigation }: Props) {
               </Text>
               {invId ? (
                 <Text style={{ color: c.subtext }}>
-                  ({t('cycleDetail.currentInvoice')}: {format(invTotal)})
+                  ({t('cycleDetail.currentInvoice')}:{' '}
+                  {format(effectiveInvTotal)})
                 </Text>
               ) : null}
             </View>
@@ -2071,28 +2254,24 @@ export default function CycleDetail({ route, navigation }: Props) {
                       return;
                     }
 
-                    // Ghi nhận thanh toán
-                    recordPayment(invId, amt, payMethod || 'cash');
+                    // ✅ Luôn auto-allocate: trả nợ các kỳ cũ trước, phần còn lại vào kỳ này
+                    const remain =
+                      recordPaymentAutoAllocate(
+                        leaseId,
+                        invId,
+                        amt,
+                        payMethod || 'cash',
+                      ) || 0;
+
                     setShowPay(false);
                     setPayAmt('');
                     loadPayments();
                     reload();
-
-                    // 🔁 Tính lại số dư ngay sau khi thu
-                    let paidSum = 0;
-                    try {
-                      const afterPays = queryPaymentsOfInvoice
-                        ? queryPaymentsOfInvoice(invId)
-                        : [];
-                      paidSum = afterPays.reduce(
-                        (s: number, p: any) => s + (Number(p.amount) || 0),
-                        0,
-                      );
-                    } catch {}
-                    const balance = Math.max((invTotal || 0) - paidSum, 0);
+setTimeout(loadPayments, 0);
+                    // Tính lại số dư của kỳ hiện tại (đã LOẠI nợ kỳ trước)
+                    const { balance } = getPaidAndBalance();
 
                     if (balance <= 0) {
-                      // ✅ Đã thu đủ: hỏi có muốn gửi biên nhận/hóa đơn luôn không
                       Alert.alert(
                         t('invoice.fullyPaid') || 'Đã thanh toán đủ',
                         t('invoice.sendReceiptAsk') ||
@@ -2106,10 +2285,19 @@ export default function CycleDetail({ route, navigation }: Props) {
                         ],
                       );
                     } else {
-                      // Chưa đủ: chỉ báo thành công
                       Alert.alert(
                         t('common.success'),
                         t('invoice.collected') || 'Đã ghi nhận thanh toán',
+                      );
+                    }
+
+                    // Nếu khách đưa dư toàn bộ nợ đến hiện tại
+                    if (remain > 0) {
+                      Alert.alert(
+                        t('common.success'),
+                        (t('cycleDetail.overCollectedNote') ||
+                          'Đã thu dư so với toàn bộ nợ đến kỳ hiện tại') +
+                          `: ${format(remain)}`,
                       );
                     }
                   } catch (e: any) {

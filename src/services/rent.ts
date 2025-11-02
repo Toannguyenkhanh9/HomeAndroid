@@ -295,7 +295,7 @@ export function startLeaseAdvanced(cfg: LeaseConfig) {
       baseRent,
       deposit,
       durationDays ?? null,
-      0,
+      cfg.isAllInclusive ? 1 : 0,
       endDateISO ?? null,
       tenantId,
       baseRentCollect,
@@ -627,6 +627,9 @@ function ensureInvoicesExtraColumns() {
   try {
     exec(`ALTER TABLE invoices ADD COLUMN qr_png_path TEXT`);
   } catch {}
+   try {
+    exec(`ALTER TABLE invoices ADD COLUMN code TEXT`);
+  } catch {}
   // (future-proof) If you later add code/notes, you can extend here similarly.
 }
 
@@ -656,6 +659,75 @@ export function getInvoiceItems(invoiceId: string) {
     [invoiceId],
   );
 }
+export function getInvoiceBalance(invoiceId: string): number {
+  const inv = getInvoice(invoiceId);
+  if (!inv) return 0;
+  const pays = queryPaymentsOfInvoice ? queryPaymentsOfInvoice(invoiceId) : [];
+  const paid = pays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+  const total = Number(inv.total || 0);
+  return Math.max(total - paid, 0);
+}
+
+/** Danh sách hóa đơn của 1 lease theo thứ tự cũ → mới */
+export function listInvoicesByLeaseOldestFirst(leaseId: string): Invoice[] {
+  ensureInvoicesExtraColumns();
+  return query<Invoice>(
+    `SELECT * FROM invoices WHERE lease_id=? ORDER BY period_start ASC, issue_date ASC, rowid ASC`,
+    [leaseId],
+  );
+}
+
+/** Tổng nợ chưa thanh toán của TẤT CẢ kỳ trước thời điểm cycleId */
+export function getPreviousUnpaidByCycle(cycleId: string): number {
+  const cy = getCycle?.(cycleId);
+  if (!cy) return 0;
+  const leaseId = cy.lease_id;
+  const start = String(cy.period_start);
+
+  const all = (listCycles?.(leaseId) || []) as any[];
+  let debt = 0;
+
+  for (const c of all) {
+    if (!c?.invoice_id) continue;
+    if (String(c.id) === String(cycleId)) continue;
+    // Chỉ tính các kỳ kết thúc trước kỳ hiện tại
+    if (String(c.period_end) >= start) continue;
+
+    const invId = c.invoice_id;
+    const eff   = _effectiveInvoiceTotal(invId);
+    const paid  = _invoicePaidSum(invId);
+    debt += Math.max(eff - paid, 0);
+  }
+  return debt;
+}
+
+
+/** Thêm 1 dòng “Nợ kỳ trước” vào invoice (nếu có) */
+export function appendPreviousDebtLineToInvoice(invoiceId: string, cycleId: string): number {
+  const amt = Math.max(0, Number(getPreviousUnpaidByCycle(cycleId) || 0));
+
+  // Luôn xoá mọi dòng prev.debt cũ để tránh nhân đôi
+  exec(
+    `DELETE FROM invoice_items
+     WHERE invoice_id=? AND json_extract(meta_json,'$.prev_debt')=1`,
+    [invoiceId]
+  );
+
+  if (amt <= 0) return 0;
+
+  addInvoiceItem(
+    invoiceId,
+    'prev.debt',
+    1,
+    undefined,
+    amt,
+    amt,
+    undefined,
+    { prev_debt: 1 }   // cờ nhận diện rõ ràng
+  );
+  return amt;
+}
+
 
 /** ✅ VietQR: cập nhật đường dẫn ảnh QR đã render */
 export function updateInvoiceQrPath(invoiceId: string, path: string) {
@@ -745,7 +817,13 @@ function dedupeBaseRentItems(invoiceId: string) {
   }
   recalcInvoice(invoiceId);
 }
-
+function _invoicePaidSum(invId: string): number {
+  const row = query<{ sum: number }>(
+    `SELECT SUM(amount) AS sum FROM payments WHERE invoice_id=?`,
+    [invId]
+  )[0];
+  return Number(row?.sum || 0);
+}
 function addInvoiceItem(
   invoiceId: string,
   description: string,
@@ -757,22 +835,27 @@ function addInvoiceItem(
   meta?: any,
 ) {
   const id = uuidv4();
+  const q  = Number(quantity) || 0;
+  const up = Number(unit_price) || 0;  // ⬅️ ép số, không để null
+  const am = Number(amount) || 0;
+
   exec(
     `INSERT INTO invoice_items (id, invoice_id, description, quantity, unit, unit_price, amount, charge_type_id, meta_json)
-        VALUES (?,?,?,?,?,?,?,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?)`,
     [
       id,
       invoiceId,
       description,
-      quantity,
+      q,
       unit ?? null,
-      unit_price,
-      amount,
+      up,
+      am,
       chargeTypeId ?? null,
       meta ? JSON.stringify(meta) : null,
     ],
   );
 }
+
 function recalcInvoice(invoiceId: string) {
   const sum =
     query<{ sum: number }>(
@@ -788,23 +871,79 @@ export function recordPayment(
   invoiceId: string,
   amount: number,
   method: string,
+  paymentDate?: string
 ) {
   const id = uuidv4();
   exec(
     `INSERT INTO payments (id, invoice_id, payment_date, amount, method) VALUES (?,?,?,?,?)`,
-    [id, invoiceId, toYMD(new Date()), amount, method],
+    [id, invoiceId, paymentDate || toYMD(new Date()), amount, method],
   );
   const inv = getInvoice(invoiceId);
-  const paid =
-    query<{ sum: number }>(
-      `SELECT SUM(amount) sum FROM payments WHERE invoice_id=?`,
-      [invoiceId],
-    )[0]?.sum ?? 0;
+  const paid = query<{ sum: number }>(
+    `SELECT SUM(amount) sum FROM payments WHERE invoice_id=?`,
+    [invoiceId],
+  )[0]?.sum ?? 0;
   exec(`UPDATE invoices SET status=? WHERE id=?`, [
     paid >= inv.total ? 'paid' : 'partial',
     invoiceId,
   ]);
 }
+
+/**
+ * Tự động phân bổ khoản thu: từ hóa đơn cũ nhất còn nợ → dần đến hóa đơn TARGET (cycle hiện tại).
+ * Không chi sang hóa đơn sau TARGET. Trả về phần dư (nếu còn).
+ */
+// rent.ts
+// rent.ts
+export function recordPaymentAutoAllocate(
+  leaseId: string,
+  currentInvId: string,
+  amount: number,
+  method: string = 'cash',
+  paymentDate?: string
+): number {
+  let remain = Number(amount) || 0;
+  const payDate = paymentDate || new Date().toISOString().slice(0, 10);
+
+  const curCycle = _findCycleByInvoice(leaseId, currentInvId);
+  const start = String(curCycle?.period_start || '');
+
+  // 1) Trả các kỳ settled trước kỳ hiện tại (cũ -> mới)
+  const before = (listCycles?.(leaseId) || [])
+    .filter((c: any) => String(c.status) === 'settled'
+      && c.invoice_id
+      && String(c.period_end) < start)
+    .sort((a: any, b: any) => (a.period_start < b.period_start ? -1 : 1)); // oldest first
+
+  for (const c of before) {
+    if (remain <= 0) break;
+    const invId = c.invoice_id;
+    const need = Math.max(_effectiveInvoiceTotal(invId) - _invoicePaidSum(invId), 0);
+    if (need <= 0) continue;
+    const pay = Math.min(need, remain);
+    if (pay > 0) {
+      // dùng hàm recordPayment đang có sẵn trong file
+      recordPayment?.(invId, pay, method, payDate);
+      remain -= pay;
+    }
+  }
+
+  // 2) Trả vào kỳ hiện tại
+  if (remain > 0 && currentInvId) {
+    const needThis = Math.max(_effectiveInvoiceTotal(currentInvId) - _invoicePaidSum(currentInvId), 0);
+    const pay = Math.min(needThis, remain);
+    if (pay > 0) {
+      recordPayment?.(currentInvId, pay, method, payDate);
+      remain -= pay;
+    }
+  }
+
+  return remain; // phần còn dư (nếu khách đưa quá)
+}
+
+
+
+
 
 export function settleCycleWithInputs(
   cycleId: string,
@@ -957,7 +1096,7 @@ export function settleCycleWithInputs(
         for_period_end: c.period_end,
       });
   }
-
+appendPreviousDebtLineToInvoice(inv.id, cycleId);
 recalcInvoice(inv.id);
 exec(`UPDATE lease_cycles SET status='settled' WHERE id=?`, [cycleId]);
 
@@ -2858,13 +2997,12 @@ export function computeLateFeePreview(balance: number, daysLate: number, cfg: La
 
 // Đếm invoice quá hạn (period_end < hôm nay) còn nợ
 export function countOverdueUnpaid(apartmentId?: string): number {
-  const today = ymd(new Date());
-  // dùng listUnpaidBalances nếu bạn đã có — ở đây gọi raw để an toàn
+  const today = toYMD(new Date());
   const rows = query<any>(`
     SELECT i.id as invoice_id, c.id as cycle_id, c.period_end, i.total,
            (SELECT COALESCE(SUM(p.amount),0) FROM payments p WHERE p.invoice_id=i.id) AS paid
     FROM invoices i
-    JOIN lease_cycles c ON c.id = i.cycle_id
+    JOIN lease_cycles c ON c.invoice_id = i.id   -- ⬅️ SỬA CHỖ NÀY
     JOIN leases l ON l.id = c.lease_id
     JOIN rooms r ON r.id = l.room_id
     ${apartmentId ? `WHERE r.apartment_id=?` : ''}
@@ -2876,6 +3014,7 @@ export function countOverdueUnpaid(apartmentId?: string): number {
   }
   return count;
 }
+
 
 // Tính số ngày trễ dựa vào config applyAfterDays
 export function calcDaysLate(period_end: string, cfg: LateFeeConfig, asOf = new Date()): number {
@@ -2974,15 +3113,81 @@ export function getInvoicePaidState(invId: string) {
   return { total, paid, balance, isPaid };
 }
 
-export function getCyclePaymentStatus(cycleId: string):
-  | { kind: 'open' }
-  | { kind: 'settled'; balance: number }
-  | { kind: 'paid' } {
-  const cyc = getCycle(cycleId);
-  if (!cyc) return { kind: 'open' };
-  if (String(cyc.status) !== 'settled') return { kind: 'open' };
-  if (!cyc.invoice_id) return { kind: 'settled', balance: 0 };
-  const { balance, isPaid } = getInvoicePaidState(cyc.invoice_id);
-  return isPaid ? { kind: 'paid' } : { kind: 'settled', balance };
+
+function _isPrevDebtItem(it: any): boolean {
+  const d = String(it?.description || '').toLowerCase().trim();
+  if (d === 'prev.debt' || d === 'cycledetail.prevdebt' || d === 'nợ kỳ trước') return true;
+  try {
+    const m = it?.meta_json ? JSON.parse(it.meta_json) : null;
+    if (m && (m.prev_debt === 1 || m.prev_debt === true || m.prevDebt === true || m.kind === 'prev.debt'))
+      return true;
+  } catch {}
+  return false;
+}
+function _effectiveInvoiceTotal(invId: string): number {
+  const inv = getInvoice?.(invId);
+  const rawTotal = Number(inv?.total || 0);
+  let items: any[] = [];
+  try { items = (getInvoiceItems?.(invId) || []) as any[]; } catch {}
+
+  if (!items.length) return rawTotal;
+
+  const normalSum = items.filter(it => !_isPrevDebtItem(it))
+                         .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const prevSum   = items.filter(_isPrevDebtItem)
+                         .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
+  // Nếu có dòng prev.debt rõ ràng -> lấy tổng thường
+  if (prevSum > 0) return normalSum;
+
+  // Fallback: backend chỉ cộng thẳng prev.debt vào total
+  const diff = Math.max(rawTotal - normalSum, 0);
+  return diff > 0 ? rawTotal - diff : rawTotal;
 }
 
+/** Tìm cycle theo invoice id (tiện cho auto-allocate) */
+function _findCycleByInvoice(leaseId: string, invId: string) {
+  const all = listCycles?.(leaseId) || [];
+  return all.find((c: any) => c.invoice_id === invId);
+}
+// Tổng kỳ hiện tại (đã LOẠI nợ kỳ trước)
+export function computeEffectiveInvoiceTotal(invoiceId: string): {
+  rawTotal: number;        // tổng gốc (có thể gồm prev.debt)
+  prevDebtPart: number;    // phần nợ kỳ trước được gộp vào invoice (nếu có)
+  effectiveTotal: number;  // tổng cần thu cho KỲ NÀY
+} {
+  const inv = getInvoice(invoiceId);
+  const total = Number(inv?.total || 0);
+  const items: any[] = getInvoiceItems?.(invoiceId) || [];
+
+  // 1) nếu backend đã có dòng prev.debt rõ ràng
+  const prevFromItems = items.filter(_isPrevDebtItem)
+    .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
+  // 2) nếu không có dòng rõ ràng → suy từ chênh lệch
+  const normalSum = items.filter(it => !_isPrevDebtItem(it))
+    .reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const impliedPrev = Math.max(total - normalSum, 0);
+
+  const prevDebtPart = prevFromItems > 0 ? prevFromItems : impliedPrev;
+  const effectiveTotal = Math.max(total - prevDebtPart, 0);
+
+  return { rawTotal: total, prevDebtPart, effectiveTotal };
+}
+
+// Trạng thái thanh toán của 1 kỳ (dựa trên hóa đơn của kỳ)
+export function getCyclePaymentStatus(cycleId: string) {
+  const cy = getCycle?.(cycleId);
+  if (!cy || String(cy.status) !== 'settled' || !cy.invoice_id) {
+    return { kind: 'open', total: 0, paid: 0, balance: 0 };
+  }
+  const invId = cy.invoice_id;
+  const total = _effectiveInvoiceTotal(invId);
+  const paid  = _invoicePaidSum(invId);
+  const balance = Math.max(total - paid, 0);
+
+  return {
+    kind: balance === 0 ? 'paid' : 'partial',
+    total, paid, balance,
+  };
+}
