@@ -1,10 +1,11 @@
-import React from 'react';
+import React,{ useEffect } from 'react';
 import {
   StatusBar,
   useColorScheme,
   ImageBackground,
 } from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import { initIAP, endIAP } from './src/iap';
 
 // Settings + i18n
 import {SettingsProvider, useSettings} from './src/app/state/SettingsContext';
@@ -35,6 +36,12 @@ function LanguageSync({children}: {children: React.ReactNode}) {
 
 
 export default function App() {
+    useEffect(() => {
+    initIAP();
+    return () => {
+      endIAP();
+    };
+  }, []);
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
